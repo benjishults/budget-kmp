@@ -29,6 +29,7 @@ replay_pid*
 
 local.properties
 .idea/
+.fleet/
 
 build/
 !**/src/**/build/

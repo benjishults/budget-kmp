@@ -40,10 +40,10 @@ kotlin {
         }
         binaries.executable()
     }
-    
+
     sourceSets {
         val desktopMain by getting
-        
+
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -88,6 +88,12 @@ android {
         }
     }
     compileOptions {
+        // NOTE
+        //      1. target determines what JVMs the build can run on: what byte-codes and Java libraries can be used
+        //      2. source determines what Java language features can be used
+        //      3. we should always run on latest trusted JVM regardless of the target or source compatibility
+        //      4. we should always compile with a recent JDK regardless of the target or source compatibility
+        //      5. latest versions of android use JVM 17 (but 11 is safer)
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
