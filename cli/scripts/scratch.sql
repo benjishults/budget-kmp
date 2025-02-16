@@ -193,6 +193,7 @@ from accounts acc
                   and acc.budget_id = aap.budget_id
 where acc.budget_id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47'
   and acc.type = 'category';
+
 select *
 from accounts acc
          join account_active_periods aap
@@ -327,18 +328,40 @@ select t.id            as transaction_id,
        t.description   as transaction_description,
        t.timestamp_utc as transaction_timestamp,
        i.amount,
+       t.type,
        i.description,
-       i.category_account_id,
-       i.draft_account_id,
-       i.real_account_id,
-       i.charge_account_id,
+       i.account_id,
        i.draft_status
 from transactions t
          join transaction_items i
               on i.transaction_id = t.id
                   and t.budget_id = i.budget_id
-where t.budget_id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47'
-  and i.category_account_id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca'
+-- where t.budget_id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47'
+--   and i.account_id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca'
+order by t.timestamp_utc desc, t.id
+limit 30
+;
+
+select -- t.id            as transaction_id,
+       t.description   as transaction_description,
+       t.timestamp_utc as transaction_timestamp,
+       i.amount,
+       t.type,
+       i.description,
+--        i.account_id,
+       i.draft_status,
+       a.name,
+       i.id
+from transactions t
+        join transaction_items i
+            on i.transaction_id = t.id
+                and t.budget_id = i.budget_id
+        join accounts a
+            on a.id = i.account_id
+where -- t.budget_id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47'
+    t.type = 'income'
+    and a.type = 'charge'
+--     and i.account_id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca'
 order by t.timestamp_utc desc, t.id
 limit 30
 ;

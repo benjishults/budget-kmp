@@ -4,6 +4,8 @@ import bps.budget.analytics.AnalyticsOptions
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.model.Account
 import bps.budget.model.BudgetData
+import bps.budget.model.ChargeAccount
+import bps.budget.model.DraftStatus
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
 import bps.budget.model.Transaction.Type
@@ -236,7 +238,14 @@ fun createTransactionAddingToRealAccountAndGeneral(
             addItemBuilderTo(amount)
         }
         with(realAccount) {
-            addItemBuilderTo(amount)
+            addItemBuilderTo(
+                amount = amount,
+                draftStatus =
+                    if (realAccount is ChargeAccount)
+                        DraftStatus.outstanding
+                    else
+                        DraftStatus.none,
+            )
         }
     }
     .build()
