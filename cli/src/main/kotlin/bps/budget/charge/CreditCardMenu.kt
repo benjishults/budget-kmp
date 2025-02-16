@@ -1,16 +1,15 @@
 package bps.budget.charge
 
 import bps.budget.budgetQuitItem
-import bps.console.io.WithIo
 import bps.budget.consistency.commitCreditCardPaymentConsistently
 import bps.budget.model.BudgetData
 import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
+import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.TransactionDao
 import bps.budget.persistence.UserConfiguration
-import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.transaction.ViewTransactionFixture
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
 import bps.budget.transaction.allocateSpendingItemMenu
@@ -21,11 +20,11 @@ import bps.console.inputs.NonNegativeStringValidator
 import bps.console.inputs.SimplePrompt
 import bps.console.inputs.SimplePromptWithDefault
 import bps.console.inputs.getTimestampFromUser
+import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.backItem
 import bps.console.menu.pushMenu
-import bps.console.menu.quitItem
 import bps.console.menu.takeAction
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -264,12 +263,14 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
     val remainingToBeCovered: BigDecimal = runningTotal + chargeTransactionItem.amount
     when {
         remainingToBeCovered == BigDecimal.ZERO.setScale(2) -> {
+            // TODO might want to make this a prompt for approval since, with a credit, this could possibly stop too early
             menuSession.pop()
             commitCreditCardPaymentConsistently(billPayTransaction, allSelectedItems, transactionDao, budgetData)
             outPrinter.important("Payment recorded!")
             menuSession.pop()
         }
         remainingToBeCovered < BigDecimal.ZERO -> {
+            // TODO what happens if there's just a credit?
             outPrinter.important("ERROR: this bill payment amount is not large enough to cover that transaction")
         }
         else -> {

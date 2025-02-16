@@ -361,10 +361,11 @@ class JdbcTransactionDao(
                         insertTransaction.executeUpdate()
                     }
                 with(accountDao) {
-                    val (statement, balancesToAdd) = insertTransactionItemsPreparedStatement(
-                        billPayTransaction,
-                        budgetId,
-                    )
+                    val (statement, balancesToAdd) =
+                        insertTransactionItemsPreparedStatement(
+                            billPayTransaction,
+                            budgetId,
+                        )
                     statement
                         .use { insertTransactionItem: PreparedStatement ->
                             insertTransactionItem.executeUpdate()
