@@ -6,7 +6,7 @@ import androidx.compose.ui.window.application
 fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
-        title = "budget-kmp",
+        title = "BPS Budget",
     ) {
         App()
     }
