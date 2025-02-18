@@ -13,6 +13,9 @@ fun main() {
 
 fun Application.module() {
     routing {
+        get("/test") {
+            call.respondText("succeeded")
+        }
         get("/") {
             call.respondText("Ktor: ${Greeting().greet()}")
         }
