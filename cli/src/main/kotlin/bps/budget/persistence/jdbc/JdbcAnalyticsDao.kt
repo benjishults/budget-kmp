@@ -181,15 +181,20 @@ class JdbcAnalyticsDao(
             val incomes = MonthlyItemSeries()
             prepareStatement(
                 """
-                |select t.timestamp_utc, ti.amount from transaction_items ti
+                |select t.timestamp_utc, i.amount
+                |from transaction_items i
                 |join transactions t
-                |  on ti.transaction_id = t.id
-                |    and ti.budget_id = t.budget_id
+                |    on i.transaction_id = t.id
+                |    and i.budget_id = t.budget_id
+                |join accounts a
+                |    on i.account_id = a.id
+                |    and i.budget_id = a.budget_id
                 |where t.type = 'income'
-                |  and ti.amount > 0
+                |  and i.amount > 0
+                |  and a.type in ('real', 'charge')
                 |  and t.timestamp_utc >= ?
                 |  ${if (options.endDateLimited) "and t.timestamp_utc < ?" else ""}
-                |  and ti.budget_id = ?
+                |  and i.budget_id = ?
                 |order by t.timestamp_utc asc
             """.trimMargin(),
                 // TODO page this if we run into DB latency

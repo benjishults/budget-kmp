@@ -353,17 +353,41 @@ select -- t.id            as transaction_id,
        a.name,
        i.id
 from transactions t
-        join transaction_items i
-            on i.transaction_id = t.id
-                and t.budget_id = i.budget_id
-        join accounts a
-            on a.id = i.account_id
-where -- t.budget_id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47'
-    t.type = 'income'
-    and a.type = 'charge'
+         join transaction_items i
+              on i.transaction_id = t.id
+                  and t.budget_id = i.budget_id
+         join accounts a
+              on a.id = i.account_id
+where a.type = 'real'
+  and a.name = 'Webull Cash'
 --     and i.account_id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca'
 order by t.timestamp_utc desc, t.id
 limit 30
+;
+
+select
+    t.description   as transaction_description,
+    t.timestamp_utc as transaction_timestamp,
+    i.amount,
+--     t.type,
+    i.description,
+--        i.account_id,
+    i.draft_status,
+    a.name,
+    i.id
+from transaction_items i
+         join transactions t
+              on i.transaction_id = t.id
+                  and i.budget_id = t.budget_id
+         join accounts a
+              on a.id = i.account_id
+where t.type = 'income'
+  and i.amount > 0
+    and a.type = 'real'
+--   and t.timestamp_utc >= ?
+--   ${if (options.endDateLimited) "and t.timestamp_utc < ?" else ""}
+--   and ti.budget_id = ?
+order by t.timestamp_utc asc
 ;
 
 select t.*,
