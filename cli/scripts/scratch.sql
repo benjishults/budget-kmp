@@ -1,24 +1,24 @@
-drop table if exists account_active_periods;
-drop table if exists account_active_periods_temp;
-drop table if exists transaction_items;
-drop table if exists timestamps;
-drop table if exists transactions;
-drop table if exists draft_accounts;
-drop table if exists checking_accounts;
-drop table if exists charge_accounts;
-drop table if exists real_accounts;
-drop table if exists category_accounts;
-drop table if exists accounts;
-drop table if exists staged_accounts;
-drop table if exists staged_draft_accounts;
-drop table if exists staged_real_accounts;
-drop table if exists staged_category_accounts;
-drop table if exists access_details;
-drop table if exists budget_access;
-drop type if exists coarse_access;
-drop type if exists fine_access;
-drop table if exists budgets;
-drop table if exists users;
+-- drop table if exists account_active_periods;
+-- drop table if exists account_active_periods_temp;
+-- drop table if exists transaction_items;
+-- drop table if exists timestamps;
+-- drop table if exists transactions;
+-- drop table if exists draft_accounts;
+-- drop table if exists checking_accounts;
+-- drop table if exists charge_accounts;
+-- drop table if exists real_accounts;
+-- drop table if exists category_accounts;
+-- drop table if exists accounts;
+-- drop table if exists staged_accounts;
+-- drop table if exists staged_draft_accounts;
+-- drop table if exists staged_real_accounts;
+-- drop table if exists staged_category_accounts;
+-- drop table if exists access_details;
+-- drop table if exists budget_access;
+-- drop type if exists coarse_access;
+-- drop type if exists fine_access;
+-- drop table if exists budgets;
+-- drop table if exists users;
 
 create table if not exists users
 (
@@ -347,11 +347,11 @@ select -- t.id            as transaction_id,
        t.timestamp_utc as transaction_timestamp,
        i.amount,
        t.type,
-       i.description,
+--        i.description,
 --        i.account_id,
        i.draft_status,
-       a.name,
-       i.id
+       a.name
+--        i.id
 from transactions t
          join transaction_items i
               on i.transaction_id = t.id

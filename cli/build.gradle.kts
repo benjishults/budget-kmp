@@ -62,7 +62,6 @@ dependencies {
     // password hashing https://javadoc.io/doc/de.mkammerer/argon2-jvm/2.6/de/mkammerer/argon2/Argon2.html
     //   https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
 //    implementation("de.mkammerer:argon2-jvm:2.11")
-    implementation(projects.shared)
     implementation(libs.commons.validator)
     implementation(libs.bps.console)
     runtimeOnly(libs.postgres)
