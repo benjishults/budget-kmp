@@ -7,15 +7,33 @@ import kotlin.time.Duration.Companion.seconds
 
 class Greeting {
     private val platform = getPlatform()
-    private val httpClient : TestClient = TestClient()
+    private val httpClient: TestClient = TestClient()
 
     fun greet(): Flow<String> = flow {
         emit("Hello, ${platform.name}!")
         delay(1.seconds)
-        emit("localhost: ${httpClient.getTestResultLocalhost()}")
+        emit(
+            try {
+                "localhost: ${httpClient.getTestResultLocalhost()}"
+            } catch (e: Exception) {
+                "error using localhost: ${e.message}"
+            },
+        )
         delay(1.seconds)
-        emit("internal ip: ${httpClient.getTestResultInternalIp()}")
+        emit(
+            try {
+                "internal ip: ${httpClient.getTestResultInternalIp()}"
+            } catch (e: Exception) {
+                "error using internal ip: ${e.message}"
+            },
+        )
         delay(1.seconds)
-        emit("public ip: ${httpClient.getTestResultPublicIp()}")
+        emit(
+            try {
+                "public ip: ${httpClient.getTestResultPublicIp()}"
+            } catch (e: Exception) {
+                "error using public ip: ${e.message}"
+            },
+        )
     }
 }
