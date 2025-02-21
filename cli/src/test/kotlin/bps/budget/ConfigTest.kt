@@ -1,7 +1,5 @@
 package bps.budget
 
-import bps.budget.persistence.PersistenceConfiguration
-import bps.budget.persistence.UserConfiguration
 import io.github.nhubbard.konf.Config
 import io.github.nhubbard.konf.source.yaml.yaml
 import io.github.nhubbard.konf.toValue

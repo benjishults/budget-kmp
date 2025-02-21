@@ -1,8 +1,8 @@
 package bps.budget.jdbc
 
-import bps.budget.auth.AuthenticatedUser
-import bps.budget.persistence.getBudgetNameFromPersistenceConfig
-import bps.budget.persistence.jdbc.JdbcDao
+import bps.budget.JdbcDao
+import bps.budget.model.AuthenticatedUser
+import bps.budget.getBudgetNameFromPersistenceConfig
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual

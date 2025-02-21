@@ -9,7 +9,7 @@ import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import bps.budget.transaction.ViewTransactionFixture
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
 import bps.budget.transaction.allocateSpendingItemMenu

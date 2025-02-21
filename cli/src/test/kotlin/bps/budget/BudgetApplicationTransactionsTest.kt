@@ -1,6 +1,6 @@
 package bps.budget
 
-import bps.budget.auth.AuthenticatedUser
+import bps.budget.model.AuthenticatedUser
 import bps.budget.jdbc.BasicAccountsJdbcTestFixture
 import bps.budget.model.BudgetData
 import bps.budget.model.defaultCheckingAccountName
@@ -8,8 +8,6 @@ import bps.budget.model.defaultFoodAccountName
 import bps.budget.model.defaultMedicalAccountName
 import bps.budget.model.defaultNecessitiesAccountName
 import bps.budget.model.defaultWalletAccountName
-import bps.budget.persistence.getBudgetNameFromPersistenceConfig
-import bps.budget.persistence.jdbc.JdbcDao
 import bps.budget.ui.ConsoleUiFacade
 import bps.console.ComplexConsoleIoTestFixture
 import bps.kotlin.WithMockClock

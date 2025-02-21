@@ -2,7 +2,6 @@ package bps.budget
 
 import bps.budget.jdbc.NoDataJdbcTestFixture
 import bps.budget.model.BudgetData
-import bps.budget.persistence.jdbc.JdbcDao
 import bps.budget.ui.ConsoleUiFacade
 import bps.console.SimpleConsoleIoTestFixture
 import io.kotest.assertions.asClue

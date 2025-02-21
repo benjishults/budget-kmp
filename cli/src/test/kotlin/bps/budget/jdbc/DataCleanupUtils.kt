@@ -4,7 +4,7 @@ package bps.budget.jdbc
 
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.setUuid
-import bps.jdbc.transactOrThrow
+import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import java.math.BigDecimal
 import java.sql.Connection
 import java.util.UUID

@@ -1,11 +1,11 @@
 package bps.budget.ui
 
-import bps.budget.auth.AuthenticatedUser
+import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
-import bps.budget.persistence.BudgetDao
+import bps.budget.BudgetDao
 import bps.budget.persistence.UserBudgetDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import bps.console.app.QuitException
 import bps.console.inputs.EmailStringValidator
 import bps.console.inputs.SimplePrompt
@@ -15,7 +15,6 @@ import bps.console.io.DefaultInputReader
 import bps.console.io.DefaultOutPrinter
 import bps.console.io.InputReader
 import bps.console.io.OutPrinter
-import bps.time.naturalMonthInterval
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month

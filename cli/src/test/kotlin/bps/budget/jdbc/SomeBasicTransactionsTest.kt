@@ -1,6 +1,7 @@
 package bps.budget.jdbc
 
-import bps.budget.auth.AuthenticatedUser
+import bps.budget.JdbcDao
+import bps.budget.model.AuthenticatedUser
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
@@ -24,9 +25,8 @@ import bps.budget.model.defaultTransportationAccountName
 import bps.budget.model.defaultTravelAccountName
 import bps.budget.model.defaultWalletAccountName
 import bps.budget.model.defaultWorkAccountName
-import bps.budget.persistence.getBudgetNameFromPersistenceConfig
-import bps.budget.persistence.jdbc.JdbcDao
-import bps.budget.persistence.loadBudgetData
+import bps.budget.getBudgetNameFromPersistenceConfig
+import bps.budget.loadBudgetData
 import bps.kotlin.WithMockClock
 import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FreeSpec

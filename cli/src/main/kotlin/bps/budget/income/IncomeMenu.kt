@@ -12,7 +12,7 @@ import bps.budget.model.Transaction.Type
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import bps.budget.transaction.showRecentRelevantTransactions
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException

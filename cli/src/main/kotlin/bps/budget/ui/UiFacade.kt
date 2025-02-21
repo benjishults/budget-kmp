@@ -1,10 +1,10 @@
 package bps.budget.ui
 
-import bps.budget.auth.AuthenticatedUser
+import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
-import bps.budget.persistence.BudgetDao
+import bps.budget.BudgetDao
 import bps.budget.persistence.UserBudgetDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate

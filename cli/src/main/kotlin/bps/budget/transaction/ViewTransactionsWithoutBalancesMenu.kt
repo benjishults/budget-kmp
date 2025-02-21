@@ -1,7 +1,6 @@
 package bps.budget.transaction
 
 import bps.budget.model.Account
-import bps.budget.persistence.BudgetDao
 import bps.budget.persistence.TransactionDao
 import bps.budget.ui.formatAsLocalDateTime
 import bps.console.app.MenuSession

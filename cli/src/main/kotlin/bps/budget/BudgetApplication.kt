@@ -1,11 +1,8 @@
 package bps.budget
 
-import bps.budget.auth.AuthenticatedUser
+import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
-import bps.budget.persistence.BudgetDao
-import bps.budget.persistence.buildBudgetDao
-import bps.budget.persistence.getBudgetNameFromPersistenceConfig
-import bps.budget.persistence.loadOrBuildBudgetData
+import bps.budget.BudgetDao
 import bps.budget.ui.UiFacade
 import bps.console.app.MenuApplicationWithQuit
 import bps.console.io.DefaultInputReader

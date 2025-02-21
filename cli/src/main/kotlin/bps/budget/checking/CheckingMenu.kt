@@ -11,7 +11,7 @@ import bps.budget.model.Transaction
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
 import bps.budget.transaction.allocateSpendingItemMenu
 import bps.budget.transaction.showRecentRelevantTransactions
@@ -19,13 +19,11 @@ import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.InRangeInclusiveStringValidator
 import bps.console.inputs.SimplePrompt
-import bps.console.inputs.SimplePromptWithDefault
 import bps.console.inputs.getTimestampFromUser
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.backItem
 import bps.console.menu.pushMenu
-import bps.console.menu.quitItem
 import bps.console.menu.takeAction
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant

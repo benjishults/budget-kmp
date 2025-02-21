@@ -1,7 +1,5 @@
 package bps.budget
 
-import bps.budget.persistence.PersistenceConfiguration
-import bps.budget.persistence.UserConfiguration
 import bps.config.ConfigurationHelper
 import io.github.nhubbard.konf.Config
 import io.github.nhubbard.konf.toValue
@@ -35,4 +33,3 @@ interface BudgetConfigurations {
             }
     }
 }
-

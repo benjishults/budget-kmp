@@ -2,8 +2,8 @@ package bps.budget.jdbc
 
 import bps.budget.BudgetApplication
 import bps.budget.BudgetConfigurations
+import bps.budget.JdbcDao
 import bps.budget.makeAllowancesLabel
-import bps.budget.persistence.jdbc.JdbcDao
 import bps.budget.recordIncomeLabel
 import bps.budget.recordSpendingLabel
 import bps.budget.manageAccountsLabel

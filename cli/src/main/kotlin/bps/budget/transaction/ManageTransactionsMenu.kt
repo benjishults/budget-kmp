@@ -6,7 +6,7 @@ import bps.budget.model.Account
 import bps.budget.model.BudgetData
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import bps.budget.ui.formatAsLocalDateTime
 import bps.console.app.MenuSession
 import bps.console.menu.Menu

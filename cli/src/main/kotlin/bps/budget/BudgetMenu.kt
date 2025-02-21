@@ -6,8 +6,7 @@ import bps.budget.charge.creditCardMenu
 import bps.budget.checking.checksMenu
 import bps.budget.income.recordIncomeSelectionMenu
 import bps.budget.model.BudgetData
-import bps.budget.persistence.BudgetDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.BudgetDao
 import bps.budget.settings.userSettingsMenu
 import bps.budget.spend.recordSpendingMenu
 import bps.budget.transaction.manageTransactions

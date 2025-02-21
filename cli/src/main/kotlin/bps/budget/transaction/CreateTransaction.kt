@@ -8,7 +8,7 @@ import bps.budget.model.CategoryAccount
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException

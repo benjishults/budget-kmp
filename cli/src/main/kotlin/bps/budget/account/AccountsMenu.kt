@@ -9,9 +9,9 @@ import bps.budget.model.Account
 import bps.budget.model.BudgetData
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
-import bps.budget.persistence.BudgetDao
+import bps.budget.BudgetDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.AcceptAnythingStringValidator
@@ -24,7 +24,6 @@ import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.backItem
 import bps.console.menu.pushMenu
-import bps.console.menu.quitItem
 import bps.console.menu.takeAction
 import kotlinx.datetime.Clock
 import java.math.BigDecimal

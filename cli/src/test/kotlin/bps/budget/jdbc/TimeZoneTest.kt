@@ -1,9 +1,9 @@
 package bps.budget.jdbc
 
 import bps.budget.BudgetConfigurations
-import bps.budget.persistence.jdbc.JdbcDao
+import bps.budget.JdbcDao
 import bps.jdbc.JdbcFixture
-import bps.jdbc.transactOrThrow
+import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith

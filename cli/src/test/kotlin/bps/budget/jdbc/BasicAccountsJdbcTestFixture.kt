@@ -1,10 +1,9 @@
 package bps.budget.jdbc
 
 import bps.budget.BudgetConfigurations
-import bps.budget.auth.AuthenticatedUser
+import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.time.atStartOfMonth
-import bps.time.naturalMonthInterval
 import io.kotest.core.spec.Spec
 import io.kotest.mpp.atomics.AtomicReference
 import kotlinx.datetime.Clock

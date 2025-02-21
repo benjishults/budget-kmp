@@ -12,10 +12,17 @@ application {
 }
 
 dependencies {
+    // TODO seems a waste to pull in all this UI code when all I really need is to share the server port.
     implementation(projects.shared)
+    implementation(projects.budgetDao)
+    implementation(projects.konfiguration)
+    implementation(libs.jackson.jdk8)
+    implementation(libs.konf)
+    implementation(libs.kotlinx.datetime)
     implementation(libs.logback)
     implementation(libs.ktor.server.core.jvm)
     implementation(libs.ktor.server.netty)
+
     testImplementation(libs.ktor.server.test.host)
     testImplementation(libs.kotlin.test.junit)
 }
