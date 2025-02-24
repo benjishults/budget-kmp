@@ -1,0 +1,14 @@
+### GET request to example server
+GET http://0.0.0.0:8081/
+
+###
+
+GET http://0.0.0.0:8081/test
+###
+
+GET http://0.0.0.0:8081/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts
+Accept: application/json
+
+###
+
+GET http://0.0.0.0:8081/content/sample.html

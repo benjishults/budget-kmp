@@ -62,7 +62,6 @@ It should something like this:
 persistence:
     type: JDBC
     jdbc:
-        budgetName: Budget # give your budget a custom name if you want
         dbProvider: postgresql
         port: 5432
         host: localhost # if your DB is running on a different machine, change this to its domain or IP
@@ -70,6 +69,8 @@ persistence:
         user: budget
         password: budget
 
+budget:
+    name: Budget # give your budget a custom name if you want
 budgetUser:
     defaultLogin: fake@fake.com # your email
 ```

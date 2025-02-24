@@ -31,7 +31,7 @@ class DataMigrations {
                             convertToPath("~/.config/bps-budget/migrations.yml"),
                         ),
                     )
-                val jdbcDao = JdbcDao(configurations.persistence.jdbc!!)
+                val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
                 val migrationType = argsList[typeIndex]
                 with(jdbcDao.connection) {
                     when (migrationType) {

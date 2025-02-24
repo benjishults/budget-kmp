@@ -1,8 +1,8 @@
 package bps.budget.jdbc
 
 import bps.budget.model.CategoryAccount
-import bps.budget.JdbcConfig
 import bps.budget.JdbcDao
+import bps.budget.persistence.jdbc.JdbcConfig
 import io.kotest.assertions.asClue
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
@@ -32,6 +32,7 @@ class JdbcDaoTest : FreeSpec() {
 
         val jdbcDaoUnderTest = JdbcDao(
             config = JdbcConfig(),
+            "budget"
         )
         afterSpec {
             jdbcDaoUnderTest.close()

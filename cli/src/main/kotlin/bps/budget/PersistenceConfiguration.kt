@@ -1,5 +1,6 @@
 package bps.budget
 
+import bps.budget.persistence.jdbc.JdbcConfig
 import org.apache.commons.validator.routines.EmailValidator
 
 data class PersistenceConfiguration(
@@ -20,27 +21,22 @@ data class UserConfiguration(
     }
 }
 
-interface BudgetConfig {
-    val budgetName: String?
-}
+fun interface ConfigSelector : (PersistenceConfiguration) -> JdbcConfig
+fun interface DaoBuilder : (JdbcConfig, String) -> BudgetDao
 
-fun interface ConfigSelector : (PersistenceConfiguration) -> BudgetConfig
-fun interface DaoBuilder : (BudgetConfig) -> BudgetDao
-
-fun buildBudgetDao(configurations: PersistenceConfiguration): BudgetDao =
+fun buildBudgetDao(configurations: PersistenceConfiguration, budgetName: String): BudgetDao =
     budgetDataBuilderMap[configurations.type]!!
         .let { (configSelector: ConfigSelector, daoBuilder: DaoBuilder) ->
-            daoBuilder(configSelector(configurations))
+            daoBuilder(configSelector(configurations), budgetName)
         }
 
 val budgetDataBuilderMap: Map<String, Pair<ConfigSelector, DaoBuilder>> =
     mapOf(
-        "JDBC" to (ConfigSelector { it.jdbc!! } to DaoBuilder { JdbcDao(it as JdbcConfig) }),
+        "JDBC" to (ConfigSelector { it.jdbc!! } to DaoBuilder { config, budgetName -> JdbcDao(config, budgetName) }),
 //        "FILE" to (ConfigSelector { it.file!! } to DaoBuilder { FilesDao(it as FileConfig) }),
     )
 
-fun getBudgetNameFromPersistenceConfig(configuration: PersistenceConfiguration) =
-    budgetDataBuilderMap[configuration.type]!!
-        .first(configuration)
-        .budgetName
-
+//fun getBudgetNameFromPersistenceConfig(configuration: PersistenceConfiguration) =
+//    budgetDataBuilderMap[configuration.type]!!
+//        .first(configuration)
+//        .budgetName

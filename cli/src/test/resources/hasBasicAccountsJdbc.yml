@@ -5,8 +5,10 @@ persistence:
     schema: test
     user: test
     password: test
-    budgetName: Basic Accounts Test
     host: localhost
+
 budgetUser:
   defaultLogin: test@test.com
-#  defaultBudgetName: Basic Accounts Test
+
+budget:
+  name: Basic Accounts Test

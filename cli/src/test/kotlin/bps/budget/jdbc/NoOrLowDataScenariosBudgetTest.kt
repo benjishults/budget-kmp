@@ -26,7 +26,7 @@ class NoOrLowDataScenariosBudgetTest : FreeSpec(),
         clearInputsAndOutputsBeforeEach()
         val configurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
         afterEach {
-            JdbcDao(configurations.persistence.jdbc!!)
+            JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
                 .use {
                     dropTables(it.connection, it.config.schema)
                 }

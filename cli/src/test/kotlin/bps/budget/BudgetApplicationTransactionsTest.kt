@@ -27,7 +27,7 @@ class BudgetApplicationTransactionsTest : FreeSpec(),
 //    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(90_000, true) {
     ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1500, true) {
 
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!)
+    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
 
     init {
         System.setProperty("kotest.assertions.collection.print.size", "1000")
@@ -41,7 +41,7 @@ class BudgetApplicationTransactionsTest : FreeSpec(),
         clearInputsAndOutputsBeforeEach()
         createBasicAccountsBeforeSpec(
             budgetId = budgetId,
-            budgetName = getBudgetNameFromPersistenceConfig(configurations.persistence)!!,
+            budgetName = configurations.budget.name,
             authenticatedUser = AuthenticatedUser(userId, configurations.user.defaultLogin!!),
             timeZone = TimeZone.of("America/Chicago"),
             clock = clock,

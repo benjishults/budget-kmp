@@ -25,7 +25,6 @@ import bps.budget.model.defaultTransportationAccountName
 import bps.budget.model.defaultTravelAccountName
 import bps.budget.model.defaultWalletAccountName
 import bps.budget.model.defaultWorkAccountName
-import bps.budget.getBudgetNameFromPersistenceConfig
 import bps.budget.loadBudgetData
 import bps.kotlin.WithMockClock
 import io.kotest.assertions.fail
@@ -39,7 +38,7 @@ class SomeBasicTransactionsTest : FreeSpec(),
     WithMockClock,
     BasicAccountsJdbcTestFixture {
 
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!)
+    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
 
     init {
         val clock = produceSecondTickingClock()
@@ -47,7 +46,7 @@ class SomeBasicTransactionsTest : FreeSpec(),
         val userId: UUID = UUID.fromString("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         createBasicAccountsBeforeSpec(
             budgetId,
-            getBudgetNameFromPersistenceConfig(configurations.persistence)!!,
+            configurations.budget.name,
             AuthenticatedUser(userId, configurations.user.defaultLogin!!),
             TimeZone.of("America/Chicago"),
             clock,
@@ -58,7 +57,7 @@ class SomeBasicTransactionsTest : FreeSpec(),
             val budgetData = loadBudgetData(
                 authenticatedUser = jdbcDao.userBudgetDao.getUserByLoginOrNull(configurations.user.defaultLogin!!) as AuthenticatedUser,
                 budgetDao = jdbcDao,
-                budgetName = getBudgetNameFromPersistenceConfig(configurations.persistence)!!,
+                budgetName = configurations.budget.name,
             )
             "record income" {
                 val amount = BigDecimal("1000.00").setScale(2)

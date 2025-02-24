@@ -4,6 +4,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 
+// TODO move this to a test module
 interface WithMockClock {
 
     class TickingClock(

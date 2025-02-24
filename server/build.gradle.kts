@@ -7,7 +7,7 @@ plugins {
 group = "bps.budget"
 version = "1.0.0"
 application {
-    mainClass.set("bps.budget.ApplicationKt")
+    mainClass.set("bps.budget.server.ApplicationKt")
     applicationDefaultJvmArgs = listOf("-Dio.ktor.development=${extra["io.ktor.development"] ?: "false"}")
 }
 
@@ -24,5 +24,13 @@ dependencies {
     implementation(libs.ktor.server.netty)
 
     testImplementation(libs.ktor.server.test.host)
-    testImplementation(libs.kotlin.test.junit)
+//    testImplementation(libs.kotlin.test.junit)
+    testImplementation(libs.mockk.jvm)
+    testImplementation(libs.kotest.junit5)
+    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.junit.jupiter)
+}
+
+tasks.test {
+    useJUnitPlatform()
 }

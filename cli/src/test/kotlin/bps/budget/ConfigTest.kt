@@ -14,7 +14,6 @@ persistence:
   type: JDBC
   jdbc:
     driver: org.postgresql.Driver
-    budgetName: Default Budget
     # this should not be user configurable
     schema: scratch
     dbProvider: postgresql
@@ -26,7 +25,9 @@ persistence:
     budgetName: Default File-Configured Budget
     dataDirectory: ~/.data/bps-budget
 
-user:
+budget:
+  name: Default Budget
+budgetUser:
   defaultLogin: fake@fake.com
 """,
         )

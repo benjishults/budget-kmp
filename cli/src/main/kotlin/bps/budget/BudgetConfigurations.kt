@@ -7,6 +7,7 @@ import io.github.nhubbard.konf.toValue
 interface BudgetConfigurations {
     val persistence: PersistenceConfiguration
     val user: UserConfiguration
+    val budget: BudgetConfig
     val config: Config
 
     companion object {
@@ -26,6 +27,10 @@ interface BudgetConfigurations {
                 override val user: UserConfiguration =
                     config
                         .at("budgetUser")
+                        .toValue()
+                override val budget: BudgetConfig =
+                    config
+                        .at("budget")
                         .toValue()
 
                 override fun toString(): String =

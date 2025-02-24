@@ -5,13 +5,15 @@ import bps.budget.persistence.jdbc.JdbcAnalyticsDao
 import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.budget.persistence.jdbc.JdbcUserBudgetDao
 import bps.budget.server.account.accountRoutes
-import bps.budget.server.persistence.JdbcConnectionProvider
+import bps.budget.persistence.jdbc.JdbcConnectionProvider
 import bps.config.convertToPath
-import io.ktor.server.application.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.application.Application
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.netty.Netty
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 
 fun main() {
     val configurations =
@@ -40,25 +42,19 @@ fun main() {
         port = 8081,
         host = "0.0.0.0",
     ) {
-//        module(accountDao, transactionDao, userBudgetDao, analyticsDao)
-        routing {
-            accountRoutes(accountDao)
-            get("/test") {
-                call.respondText("succeeded")
-            }
-            get("/") {
-                call.respondText("root")
-            }
-        }
+        module(accountDao)
     }
         .start(wait = true)
 }
 
-fun Application.module(
-    accountDao: JdbcAccountDao,
-    transactionDao: JdbcTransactionDao,
-    userBudgetDao: JdbcUserBudgetDao,
-    analyticsDao: JdbcAnalyticsDao,
-) {
-}
-}
+fun Application.module(accountDao: JdbcAccountDao) =
+    routing {
+        staticResources("/content", "static")
+        accountRoutes(accountDao)
+        get("/test") {
+            call.respondText("succeeded")
+        }
+        get("/") {
+            call.respondText("root")
+        }
+    }

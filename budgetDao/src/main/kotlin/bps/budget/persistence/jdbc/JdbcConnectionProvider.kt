@@ -1,4 +1,4 @@
-package bps.budget.server.persistence
+package bps.budget.persistence.jdbc
 
 import java.net.URLEncoder
 import java.sql.Connection

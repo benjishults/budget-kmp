@@ -15,7 +15,7 @@ import java.sql.Timestamp
 class TimeZoneTest : FreeSpec(), BaseJdbcTestFixture, JdbcFixture {
 
     override val configurations: BudgetConfigurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!)
+    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
 
     init {
         beforeSpec {

@@ -41,7 +41,7 @@ class BudgetApplication private constructor(
         inputReader,
         outPrinter,
         uiFacade,
-        buildBudgetDao(configurations.persistence),
+        buildBudgetDao(configurations.persistence, configurations.budget.name),
         clock,
         configurations,
     )
@@ -55,7 +55,7 @@ class BudgetApplication private constructor(
         authenticatedUser = authenticatedUser,
         uiFacade = uiFacade,
         budgetDao = budgetDao,
-        budgetName = getBudgetNameFromPersistenceConfig(configurations.persistence) ?: uiFacade.getBudgetName(),
+        budgetName = configurations.budget.name,
         clock = clock,
     )
 

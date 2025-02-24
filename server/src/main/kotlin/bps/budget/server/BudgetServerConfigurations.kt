@@ -1,6 +1,6 @@
 package bps.budget.server
 
-import bps.budget.server.persistence.JdbcConfig
+import bps.budget.persistence.jdbc.JdbcConfig
 import bps.config.ConfigurationHelper
 import io.github.nhubbard.konf.Config
 import io.github.nhubbard.konf.toValue

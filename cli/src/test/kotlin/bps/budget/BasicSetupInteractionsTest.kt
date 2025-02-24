@@ -16,7 +16,7 @@ class BasicSetupInteractionsTest : FreeSpec(),
     NoDataJdbcTestFixture,
     SimpleConsoleIoTestFixture {
 
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!)
+    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
     override val inputs: MutableList<String> = mutableListOf()
     override val outputs: MutableList<String> = mutableListOf()
 

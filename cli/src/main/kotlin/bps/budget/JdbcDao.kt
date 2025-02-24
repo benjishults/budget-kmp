@@ -14,6 +14,7 @@ import bps.budget.persistence.TransactionDao
 import bps.budget.persistence.UserBudgetDao
 import bps.budget.persistence.jdbc.JdbcAccountDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
+import bps.budget.persistence.jdbc.JdbcConfig
 import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.budget.persistence.jdbc.JdbcUserBudgetDao
 import bps.jdbc.JdbcFixture
@@ -36,6 +37,7 @@ import java.util.concurrent.TimeUnit
 @Instrumentable
 class JdbcDao(
     val config: JdbcConfig,
+    val budgetName: String,
 ) : BudgetDao, JdbcFixture {
 
     private var jdbcURL: String =
@@ -261,7 +263,7 @@ create index if not exists lookup_transaction_items_by_account
                                             budgetName = result.getString("budget_name"),
                                         )
                                     } else
-                                        throw DataConfigurationException("Budget data not found for name: ${config.budgetName}")
+                                        throw DataConfigurationException("Budget data not found for name: $budgetName")
                                 }
                         }
                 // TODO pull out duplicate code in these next three sections
