@@ -1,6 +1,6 @@
-package bps.budget.jdbc
+package bps.budget.jdbc.test
 
-import bps.budget.BudgetConfigurations
+import bps.jdbc.JdbcConfig
 import io.kotest.core.spec.Spec
 
 interface NoDataJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
@@ -12,11 +12,11 @@ interface NoDataJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
     }
 
     companion object {
-        operator fun invoke(): NoDataJdbcCliBudgetTestFixture =
+        operator fun invoke(jdbcConfig: JdbcConfig, budgetName: String): NoDataJdbcCliBudgetTestFixture =
             object : NoDataJdbcCliBudgetTestFixture,
                 JdbcCliBudgetTestFixture by JdbcCliBudgetTestFixture(
-                    BudgetConfigurations(sequenceOf("noDataJdbc.yml")).persistence.jdbc!!,
-                    "clean after test",
+                    jdbcConfig,
+                    budgetName,
                 ) {}
     }
 

@@ -144,7 +144,9 @@ class ConsoleUiFacade(
                 override fun invoke(entry: String): Boolean =
                     entry in TimeZone.availableZoneIds
             },
-        ) { TimeZone.of(it) }
+        ) { tzId: String ->
+            TimeZone.of(tzId)
+        }
             .getResult()
             ?: throw QuitException()
 
@@ -153,28 +155,7 @@ class ConsoleUiFacade(
     }
 
     override fun login(userBudgetDao: UserBudgetDao, userConfiguration: UserConfiguration): AuthenticatedUser {
-        val login: String =
-            if (userConfiguration.defaultLogin === null) {
-                SimplePrompt<String>(
-                    "username: ",
-                    inputReader = inputReader,
-                    outPrinter = outPrinter,
-                    validator = EmailStringValidator,
-                )
-                    .getResult()
-                    ?: throw QuitException("No valid email entered.")
-            } else {
-                // for now, just use the configured one
-                userConfiguration.defaultLogin
-//                SimplePromptWithDefault(
-//                    "username: ",
-//                    userConfiguration.defaultLogin,
-//                    inputReader = inputReader,
-//                    outPrinter = outPrinter,
-//                    validate = { it.isNotBlank() && EmailValidator.getInstance().isValid(it) },
-//                )
-//                    .getResult()
-            }
+        val login: String = userConfiguration.defaultLogin
         // TODO replace this with an upsert so we get a single transaction safe from race conditions
         return userBudgetDao
             // NOTE not doing authentication yet

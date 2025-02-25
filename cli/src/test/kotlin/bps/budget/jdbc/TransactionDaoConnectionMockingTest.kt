@@ -1,5 +1,6 @@
 package bps.budget.jdbc
 
+import bps.budget.jdbc.test.ConnectionMockingFixture
 import bps.budget.model.CategoryAccount
 import bps.budget.persistence.TransactionDao
 import bps.budget.persistence.jdbc.JdbcTransactionDao

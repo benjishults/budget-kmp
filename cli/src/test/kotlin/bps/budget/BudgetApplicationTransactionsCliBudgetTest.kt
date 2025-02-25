@@ -1,7 +1,7 @@
 package bps.budget
 
 import bps.budget.model.AuthenticatedUser
-import bps.budget.jdbc.BasicAccountsJdbcCliBudgetTestFixture
+import bps.budget.jdbc.test.BasicAccountsJdbcCliBudgetTestFixture
 import bps.budget.model.BudgetData
 import bps.budget.model.defaultCheckingAccountName
 import bps.budget.model.defaultFoodAccountName
@@ -44,13 +44,16 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
 
         clearInputsAndOutputsBeforeEach()
         with(basicAccountsJdbcCliBudgetTestFixture) {
+            val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, jdbcConnectionProvider)
             createBasicAccountsBeforeSpec(
                 budgetId = budgetId,
                 budgetName = budgetName,
                 authenticatedUser = AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
                 timeZone = TimeZone.of("America/Chicago"),
                 clock = clock,
-            )
+            ) {
+                initializingBudgetDao.prepForFirstLoad()
+            }
             resetBalancesAndTransactionAfterSpec(budgetId)
             closeJdbcAfterSpec()
         }

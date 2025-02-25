@@ -10,5 +10,5 @@ persistence:
     dataDirectory: src/test/resources/noDataJdbc
 budget:
   name: clean after test
-#budgetUser:
-#  defaultLogin: not.used@example.com
+budgetUser:
+  defaultLogin: not.used@example.com

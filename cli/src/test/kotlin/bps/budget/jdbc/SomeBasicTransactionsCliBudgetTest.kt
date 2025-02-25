@@ -1,9 +1,11 @@
 package bps.budget.jdbc
 
 import bps.budget.BudgetConfigurations
+import bps.budget.JdbcCliBudgetDao
 import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.model.AuthenticatedUser
 import bps.budget.consistency.commitTransactionConsistently
+import bps.budget.jdbc.test.BasicAccountsJdbcCliBudgetTestFixture
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
 import bps.budget.model.DraftAccount
@@ -49,13 +51,17 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
         val budgetId: UUID = UUID.fromString("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
         val userId: UUID = UUID.fromString("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         with(basicAccountsJdbcCliBudgetTestFixture) {
+            val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, jdbcConnectionProvider)
+            val cliBudgetDao = JdbcCliBudgetDao(userName, jdbcConnectionProvider)
             createBasicAccountsBeforeSpec(
                 budgetId,
                 budgetConfigurations.budget.name,
                 AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
                 TimeZone.of("America/Chicago"),
                 clock,
-            )
+            ) {
+                initializingBudgetDao.prepForFirstLoad()
+            }
             closeJdbcAfterSpec()
 
             "with data from config" - {

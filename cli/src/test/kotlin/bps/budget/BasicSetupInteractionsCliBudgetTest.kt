@@ -1,9 +1,10 @@
 package bps.budget
 
-import bps.budget.jdbc.NoDataJdbcCliBudgetTestFixture
+import bps.budget.jdbc.test.NoDataJdbcCliBudgetTestFixture
 import bps.budget.model.BudgetData
 import bps.budget.ui.ConsoleUiFacade
 import bps.console.SimpleConsoleIoTestFixture
+import bps.jdbc.JdbcConfig
 import io.kotest.assertions.asClue
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.collections.shouldContain
@@ -13,24 +14,28 @@ import io.kotest.matchers.shouldBe
 import kotlinx.datetime.TimeZone
 
 class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
-    NoDataJdbcCliBudgetTestFixture by NoDataJdbcCliBudgetTestFixture(),
     SimpleConsoleIoTestFixture {
 
+    val budgetConfigurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
+    val jdbcConfig: JdbcConfig = budgetConfigurations.persistence.jdbc!!
+    val noDataJdbcCliBudgetTestFixture = NoDataJdbcCliBudgetTestFixture(jdbcConfig, budgetConfigurations.budget.name)
     override val inputs: MutableList<String> = mutableListOf()
     override val outputs: MutableList<String> = mutableListOf()
 
     init {
         clearInputsAndOutputsBeforeEach()
-        dropAllBeforeEach()
-        closeJdbcAfterSpec()
+        with(noDataJdbcCliBudgetTestFixture) {
+            dropAllBeforeEach()
+            closeJdbcAfterSpec()
+        }
         "setup basic data through console ui" {
             val uiFunctions = ConsoleUiFacade(inputReader, outPrinter)
             inputs.addAll(
-                listOf("test@test.com", "", "y", "2000", "100", "10"),
+                listOf("", "y", "2000", "100", "10"),
             )
             BudgetApplication(
                 uiFunctions,
-                BudgetConfigurations(sequenceOf("noDataJdbc.yml")),
+                budgetConfigurations,
                 inputReader,
                 outPrinter,
             )
@@ -40,14 +45,17 @@ class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
                         budgetData.categoryAccounts shouldContain budgetData.generalAccount
                         budgetData.categoryAccounts.size shouldBe 14
                     }
-                    application.cliBudgetDao.load(application.budgetData.id, application.authenticatedUser.id, application.accountDao)
+                    application.cliBudgetDao.load(
+                        application.budgetData.id,
+                        application.authenticatedUser.id,
+                        application.accountDao,
+                    )
                         .asClue { budgetData: BudgetData ->
                             budgetData.categoryAccounts shouldContain budgetData.generalAccount
                             budgetData.categoryAccounts.size shouldBe 14
                         }
                 }
             outputs shouldContainExactly listOf(
-                "username: ",
                 "Unknown user.  Creating new account.",
                 "Looks like this is your first time running Budget.\n",
                 "Select the time-zone you want dates to appear in [${TimeZone.currentSystemDefault().id}]: ",

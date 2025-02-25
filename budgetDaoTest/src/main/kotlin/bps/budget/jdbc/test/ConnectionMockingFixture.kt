@@ -1,4 +1,4 @@
-package bps.budget.jdbc
+package bps.budget.jdbc.test
 
 import bps.jdbc.JdbcConnectionProvider
 import io.kotest.core.spec.Spec
@@ -18,8 +18,8 @@ interface ConnectionMockingFixture {
     val jdbcConnectionProvider: JdbcConnectionProvider
 
     /**
-     * After the [Spec] is done, this will send the [Connection.close] message to the [jdbcConnectionProvider]
-     * and then call [unmockkAll].
+     * After the [io.kotest.core.spec.Spec] is done, this will send the [java.sql.Connection.close] message to the [jdbcConnectionProvider]
+     * and then call [io.mockk.unmockkAll].
      */
     fun Spec.closeConnectionAfterSpec() {
         afterSpec {

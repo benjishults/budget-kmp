@@ -1,6 +1,6 @@
 @file:JvmName("DataCleanupUtils")
 
-package bps.budget.jdbc
+package bps.budget.jdbc.test
 
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.setUuid

@@ -3,6 +3,7 @@ package bps.budget.jdbc
 import bps.budget.BudgetApplication
 import bps.budget.BudgetConfigurations
 import bps.budget.JdbcInitializingBudgetDao
+import bps.budget.jdbc.test.dropTables
 import bps.budget.makeAllowancesLabel
 import bps.budget.recordIncomeLabel
 import bps.budget.recordSpendingLabel

@@ -10,13 +10,12 @@ data class PersistenceConfiguration(
 )
 
 data class UserConfiguration(
-    val defaultLogin: String? = null,
+    val defaultLogin: String,
     val numberOfItemsInScrollingList: Int = 30,
 ) {
     init {
-        require(
-            defaultLogin === null ||
-                    EmailValidator.getInstance().isValid(defaultLogin),
-        ) { "defaultLogin, if provided, must be a valid email address.  Was '$defaultLogin'" }
+        require(EmailValidator.getInstance().isValid(defaultLogin)) {
+            "defaultLogin, if provided, must be a valid email address.  Was '$defaultLogin'"
+        }
     }
 }

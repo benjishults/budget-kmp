@@ -1,6 +1,5 @@
-package bps.budget.jdbc
+package bps.budget.jdbc.test
 
-import bps.budget.BudgetConfigurations
 import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.jdbc.JdbcConfig
@@ -29,9 +28,10 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
         authenticatedUser: AuthenticatedUser,
         timeZone: TimeZone,
         clock: Clock,
+        initializeDb: () -> Unit = {}
     ) {
         beforeSpec {
-            initializingBudgetDao.prepForFirstLoad()
+            initializeDb()
 //            try {
             deleteAccounts(budgetId, jdbcConnectionProvider.connection)
 //            } catch (e: Exception) {
@@ -81,12 +81,12 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
     private fun upsertBasicAccounts(
         budgetName: String,
         generalAccountId: UUID = UUID.fromString("dfa8a21c-f0ad-434d-bcb5-9e37749fa81e"),
-        timeZone: TimeZone = TimeZone.UTC,
+        timeZone: TimeZone = TimeZone.Companion.UTC,
         authenticatedUser: AuthenticatedUser,
         budgetId: UUID,
         clock: Clock,
     ) {
-        initializingBudgetDao.prepForFirstLoad()
+//        initializingBudgetDao.prepForFirstLoad()
         userBudgetDao.createUser(authenticatedUser.login, "a", authenticatedUser.id)
         userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
         userBudgetDao.grantAccess(
@@ -108,7 +108,7 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
             userId = authenticatedUser.id,
             budgetId = budgetId,
         )
-        BudgetData.persistWithBasicAccounts(
+        BudgetData.Companion.persistWithBasicAccounts(
             budgetName = budgetName,
             generalAccountId = generalAccountId,
             timeZone = timeZone,

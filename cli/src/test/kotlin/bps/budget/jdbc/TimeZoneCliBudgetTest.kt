@@ -1,6 +1,8 @@
 package bps.budget.jdbc
 
 import bps.budget.BudgetConfigurations
+import bps.budget.jdbc.test.JdbcCliBudgetTestFixture
+import bps.budget.jdbc.test.dropTables
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import io.kotest.core.spec.style.FreeSpec

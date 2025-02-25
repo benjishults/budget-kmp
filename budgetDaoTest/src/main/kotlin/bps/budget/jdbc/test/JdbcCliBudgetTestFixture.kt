@@ -1,10 +1,5 @@
-package bps.budget.jdbc
+package bps.budget.jdbc.test
 
-//import bps.budget.BudgetConfigurations
-import bps.budget.CliBudgetDao
-import bps.budget.InitializingBudgetDao
-import bps.budget.JdbcCliBudgetDao
-import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
@@ -22,8 +17,6 @@ import bps.jdbc.toJdbcConnectionProvider
 interface JdbcCliBudgetTestFixture : JdbcFixture, JdbcTestFixture {
 
     val budgetName: String
-    val cliBudgetDao: CliBudgetDao
-    val initializingBudgetDao: InitializingBudgetDao
     val accountDao: AccountDao
     val transactionDao: TransactionDao
     val userBudgetDao: UserBudgetDao
@@ -42,16 +35,6 @@ interface JdbcCliBudgetTestFixture : JdbcFixture, JdbcTestFixture {
                 override val jdbcConnectionProvider: JdbcConnectionProvider =
                     jdbcConfig.toJdbcConnectionProvider()
 
-                override val initializingBudgetDao: JdbcInitializingBudgetDao =
-                    JdbcInitializingBudgetDao(
-                        budgetName = budgetName,
-                        connectionProvider = jdbcConnectionProvider,
-                    )
-                override val cliBudgetDao: CliBudgetDao =
-                    JdbcCliBudgetDao(
-                        budgetName = budgetName,
-                        connectionProvider = jdbcConnectionProvider,
-                    )
                 override val accountDao: AccountDao =
                     JdbcAccountDao(jdbcConnectionProvider)
                 override val transactionDao: TransactionDao =
