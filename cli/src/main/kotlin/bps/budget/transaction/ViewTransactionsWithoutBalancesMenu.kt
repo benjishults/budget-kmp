@@ -8,17 +8,19 @@ import bps.console.io.OutPrinter
 import bps.console.menu.MenuItem
 import bps.console.menu.ScrollingSelectionMenu
 import kotlinx.datetime.TimeZone
-import java.util.UUID
+import kotlin.uuid.Uuid
 import kotlin.math.max
+import kotlin.uuid.ExperimentalUuidApi
 
 private const val TRANSACTIONS_WITHOUT_BALANCES_TABLE_HEADER =
     "    Time Stamp          | Amount     | Description"
 
+@OptIn(ExperimentalUuidApi::class)
 open class ViewTransactionsWithoutBalancesMenu<A : Account>(
     private val account: A,
     private val transactionDao: TransactionDao,
-    private val budgetId: UUID,
-    private val accountIdToAccountMap: Map<UUID, Account>,
+    private val budgetId: Uuid,
+    private val accountIdToAccountMap: Map<Uuid, Account>,
     private val timeZone: TimeZone,
     limit: Int = 30,
     offset: Int = 0,

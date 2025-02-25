@@ -20,6 +20,7 @@ import bps.console.io.InputReader
 import bps.console.io.OutPrinter
 import bps.console.io.WithIo
 import kotlinx.datetime.Clock
+import kotlin.uuid.ExperimentalUuidApi
 
 const val recordIncomeLabel = "Record Income"
 const val makeAllowancesLabel = "Make Allowances"
@@ -31,6 +32,7 @@ const val recordSpendingLabel = "Record Spending"
 const val manageTransactionsLabel = "Manage Transactions"
 const val userSettingsLabel = "User Settings"
 
+@OptIn(ExperimentalUuidApi::class)
 class BudgetApplication private constructor(
     override val inputReader: InputReader,
     override val outPrinter: OutPrinter,

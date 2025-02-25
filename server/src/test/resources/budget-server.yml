@@ -1,0 +1,7 @@
+jdbc:
+  dbProvider: postgresql
+  port: 5432
+  host: localhost # if your DB is running on a different machine, change this to its domain or IP
+  schema: test
+  user: test
+  password: test

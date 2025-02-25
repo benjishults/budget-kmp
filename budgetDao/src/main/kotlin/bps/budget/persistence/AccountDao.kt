@@ -7,12 +7,14 @@ import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftAccount
 import bps.budget.model.RealAccount
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 interface AccountDao {
 
     data class BalanceToAdd(
-        val accountId: UUID,
+        val accountId: Uuid,
         val amountToRevert: BigDecimal,
     )
 
@@ -21,15 +23,15 @@ interface AccountDao {
      */
     fun <T : Account> getDeactivatedAccounts(
         type: String,
-        budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        budgetId: Uuid,
+        factory: (String, String, Uuid, BigDecimal, Uuid) -> T,
     ): List<T> = TODO()
 
     /**
      * The default implementation calls [getActiveAccounts] and [getDeactivatedAccounts] and pulls the
      * [Account.name]s out.  Implementors could improve on the efficiency if desired.
      */
-    fun getAllAccountNamesForBudget(budgetId: UUID): List<String> =
+    fun getAllAccountNamesForBudget(budgetId: Uuid): List<String> =
         buildList {
             mapOf(
                 AccountType.category.name to ::CategoryAccount,
@@ -58,42 +60,42 @@ interface AccountDao {
      */
     fun <T : Account> getActiveAccounts(
         type: String,
-        budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        budgetId: Uuid,
+        factory: (String, String, Uuid, BigDecimal, Uuid) -> T,
     ): List<T> = TODO()
 
-    fun List<BalanceToAdd>.updateBalances(budgetId: UUID)
+    fun List<BalanceToAdd>.updateBalances(budgetId: Uuid)
     fun updateAccount(account: Account): Boolean
     fun createCategoryAccountOrNull(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): CategoryAccount?
 
     fun createGeneralAccountWithIdOrNull(
-        id: UUID,
+        id: Uuid,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-        budgetId: UUID,
+        budgetId: Uuid,
     ): CategoryAccount?
 
     fun createRealAccountOrNull(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
     ): RealAccount?
 
     fun createRealAndDraftAccountOrNull(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
     ): Pair<RealAccount, DraftAccount>?
 
     fun createChargeAccountOrNull(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): ChargeAccount?
 
 }

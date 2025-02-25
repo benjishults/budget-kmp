@@ -6,15 +6,16 @@ import bps.budget.model.AccountType
 import bps.budget.model.DraftStatus
 import bps.budget.model.Transaction
 import bps.config.convertToPath
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import bps.jdbc.toJdbcConnectionProvider
 import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.ResultSet
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class DataMigrations {
 
     companion object : JdbcFixture {
@@ -66,10 +67,10 @@ class DataMigrations {
         )
 
         data class TransactionInfo(
-            var transactionId: UUID? = null,
+            var transactionId: Uuid? = null,
             var description: String? = null,
-            var clearedBy: UUID? = null,
-            var budgetId: UUID? = null,
+            var clearedBy: Uuid? = null,
+            var budgetId: Uuid? = null,
             val details: MutableList<TransactionDetail> = mutableListOf(),
         )
 
@@ -258,7 +259,7 @@ class DataMigrations {
 //                                            add(
 //                                                TransactionDao.ExtendedTransactionItem(
 //                                                    item = Transaction.ItemBuilder(
-//                                                        UUID.randomUUID(),
+//                                                        Uuid.random(),
 //                                                        amount = resultSet.getCurrencyAmount("amount"),
 //                                                        description = resultSet.getString("description"),
 //                                                        account = CategoryAccount(
@@ -367,14 +368,14 @@ class DataMigrations {
 
 //        private fun Connection.migrateActivePeriods() {
 //            data class ActivePeriod(
-//                val id: UUID,
-//                val budgetId: UUID,
+//                val id: Uuid,
+//                val budgetId: Uuid,
 //                val startDateUtc: Instant,
 //                val endDateUtc: Instant,
-//                val categoryAccountId: UUID?,
-//                val draftAccountId: UUID?,
-//                val chargeAccountId: UUID?,
-//                val realAccountId: UUID?,
+//                val categoryAccountId: Uuid?,
+//                val draftAccountId: Uuid?,
+//                val chargeAccountId: Uuid?,
+//                val realAccountId: Uuid?,
 //            )
 //            buildList {
 //                prepareStatement("select * from account_active_periods")
@@ -461,16 +462,16 @@ class DataMigrations {
 
 //        private fun Connection.migrateTransactions() {
 //            data class TransactionItem(
-//                val id: UUID,
-//                val transactionId: UUID,
-//                val budgetId: UUID,
+//                val id: Uuid,
+//                val transactionId: Uuid,
+//                val budgetId: Uuid,
 //                val description: String?,
 //                val amount: BigDecimal,
 //                val draftStatus: String?,
-//                val categoryAccountId: UUID?,
-//                val draftAccountId: UUID?,
-//                val chargeAccountId: UUID?,
-//                val realAccountId: UUID?,
+//                val categoryAccountId: Uuid?,
+//                val draftAccountId: Uuid?,
+//                val chargeAccountId: Uuid?,
+//                val realAccountId: Uuid?,
 //            )
 //            buildList {
 //                prepareStatement("select * from transaction_items")
@@ -547,7 +548,7 @@ class DataMigrations {
 //                                    ?.let { statement.setString(5, it) }
 //                                    ?: statement.setNull(5, VARCHAR)
 //                                statement.setUuid(6, transactionItem.budgetId)
-//                                statement.setUuid(7, UUID.randomUUID())
+//                                statement.setUuid(7, Uuid.random())
 //                                statement.executeUpdate()
 //                            }
 //                    }
@@ -614,7 +615,7 @@ class DataMigrations {
 //                }
 //        }
 
-//        private fun Connection.migrateAccountsToActivityPeriodTable(tablePrefix: String, budgetId: UUID) {
+//        private fun Connection.migrateAccountsToActivityPeriodTable(tablePrefix: String, budgetId: Uuid) {
 //            buildList {
 //                prepareStatement("select id from ${tablePrefix}_accounts where budget_id = ?")
 //                    .use { statement ->
@@ -627,7 +628,7 @@ class DataMigrations {
 //                            }
 //                    }
 //            }
-//                .let { accountIds: List<UUID> ->
+//                .let { accountIds: List<Uuid> ->
 //                    accountIds.forEach { accountId ->
 //                        prepareStatement(
 //                            """
@@ -637,7 +638,7 @@ class DataMigrations {
 //                        """.trimIndent(),
 //                        )
 //                            .use { statement ->
-//                                statement.setUuid(1, UUID.randomUUID())
+//                                statement.setUuid(1, Uuid.random())
 //                                statement.setUuid(2, accountId)
 //                                statement.setUuid(3, budgetId)
 //                                statement.executeUpdate()
@@ -668,7 +669,7 @@ class DataMigrations {
 //                                statement.setString(2, configurations.user.defaultLogin)
 //                                statement.executeQuery().use { resultSet ->
 //                                    resultSet.next()
-//                                    val budgetId: UUID = resultSet.getUuid("budget_id")!!
+//                                    val budgetId: Uuid = resultSet.getUuid("budget_id")!!
 //                                    migrateAccountsToActivityPeriodTable(AccountType.category.name, budgetId)
 //                                    migrateAccountsToActivityPeriodTable(AccountType.real.name, budgetId)
 //                                    migrateAccountsToActivityPeriodTable(AccountType.charge.name, budgetId)

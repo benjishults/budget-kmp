@@ -18,7 +18,9 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toInstant
 import java.math.BigDecimal
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 fun WithIo.recordSpendingMenu(
     budgetData: BudgetData,
     transactionDao: TransactionDao,

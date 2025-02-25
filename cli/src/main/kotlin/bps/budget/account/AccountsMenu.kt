@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.account
 
 import bps.budget.UserConfiguration
@@ -27,6 +29,7 @@ import bps.console.menu.takeAction
 import kotlinx.datetime.Clock
 import java.math.BigDecimal
 import kotlin.math.min
+import kotlin.uuid.ExperimentalUuidApi
 
 fun WithIo.manageAccountsMenu(
     budgetData: BudgetData,

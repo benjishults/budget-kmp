@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.transaction
 
 import bps.console.io.WithIo
@@ -18,6 +20,7 @@ import bps.console.inputs.SimplePromptWithDefault
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import java.math.BigDecimal
+import kotlin.uuid.ExperimentalUuidApi
 
 @Suppress("DefaultLocale")
 fun WithIo.chooseRealAccountsThenCategories(

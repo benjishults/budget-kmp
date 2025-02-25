@@ -8,6 +8,7 @@ import bps.budget.server.account.accountRoutes
 import bps.jdbc.JdbcConnectionProvider
 import bps.config.convertToPath
 import io.ktor.server.application.Application
+import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.http.content.staticResources
 import io.ktor.server.netty.Netty
@@ -43,6 +44,9 @@ fun main() {
         port = 8081,
         host = "0.0.0.0",
     ) {
+        install(ContentNegotiation) {
+            json()
+        }
         module(accountDao)
     }
         .start(wait = true)

@@ -8,13 +8,15 @@ import bps.budget.model.Transaction.Type
 import bps.budget.model.TransactionItem
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 interface TransactionDao {
 
     fun commit(
         transaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
         accountDao: AccountDao,
         saveBalances: Boolean = true,
     ) {
@@ -25,22 +27,22 @@ interface TransactionDao {
      * @return the list of [BalanceToAdd]s that should be applied to correct balances on accounts.
      */
     fun deleteTransaction(
-        transactionId: UUID,
-        budgetId: UUID,
-        accountIdToAccountMap: Map<UUID, Account>,
+        transactionId: Uuid,
+        budgetId: Uuid,
+        accountIdToAccountMap: Map<Uuid, Account>,
     ): List<AccountDao.BalanceToAdd> = TODO()
 
     fun clearCheck(
         draftTransactionItems: List<Transaction.Item<DraftAccount>>,
         clearingTransaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
         accountDao: AccountDao,
     ) = Unit
 
     fun clearCheck(
         draftTransactionItem: Transaction.Item<DraftAccount>,
         clearingTransaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
         accountDao: AccountDao,
     ) =
         clearCheck(listOf(draftTransactionItem), clearingTransaction, budgetId, accountDao)
@@ -48,7 +50,7 @@ interface TransactionDao {
     fun commitCreditCardPayment(
         clearedItems: List<ExtendedTransactionItem<ChargeAccount>>,
         billPayTransaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
         accountDao: AccountDao
     ) {
     }
@@ -69,9 +71,9 @@ interface TransactionDao {
         emptyList()
 
     fun getTransactionOrNull(
-        transactionId: UUID,
-        budgetId: UUID,
-        accountIdToAccountMap: Map<UUID, Account>,
+        transactionId: Uuid,
+        budgetId: Uuid,
+        accountIdToAccountMap: Map<Uuid, Account>,
     ): Transaction?
 
     /**
@@ -80,12 +82,12 @@ interface TransactionDao {
     class ExtendedTransactionItem<out A : Account>(
         val item: Transaction.ItemBuilder<A>,
         val accountBalanceAfterItem: BigDecimal?,
-        val transactionId: UUID,
+        val transactionId: Uuid,
         val transactionDescription: String,
         val transactionTimestamp: Instant,
         val transactionType: Type,
         val transactionDao: TransactionDao,
-        val budgetId: UUID,
+        val budgetId: Uuid,
     ) : TransactionItem<A>,
         Comparable<ExtendedTransactionItem<*>> {
 
@@ -94,7 +96,7 @@ interface TransactionDao {
          * So, refer to this only if you need more than just the [transactionId], [transactionDescription], or
          * [transactionTimestamp].
          */
-        fun transaction(budgetId: UUID, accountIdToAccountMap: Map<UUID, Account>): Transaction =
+        fun transaction(budgetId: Uuid, accountIdToAccountMap: Map<Uuid, Account>): Transaction =
             transaction
                 ?: run {
                     transactionDao.getTransactionOrNull(transactionId, budgetId, accountIdToAccountMap)!!
@@ -110,7 +112,7 @@ interface TransactionDao {
             this.transactionTimestamp.compareTo(other.transactionTimestamp)
                 .let {
                     when (it) {
-                        0 -> this.transactionId.compareTo(other.transactionId)
+                        0 -> this.transactionId.toString().compareTo(other.transactionId.toString())
                         else -> it
                     }
                 }

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.consistency
 
 import bps.budget.model.BudgetData
@@ -8,6 +10,7 @@ import bps.budget.model.Transaction
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import kotlinx.datetime.Instant
+import kotlin.uuid.ExperimentalUuidApi
 
 fun commitTransactionConsistently(
     transaction: Transaction,

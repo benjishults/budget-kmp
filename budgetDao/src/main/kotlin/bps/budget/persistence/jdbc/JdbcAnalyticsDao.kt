@@ -23,8 +23,10 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.util.SortedMap
 import java.util.TreeMap
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class JdbcAnalyticsDao(
     val  jdbcConnectionProvider: JdbcConnectionProvider,
     override val clock: Clock = Clock.System,
@@ -175,7 +177,7 @@ class JdbcAnalyticsDao(
     override fun averageIncome(
         timeZone: TimeZone,
         options: AnalyticsOptions,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): BigDecimal? =
         connection.transactOrThrow {
             val incomes = MonthlyItemSeries()
@@ -229,7 +231,7 @@ class JdbcAnalyticsDao(
         realAccount: RealAccount,
         timeZone: TimeZone,
         options: AnalyticsOptions,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): BigDecimal? =
         connection.transactOrThrow {
             val incomes = MonthlyItemSeries()
@@ -279,7 +281,7 @@ class JdbcAnalyticsDao(
     override fun averageExpenditure(
         timeZone: TimeZone,
         options: AnalyticsOptions,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): BigDecimal? =
         connection.transactOrThrow {
             val expenditures = MonthlyItemSeries()

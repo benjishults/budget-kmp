@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.checking
 
 import bps.budget.budgetQuitItem
@@ -29,6 +31,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toInstant
 import java.math.BigDecimal
+import kotlin.uuid.ExperimentalUuidApi
 
 fun WithIo.checksMenu(
     budgetData: BudgetData,

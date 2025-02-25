@@ -17,7 +17,11 @@ import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+import kotlin.uuid.toKotlinUuid
 
+@OptIn(ExperimentalUuidApi::class)
 open class JdbcAccountDao(
     val jdbcConnectionProvider: JdbcConnectionProvider,
 ) : AccountDao, JdbcFixture, AutoCloseable {
@@ -26,8 +30,8 @@ open class JdbcAccountDao(
 
     override fun <T : Account> getDeactivatedAccounts(
         type: String,
-        budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        budgetId: Uuid,
+        factory: (String, String, Uuid, BigDecimal, Uuid) -> T,
     ): List<T> =
         connection.transactOrThrow {
             prepareStatement(
@@ -59,8 +63,8 @@ open class JdbcAccountDao(
 
     override fun <T : Account> getActiveAccounts(
         type: String,
-        budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        budgetId: Uuid,
+        factory: (String, String, Uuid, BigDecimal, Uuid) -> T,
     ): List<T> =
         connection.prepareStatement(
             """
@@ -90,8 +94,8 @@ where acc.budget_id = ?
      * @param T the [Account] type
      */
     private fun <T : Account> ResultSet.extractAccounts(
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
-        budgetId: UUID,
+        factory: (String, String, Uuid, BigDecimal, Uuid) -> T,
+        budgetId: Uuid,
     ): List<T> =
         buildList {
             while (next()) {
@@ -99,7 +103,7 @@ where acc.budget_id = ?
                     factory(
                         getString("name"),
                         getString("description"),
-                        getObject("id", UUID::class.java),
+                        getObject("id", UUID::class.java).toKotlinUuid(),
                         getCurrencyAmount("balance"),
                         budgetId,
                     ),
@@ -125,8 +129,8 @@ where aap.account_id = ?
         }
     }
 
-    override fun List<AccountDao.BalanceToAdd>.updateBalances(budgetId: UUID) =
-        forEach { (accountId: UUID, amount: BigDecimal) ->
+    override fun List<AccountDao.BalanceToAdd>.updateBalances(budgetId: Uuid) =
+        forEach { (accountId: Uuid, amount: BigDecimal) ->
             connection.prepareStatement(
                 """
                         update accounts
@@ -161,7 +165,7 @@ where aap.account_id = ?
                 }
         }
 
-    override fun createCategoryAccountOrNull(name: String, description: String, budgetId: UUID): CategoryAccount? =
+    override fun createCategoryAccountOrNull(name: String, description: String, budgetId: Uuid): CategoryAccount? =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -190,7 +194,7 @@ where aap.account_id = ?
                 ?.also { insertAccountActivePeriod(it, budgetId) }
         }
 
-    private fun Connection.insertAccountActivePeriod(account: Account, budgetId: UUID) =
+    private fun Connection.insertAccountActivePeriod(account: Account, budgetId: Uuid) =
         prepareStatement(
             """
                             insert into account_active_periods (id, account_id, budget_id)
@@ -199,14 +203,14 @@ where aap.account_id = ?
                         """.trimIndent(),
         )
             .use { createActivePeriod: PreparedStatement ->
-                createActivePeriod.setUuid(1, UUID.randomUUID())
+                createActivePeriod.setUuid(1, Uuid.random())
                 createActivePeriod.setUuid(2, account.id)
                 createActivePeriod.setUuid(3, budgetId)
                 // NOTE due to the uniqueness constraints on this table, this will be idempotent
                 createActivePeriod.executeUpdate()
             }
 
-    override fun createGeneralAccountWithIdOrNull(id: UUID, balance: BigDecimal, budgetId: UUID): CategoryAccount? =
+    override fun createGeneralAccountWithIdOrNull(id: Uuid, balance: BigDecimal, budgetId: Uuid): CategoryAccount? =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -238,7 +242,7 @@ where aap.account_id = ?
     override fun createRealAccountOrNull(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
         balance: BigDecimal,
     ): RealAccount? =
         connection.transactOrThrow {
@@ -248,7 +252,7 @@ where aap.account_id = ?
     private fun Connection.createRealAccountInTransaction(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
         balance: BigDecimal,
     ): RealAccount? =
         prepareStatement(
@@ -281,7 +285,7 @@ where aap.account_id = ?
     override fun createRealAndDraftAccountOrNull(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
         balance: BigDecimal,
     ): Pair<RealAccount, DraftAccount>? =
         connection.transactOrThrow {
@@ -320,7 +324,7 @@ where aap.account_id = ?
     override fun createChargeAccountOrNull(
         name: String,
         description: String,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): ChargeAccount? =
         connection.transactOrThrow {
             prepareStatement(
@@ -354,10 +358,10 @@ where aap.account_id = ?
         name: String,
         description: String,
         type: AccountType,
-        budgetId: UUID,
+        budgetId: Uuid,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-    ): UUID =
-        UUID.randomUUID()
+    ): Uuid =
+        Uuid.random()
             .also {
                 setString(1, name)
                 setString(2, description)

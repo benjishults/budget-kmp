@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget
 
 import bps.budget.account.manageAccountsMenu
@@ -20,7 +22,8 @@ import bps.console.menu.pushMenu
 import bps.console.menu.quitItem
 import bps.console.menu.takeActionAndPush
 import kotlinx.datetime.Clock
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 val budgetQuitItem = quitItem(
     """
@@ -37,7 +40,7 @@ fun WithIo.budgetMenu(
     analyticsDao: AnalyticsDao,
     userBudgetDao: UserBudgetDao,
     userConfig: UserConfiguration,
-    userId: UUID,
+    userId: Uuid,
     clock: Clock,
 ): Menu =
     Menu({ "Budget!" }) {

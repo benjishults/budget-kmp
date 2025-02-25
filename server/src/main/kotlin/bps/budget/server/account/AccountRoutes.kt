@@ -6,10 +6,12 @@ import bps.budget.model.CategoryAccount
 import bps.budget.model.ChargeAccount
 import bps.budget.model.RealAccount
 import bps.budget.persistence.jdbc.JdbcAccountDao
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.get
 import io.ktor.util.reflect.TypeInfo
-import java.util.UUID
+import kotlin.uuid.Uuid
 
 fun Routing.accountRoutes(accountDao: JdbcAccountDao) {
     get("/budgets/{budgetId}/accounts") {
@@ -17,7 +19,7 @@ fun Routing.accountRoutes(accountDao: JdbcAccountDao) {
             .pathParameters
             .getAll("budgetId")
             ?.let { params: List<String> ->
-                val budgetId = UUID.fromString(params[0])
+                val budgetId = Uuid.parse(params[0])
                 val realAccounts: List<RealAccount> =
                     accountDao.getActiveAccounts(AccountType.real.name, budgetId, ::RealAccount)
                 val categoryAccounts: List<CategoryAccount> =
@@ -26,5 +28,6 @@ fun Routing.accountRoutes(accountDao: JdbcAccountDao) {
                     accountDao.getActiveAccounts(AccountType.charge.name, budgetId, ::ChargeAccount)
                 call.respond(realAccounts + categoryAccounts + chargeAccounts, TypeInfo(Account::class))
             }
+            ?: call.respond(HttpStatusCode.BadRequest)
     }
 }

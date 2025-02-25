@@ -12,7 +12,11 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.sql.Types
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
+import kotlin.uuid.toKotlinUuid
 
+@OptIn(ExperimentalUuidApi::class)
 interface JdbcFixture {
 
     fun PreparedStatement.setInstant(parameterIndex: Int, timestamp: Instant) {
@@ -48,10 +52,10 @@ interface JdbcFixture {
     fun ResultSet.getCurrencyAmount(name: String): BigDecimal =
         getBigDecimal(name).setScale(2)
 
-    fun ResultSet.getUuid(name: String): UUID? =
-        getObject(name, UUID::class.java)
+    fun ResultSet.getUuid(name: String): Uuid? =
+        getObject(name, UUID::class.java).toKotlinUuid()
 
-    fun PreparedStatement.setUuid(parameterIndex: Int, uuid: UUID) =
+    fun PreparedStatement.setUuid(parameterIndex: Int, uuid: Uuid) =
         setObject(parameterIndex, uuid, Types.OTHER)
 
     companion object : JdbcFixture {

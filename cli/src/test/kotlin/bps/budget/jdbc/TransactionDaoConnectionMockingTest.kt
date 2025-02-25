@@ -19,8 +19,10 @@ import java.sql.DriverManager
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Timestamp
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class TransactionDaoConnectionMockingTest : FreeSpec(), JdbcFixture, ConnectionMockingFixture {
 
     override val timestampFactory: () -> Timestamp = initializeTimestampFactory()
@@ -33,7 +35,7 @@ class TransactionDaoConnectionMockingTest : FreeSpec(), JdbcFixture, ConnectionM
 
         val transactionDao: TransactionDao = JdbcTransactionDao(jdbcConnectionProvider)
 
-        val budgetId = UUID.randomUUID()
+        val budgetId = Uuid.random()
         "test fetchTransactionItemsInvolvingAccount" {
             val preparedStatement = mockk<PreparedStatement>(relaxed = true)
             val resultSet = mockk<ResultSet>(relaxed = true)
@@ -55,7 +57,7 @@ class TransactionDaoConnectionMockingTest : FreeSpec(), JdbcFixture, ConnectionM
             every { resultSet.getString("type") } returns
                     "expense"
             every { resultSet.getUuid(any()) } answers
-                    { UUID.randomUUID() }
+                    { Uuid.random() }
             every { resultSet.getUuid("budget_id") } returns
                     budgetId
             every { resultSet.getTimestamp(any<String>()) } answers
@@ -73,7 +75,7 @@ class TransactionDaoConnectionMockingTest : FreeSpec(), JdbcFixture, ConnectionM
             val account = CategoryAccount(
                 name = "stuff",
                 description = "stuff",
-                id = UUID.randomUUID(),
+                id = Uuid.random(),
                 balance = 1000.toBigDecimal().setScale(2),
                 budgetId = budgetId,
             )

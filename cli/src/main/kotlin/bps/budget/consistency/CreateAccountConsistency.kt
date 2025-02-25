@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.consistency
 
 import bps.budget.income.createInitialBalanceTransaction
@@ -16,6 +18,7 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.toInstant
 import java.math.BigDecimal
+import kotlin.uuid.ExperimentalUuidApi
 
 fun createCategoryAccountConsistently(
     name: String,

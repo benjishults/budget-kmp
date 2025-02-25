@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     kotlin("plugin.allopen") version "2.1.10"
     `java-library`
+    alias(libs.plugins.serialization)
 }
 
 group = "bps"
@@ -35,6 +36,7 @@ dependencies {
     implementation(libs.jackson.kotlin) {
         exclude(group = "org.jetbrains.kotlin")
     }
+    implementation(libs.kotlinx.serialization.json)
 
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)
