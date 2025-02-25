@@ -31,4 +31,7 @@ dependencyResolutionManagement {
 include(":composeApp")
 include(":server")
 include(":cli")
+include(":budgetDao")
+include(":budgetDaoTest")
+include(":konfiguration")
 include(":shared")

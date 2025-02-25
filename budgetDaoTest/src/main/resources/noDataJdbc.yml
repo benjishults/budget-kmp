@@ -1,0 +1,14 @@
+persistence:
+  type: JDBC
+  jdbc:
+    driver: org.postgresql.Driver
+    schema: clean_after_test
+    user: test
+    password: test
+    host: localhost
+  file:
+    dataDirectory: src/test/resources/noDataJdbc
+budget:
+  name: clean after test
+budgetUser:
+  defaultLogin: not.used@example.com

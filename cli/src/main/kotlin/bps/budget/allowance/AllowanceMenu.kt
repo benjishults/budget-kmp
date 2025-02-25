@@ -9,7 +9,8 @@ import bps.budget.model.Transaction
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
+import bps.budget.persistence.AccountDao
 import bps.budget.transaction.showRecentRelevantTransactions
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
@@ -29,6 +30,7 @@ import java.math.BigDecimal
 fun WithIo.makeAllowancesSelectionMenu(
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     analyticsDao: AnalyticsDao,
     userConfig: UserConfiguration,
     clock: Clock,
@@ -161,7 +163,7 @@ fun WithIo.makeAllowancesSelectionMenu(
                     }
                 }
                 .build()
-            commitTransactionConsistently(allocate, transactionDao, budgetData)
+            commitTransactionConsistently(allocate, transactionDao, accountDao, budgetData)
             outPrinter.important("Allowance recorded")
         } else {
             outPrinter.important("Must allow a positive amount.")

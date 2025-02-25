@@ -9,7 +9,8 @@ import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
+import bps.budget.persistence.AccountDao
 import bps.budget.transaction.ViewTransactionFixture
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
 import bps.budget.transaction.allocateSpendingItemMenu
@@ -34,6 +35,7 @@ import java.math.BigDecimal
 fun WithIo.creditCardMenu(
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     userConfig: UserConfiguration,
     clock: Clock,
 ): Menu =
@@ -53,6 +55,7 @@ fun WithIo.creditCardMenu(
                             budgetData,
                             clock,
                             transactionDao,
+                            accountDao,
                             userConfig,
                             menuSession,
                             chargeAccount,
@@ -69,6 +72,7 @@ fun WithIo.creditCardMenu(
                             clock,
                             chargeAccount,
                             transactionDao,
+                            accountDao,
                         )
                     },
                 )
@@ -113,6 +117,7 @@ private fun WithIo.payCreditCardBill(
     clock: Clock,
     chargeAccount: ChargeAccount,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
 ) {
     outPrinter.verticalSpace()
     val amountOfBill: BigDecimal =
@@ -181,6 +186,7 @@ private fun WithIo.payCreditCardBill(
                         userConfig = userConfig,
                         menuSession = menuSession,
                         clock = clock,
+                        accountDao = accountDao,
                     ),
                 )
             },
@@ -199,6 +205,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBill(
     chargeAccount: ChargeAccount,
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     userConfig: UserConfiguration,
     menuSession: MenuSession,
     clock: Clock,
@@ -210,6 +217,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBill(
     selectedItems = emptyList(),
     budgetData = budgetData,
     transactionDao = transactionDao,
+    accountDao = accountDao,
     userConfig = userConfig,
     menuSession = menuSession,
     clock = clock,
@@ -223,6 +231,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
     selectedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>>,
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     userConfig: UserConfiguration,
     menuSession: MenuSession,
     clock: Clock,
@@ -251,6 +260,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
                 budgetData,
                 clock,
                 transactionDao,
+                accountDao,
                 userConfig,
                 menuSession,
                 chargeAccount,
@@ -265,7 +275,13 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
         remainingToBeCovered == BigDecimal.ZERO.setScale(2) -> {
             // TODO might want to make this a prompt for approval since, with a credit, this could possibly stop too early
             menuSession.pop()
-            commitCreditCardPaymentConsistently(billPayTransaction, allSelectedItems, transactionDao, budgetData)
+            commitCreditCardPaymentConsistently(
+                billPayTransaction,
+                allSelectedItems,
+                transactionDao,
+                accountDao,
+                budgetData,
+            )
             outPrinter.important("Payment recorded!")
             menuSession.pop()
         }
@@ -288,6 +304,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
                     userConfig = userConfig,
                     menuSession = menuSession,
                     clock = clock,
+                    accountDao = accountDao,
                 ),
             )
         }
@@ -298,6 +315,7 @@ private fun WithIo.spendOnACreditCard(
     budgetData: BudgetData,
     clock: Clock,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     userConfig: UserConfiguration,
     menuSession: MenuSession,
     chargeAccount: ChargeAccount,
@@ -357,6 +375,7 @@ private fun WithIo.spendOnACreditCard(
                 description,
                 budgetData,
                 transactionDao,
+                accountDao,
                 userConfig,
             ),
         )

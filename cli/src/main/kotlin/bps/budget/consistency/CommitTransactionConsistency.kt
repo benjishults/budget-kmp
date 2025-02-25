@@ -5,22 +5,25 @@ import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.Transaction
+import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import kotlinx.datetime.Instant
 
 fun commitTransactionConsistently(
     transaction: Transaction,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     budgetData: BudgetData,
 ) {
     budgetData.commit(transaction)
-    transactionDao.commit(transaction, budgetData.id)
+    transactionDao.commit(transaction, budgetData.id, accountDao)
 }
 
 fun commitCreditCardPaymentConsistently(
     transaction: Transaction,
     allSelectedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>>,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     budgetData: BudgetData,
 ) {
     budgetData.commit(transaction)
@@ -28,6 +31,7 @@ fun commitCreditCardPaymentConsistently(
         allSelectedItems,
         transaction,
         budgetData.id,
+        accountDao
     )
 }
 
@@ -36,6 +40,7 @@ fun clearCheckConsistently(
     timestamp: Instant,
     draftAccount: DraftAccount,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     budgetData: BudgetData,
 ): Transaction =
     Transaction.Builder(
@@ -69,5 +74,6 @@ fun clearCheckConsistently(
                     ),
                 clearingTransaction,
                 budgetData.id,
+                accountDao
             )
         }

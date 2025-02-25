@@ -4,7 +4,6 @@ import bps.budget.model.Account
 import bps.budget.model.BudgetData
 import bps.budget.model.Transaction
 import bps.budget.model.TransactionItem
-import bps.budget.persistence.BudgetDao
 import bps.budget.persistence.TransactionDao
 import bps.budget.ui.formatAsLocalDateTime
 import bps.console.app.MenuSession

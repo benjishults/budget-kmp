@@ -2,10 +2,9 @@ package bps.budget.jdbc
 
 import bps.budget.analytics.AnalyticsOptions
 import bps.budget.model.CategoryAccount
-import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
-import bps.kotlin.WithMockClock
+import bps.kotlin.test.WithMockClock
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every
@@ -30,10 +29,10 @@ class AnalyticsDaoTest : FreeSpec(),
         val pastClock = produceDayTickingClock(Instant.parse("2023-08-01T04:00:00.500Z"))
 
         val connection: Connection = mockk(relaxed = true)
-        val accountDao: AccountDao = mockk(relaxed = true)
         val dao: AnalyticsDao = JdbcAnalyticsDao(
-            connection = connection,
-            accountDao = accountDao,
+            jdbcConnectionProvider = mockk(relaxed = true) {
+                every { this@mockk.connection } returns connection
+            },
             // NOTE what gets passed in here doesn't matter since we are mocking the results on the connection
             clock = clock,
         )

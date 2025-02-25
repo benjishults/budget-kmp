@@ -1,11 +1,12 @@
 package bps.budget.ui
 
-import bps.budget.auth.AuthenticatedUser
+import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
-import bps.budget.persistence.BudgetDao
+import bps.budget.InitializingBudgetDao
 import bps.budget.persistence.UserBudgetDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.UserConfiguration
+import bps.budget.persistence.AccountDao
 import bps.console.app.QuitException
 import bps.console.inputs.EmailStringValidator
 import bps.console.inputs.SimplePrompt
@@ -15,7 +16,6 @@ import bps.console.io.DefaultInputReader
 import bps.console.io.DefaultOutPrinter
 import bps.console.io.InputReader
 import bps.console.io.OutPrinter
-import bps.time.naturalMonthInterval
 import kotlinx.datetime.Clock
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.Month
@@ -32,7 +32,8 @@ class ConsoleUiFacade(
 
     override fun firstTimeSetup(
         budgetName: String,
-        budgetDao: BudgetDao,
+        accountDao: AccountDao,
+        userBudgetDao: UserBudgetDao,
         authenticatedUser: AuthenticatedUser,
         clock: Clock,
     ): BudgetData {
@@ -40,8 +41,8 @@ class ConsoleUiFacade(
         val timeZone: TimeZone = getDesiredTimeZone()
         val generalAccountId: UUID = UUID.randomUUID()
         val budgetId: UUID = UUID.randomUUID()
-        budgetDao.userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
-        budgetDao.userBudgetDao.grantAccess(
+        userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
+        userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,
             analyticsStart =
@@ -78,7 +79,7 @@ class ConsoleUiFacade(
                     "Wallet",
                     "this is cash you might carry on your person",
                 ),
-                accountDao = budgetDao.accountDao,
+                accountDao = accountDao,
             )
                 .also {
                     info(
@@ -92,7 +93,7 @@ class ConsoleUiFacade(
                     )
                 }
         } else {
-            budgetDao.accountDao.createGeneralAccountWithIdOrNull(generalAccountId, budgetId = UUID.randomUUID())!!
+            accountDao.createGeneralAccountWithIdOrNull(generalAccountId, budgetId = UUID.randomUUID())!!
                 .let { generalAccount: CategoryAccount ->
                     BudgetData(
                         id = budgetId,
@@ -143,7 +144,9 @@ class ConsoleUiFacade(
                 override fun invoke(entry: String): Boolean =
                     entry in TimeZone.availableZoneIds
             },
-        ) { TimeZone.of(it) }
+        ) { tzId: String ->
+            TimeZone.of(tzId)
+        }
             .getResult()
             ?: throw QuitException()
 
@@ -152,28 +155,7 @@ class ConsoleUiFacade(
     }
 
     override fun login(userBudgetDao: UserBudgetDao, userConfiguration: UserConfiguration): AuthenticatedUser {
-        val login: String =
-            if (userConfiguration.defaultLogin === null) {
-                SimplePrompt<String>(
-                    "username: ",
-                    inputReader = inputReader,
-                    outPrinter = outPrinter,
-                    validator = EmailStringValidator,
-                )
-                    .getResult()
-                    ?: throw QuitException("No valid email entered.")
-            } else {
-                // for now, just use the configured one
-                userConfiguration.defaultLogin
-//                SimplePromptWithDefault(
-//                    "username: ",
-//                    userConfiguration.defaultLogin,
-//                    inputReader = inputReader,
-//                    outPrinter = outPrinter,
-//                    validate = { it.isNotBlank() && EmailValidator.getInstance().isValid(it) },
-//                )
-//                    .getResult()
-            }
+        val login: String = userConfiguration.defaultLogin
         // TODO replace this with an upsert so we get a single transaction safe from race conditions
         return userBudgetDao
             // NOTE not doing authentication yet

@@ -63,7 +63,7 @@ fun WithIo.createRealAccountConsistentlyWithIo(
             }
     }
         ?.also { realAccount: RealAccount ->
-            createAndSaveIncomeTransaction(balance, realAccount, budgetData, clock, transactionDao)
+            createAndSaveIncomeTransaction(balance, realAccount, budgetData, clock, transactionDao, accountDao)
         }
         ?: run {
             outPrinter.important("Unable to save real account.")
@@ -76,6 +76,7 @@ private fun WithIo.createAndSaveIncomeTransaction(
     budgetData: BudgetData,
     clock: Clock,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
 ) {
     if (balance > BigDecimal.ZERO) {
         val incomeDescription: String =
@@ -103,7 +104,7 @@ private fun WithIo.createAndSaveIncomeTransaction(
             realAccount,
         )
             .let { incomeTransaction: Transaction ->
-                commitTransactionConsistently(incomeTransaction, transactionDao, budgetData)
+                commitTransactionConsistently(incomeTransaction, transactionDao, accountDao, budgetData)
                 outPrinter.important("Real account '${realAccount.name}' created with balance $$balance")
             }
     }

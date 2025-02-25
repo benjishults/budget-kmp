@@ -6,8 +6,10 @@ import bps.budget.charge.creditCardMenu
 import bps.budget.checking.checksMenu
 import bps.budget.income.recordIncomeSelectionMenu
 import bps.budget.model.BudgetData
-import bps.budget.persistence.BudgetDao
-import bps.budget.persistence.UserConfiguration
+import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AnalyticsDao
+import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.UserBudgetDao
 import bps.budget.settings.userSettingsMenu
 import bps.budget.spend.recordSpendingMenu
 import bps.budget.transaction.manageTransactions
@@ -30,7 +32,10 @@ val budgetQuitItem = quitItem(
 
 fun WithIo.budgetMenu(
     budgetData: BudgetData,
-    budgetDao: BudgetDao,
+    accountDao: AccountDao,
+    transactionDao: TransactionDao,
+    analyticsDao: AnalyticsDao,
+    userBudgetDao: UserBudgetDao,
     userConfig: UserConfiguration,
     userId: UUID,
     clock: Clock,
@@ -43,8 +48,9 @@ fun WithIo.budgetMenu(
                 to = {
                     recordIncomeSelectionMenu(
                         budgetData,
-                        budgetDao.transactionDao,
-                        budgetDao.analyticsDao,
+                        transactionDao,
+                        accountDao,
+                        analyticsDao,
                         userConfig,
                         clock,
                     )
@@ -65,8 +71,9 @@ fun WithIo.budgetMenu(
                 to = {
                     makeAllowancesSelectionMenu(
                         budgetData,
-                        budgetDao.transactionDao,
-                        budgetDao.analyticsDao,
+                        transactionDao,
+                        accountDao,
+                        analyticsDao,
                         userConfig,
                         clock,
                     )
@@ -79,32 +86,43 @@ fun WithIo.budgetMenu(
         )
         add(
             pushMenu({ recordSpendingLabel }, "s") {
-                recordSpendingMenu(budgetData, budgetDao.transactionDao, userConfig, clock)
+                recordSpendingMenu(budgetData, transactionDao, accountDao, userConfig, clock)
             },
         )
         add(
             pushMenu({ manageTransactionsLabel }, "t") {
-                manageTransactions(budgetData, budgetDao.transactionDao, budgetDao.accountDao, userConfig)
+                manageTransactions(
+                    budgetData,
+                    transactionDao,
+                    accountDao,
+                    userConfig,
+                )
             },
         )
         add(
             pushMenu({ writeOrClearChecksLabel }, "ch") {
-                checksMenu(budgetData, budgetDao.transactionDao, budgetDao.accountDao, userConfig, clock)
+                checksMenu(
+                    budgetData,
+                    transactionDao,
+                    accountDao,
+                    userConfig,
+                    clock,
+                )
             },
         )
         add(
             pushMenu({ useOrPayCreditCardsLabel }, "cr") {
-                creditCardMenu(budgetData, budgetDao.transactionDao, userConfig, clock)
+                creditCardMenu(budgetData, transactionDao, accountDao, userConfig, clock)
             },
         )
         add(
             pushMenu({ transferLabel }, "x") {
-                transferMenu(budgetData, budgetDao.transactionDao, userConfig, clock)
+                transferMenu(budgetData, transactionDao, accountDao, userConfig, clock)
             },
         )
         add(
             pushMenu({ manageAccountsLabel }, "m") {
-                manageAccountsMenu(budgetData, budgetDao, userConfig, clock)
+                manageAccountsMenu(budgetData, accountDao, transactionDao, userConfig, clock)
             },
         )
         add(
@@ -112,7 +130,7 @@ fun WithIo.budgetMenu(
                 userSettingsMenu(
                     budgetData = budgetData,
                     userId = userId,
-                    userBudgetDao = budgetDao.userBudgetDao,
+                    userBudgetDao = userBudgetDao,
                 )
             },
         )

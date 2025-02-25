@@ -1,0 +1,244 @@
+openapi: 3.1.1
+
+info:
+  title: Accounts
+  version: "0.1"
+  summary: Endpoints related to accounts
+
+paths:
+  /budgetId/{budgetId}/accounts:
+    summary: Accounts
+    parameters:
+      - $ref: "#/components/parameters/budgetIdParam"
+    get:
+      description: Get a list of all accounts for the specified budget.
+      operationId: getAccounts
+      security:
+        - budget_auth:
+            - 'r:accounts'
+      responses:
+        200:
+          description: list of accounts in budget
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        500:
+          description: Internal Server Error
+    post:
+      description: Create a new account in the specified budget.
+      operationId: createAccount
+      security:
+        - budget_auth:
+            - 'w:accounts'
+      requestBody:
+        description: new account
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrReplaceAccountRequest"
+      responses:
+        201:
+          description: created account
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/GetAccount'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        409:
+          description: Conflict
+        500:
+          description: Internal Server Error
+  /budgetId/{budgetId}/accounts/{accountId}:
+    parameters:
+      - $ref: "#/components/parameters/budgetIdParam"
+      - $ref: "#/components/parameters/accountIdParam"
+    get:
+      description: Get the specified account.
+      operationId: getAccount
+      security:
+        - budget_auth:
+            - 'r:accounts'
+      responses:
+        200:
+          description: requested account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        500:
+          description: Internal Server Error
+    put:
+      description: Replace the specified account.
+      operationId: replaceAccount
+      security:
+        - budget_auth:
+            - 'w:accounts'
+      requestBody:
+        description: replacement account
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrReplaceAccountRequest"
+      responses:
+        204:
+          description: account after update
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/GetAccount'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        409:
+          description: Conflict
+        500:
+          description: Internal Server Error
+    patch:
+      description: Update some attributes of the specified account.
+      operationId: updateAccount
+      security:
+        - budget_auth:
+            - 'w:accounts'
+      responses:
+        200:
+          description: account after update
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        409:
+          description: Conflict
+        500:
+          description: Internal Server Error
+    delete:
+      description: Delete the specified account.
+      operationId: deleteAccount
+      security:
+        - budget_auth:
+            - 'w:accounts'
+      responses:
+        204:
+          description: account deleted
+#          content:
+#            application/json:
+#              schema:
+#                $ref: '#/components/schemas/GetAccount'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        500:
+          description: Internal Server Error
+
+components:
+  parameters:
+    budgetIdParam:
+      name: budgetId
+      in: path
+      required: true
+      schema:
+        format: uuid
+        description: budget ID
+    accountIdParam:
+      name: accountId
+      in: path
+      required: true
+      schema:
+        format: uuid
+        description: account ID
+  schemas:
+    AccountResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        balance:
+          type: number
+        companionId:
+          type: string
+          format: uuid
+        budgetId:
+          type: string
+          format: uuid
+      required:
+        - id
+        - name
+        - type
+        - description
+        - balance
+        - budgetId
+    CreateOrReplaceAccountRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        balance:
+          type: number
+        companionId:
+          type: string
+          format: uuid
+        budgetId:
+          type: string
+          format: uuid
+      required:
+        - name
+        - type
+        - description
+        - balance
+        - budgetId
