@@ -78,6 +78,7 @@ dependencies {
     }
 
 //    testImplementation(libs.junit.bom)
+    testImplementation(projects.budgetDaoTest)
     testImplementation(libs.bps.console.test)
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)

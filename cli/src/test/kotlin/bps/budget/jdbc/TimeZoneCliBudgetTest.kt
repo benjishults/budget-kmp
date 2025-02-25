@@ -1,7 +1,5 @@
 package bps.budget.jdbc
 
-import bps.budget.BudgetConfigurations
-import bps.budget.JdbcDao
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import io.kotest.core.spec.style.FreeSpec
@@ -12,17 +10,16 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.sql.Timestamp
 
-class TimeZoneTest : FreeSpec(), BaseJdbcTestFixture, JdbcFixture {
-
-    override val configurations: BudgetConfigurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
+class TimeZoneCliBudgetTest : FreeSpec(),
+    JdbcCliBudgetTestFixture by JdbcCliBudgetTestFixture("noDataJdbc.yml"),
+    JdbcFixture {
 
     init {
         beforeSpec {
-            dropTables(connection, configurations.persistence.jdbc!!.schema)
+            dropTables(connection, jdbcConfig.schema)
         }
         afterSpec {
-            dropTables(connection, configurations.persistence.jdbc!!.schema)
+            dropTables(connection, jdbcConfig.schema)
         }
         "create table" - {
             connection.transactOrThrow {

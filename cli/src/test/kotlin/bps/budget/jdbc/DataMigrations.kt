@@ -1,13 +1,15 @@
 package bps.budget.jdbc
 
 import bps.budget.BudgetConfigurations
-import bps.budget.JdbcDao
+import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.model.AccountType
 import bps.budget.model.DraftStatus
 import bps.budget.model.Transaction
 import bps.config.convertToPath
+import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
+import bps.jdbc.toJdbcConnectionProvider
 import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.ResultSet
@@ -31,9 +33,10 @@ class DataMigrations {
                             convertToPath("~/.config/bps-budget/migrations.yml"),
                         ),
                     )
-                val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
+                val jdbcConnectionProvider = configurations.persistence.jdbc!!.toJdbcConnectionProvider()
+                val jdbcCliBudgetDao = JdbcInitializingBudgetDao(configurations.budget.name, jdbcConnectionProvider)
                 val migrationType = argsList[typeIndex]
-                with(jdbcDao.connection) {
+                with(jdbcCliBudgetDao.connection) {
                     when (migrationType) {
 //                        "customer-fix" -> {
 //                            customerFix(jdbcDao)
@@ -42,7 +45,7 @@ class DataMigrations {
 //                            addTransactionItemIds(jdbcDao)
 //                        }
                         "add-transaction-types" -> {
-                            addTransactionTypes(jdbcDao)
+                            addTransactionTypes(jdbcCliBudgetDao)
                         }
 //                        "move-to-single-account-table" -> {
 //                            moveToSingleAccountTable(jdbcDao)
@@ -70,8 +73,8 @@ class DataMigrations {
             val details: MutableList<TransactionDetail> = mutableListOf(),
         )
 
-        private fun Connection.addTransactionTypes(jdbcDao: JdbcDao) {
-            jdbcDao.use {
+        private fun Connection.addTransactionTypes(jdbcCliBudgetDao: JdbcInitializingBudgetDao) {
+            jdbcCliBudgetDao.use {
                 transactOrThrow {
                     // TODO alter table add nullable id column
                     prepareStatement(

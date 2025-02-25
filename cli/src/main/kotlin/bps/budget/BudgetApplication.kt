@@ -2,7 +2,16 @@ package bps.budget
 
 import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
-import bps.budget.BudgetDao
+import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AnalyticsDao
+import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.UserBudgetDao
+import bps.budget.persistence.jdbc.JdbcAccountDao
+import bps.budget.persistence.jdbc.JdbcAnalyticsDao
+import bps.jdbc.JdbcConnectionProvider
+import bps.budget.persistence.jdbc.JdbcTransactionDao
+import bps.budget.persistence.jdbc.JdbcUserBudgetDao
+import bps.jdbc.toJdbcConnectionProvider
 import bps.budget.ui.UiFacade
 import bps.console.app.MenuApplicationWithQuit
 import bps.console.io.DefaultInputReader
@@ -26,7 +35,12 @@ class BudgetApplication private constructor(
     override val inputReader: InputReader,
     override val outPrinter: OutPrinter,
     uiFacade: UiFacade,
-    val budgetDao: BudgetDao,
+    val initializingBudgetDao: InitializingBudgetDao,
+    val cliBudgetDao: CliBudgetDao,
+    val accountDao: AccountDao,
+    val transactionDao: TransactionDao,
+    val analyticsDao: AnalyticsDao,
+    val userBudgetDao: UserBudgetDao,
     clock: Clock,
     configurations: BudgetConfigurations,
 ) : AutoCloseable, WithIo {
@@ -37,36 +51,51 @@ class BudgetApplication private constructor(
         inputReader: InputReader = DefaultInputReader,
         outPrinter: OutPrinter = DefaultOutPrinter,
         clock: Clock = Clock.System,
+        jdbcConnectionProvider: JdbcConnectionProvider = configurations.persistence.jdbc!!.toJdbcConnectionProvider(),
     ) : this(
-        inputReader,
-        outPrinter,
-        uiFacade,
-        buildBudgetDao(configurations.persistence, configurations.budget.name),
-        clock,
-        configurations,
+        uiFacade = uiFacade,
+        outPrinter = outPrinter,
+        inputReader = inputReader,
+        initializingBudgetDao = JdbcInitializingBudgetDao(
+            configurations.budget.name,
+            jdbcConnectionProvider,
+        ),
+        cliBudgetDao = JdbcCliBudgetDao(configurations.budget.name, jdbcConnectionProvider),
+        accountDao = JdbcAccountDao(jdbcConnectionProvider),
+        transactionDao = JdbcTransactionDao(jdbcConnectionProvider),
+        analyticsDao = JdbcAnalyticsDao(jdbcConnectionProvider),
+        userBudgetDao = JdbcUserBudgetDao(jdbcConnectionProvider),
+        clock = clock,
+        configurations = configurations,
     )
 
     init {
-        budgetDao.prepForFirstLoad()
+        initializingBudgetDao.prepForFirstLoad()
     }
 
-    val authenticatedUser: AuthenticatedUser = uiFacade.login(budgetDao.userBudgetDao, configurations.user)
+    val authenticatedUser: AuthenticatedUser = uiFacade.login(userBudgetDao, configurations.user)
     val budgetData: BudgetData = loadOrBuildBudgetData(
         authenticatedUser = authenticatedUser,
         uiFacade = uiFacade,
-        budgetDao = budgetDao,
+        initializingBudgetDao = initializingBudgetDao,
+        cliBudgetDao = cliBudgetDao,
+        accountDao = accountDao,
         budgetName = configurations.budget.name,
         clock = clock,
+        userBudgetDao = userBudgetDao,
     )
 
     val menuApplicationWithQuit =
         MenuApplicationWithQuit(
             budgetMenu(
-                budgetData,
-                budgetDao,
-                configurations.user,
-                authenticatedUser.id,
-                clock,
+                budgetData = budgetData,
+                accountDao = accountDao,
+                transactionDao = transactionDao,
+                analyticsDao = analyticsDao,
+                userBudgetDao = userBudgetDao,
+                userConfig = configurations.user,
+                userId = authenticatedUser.id,
+                clock = clock,
             ),
             inputReader,
             outPrinter,
@@ -79,7 +108,7 @@ class BudgetApplication private constructor(
     override fun close() {
         if (!budgetData.validate())
             outPrinter.important("Budget Data was invalid on exit!")
-        budgetDao.close()
+        initializingBudgetDao.close()
         menuApplicationWithQuit.close()
     }
 

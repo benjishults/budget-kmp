@@ -6,6 +6,7 @@ import bps.budget.model.Transaction
 import bps.budget.persistence.TransactionDao
 import bps.budget.UserConfiguration
 import bps.budget.model.toCurrencyAmountOrNull
+import bps.budget.persistence.AccountDao
 import bps.budget.transaction.chooseRealAccountsThenCategories
 import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.NonBlankStringValidator
@@ -21,6 +22,7 @@ import java.math.BigDecimal
 fun WithIo.recordSpendingMenu(
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     userConfig: UserConfiguration,
     clock: Clock,
 ): Menu {
@@ -58,14 +60,15 @@ fun WithIo.recordSpendingMenu(
     return chooseRealAccountsThenCategories(
         totalAmount = amount,
         runningTotal = amount,
-        description = description,
-        budgetData = budgetData,
-        transactionDao = transactionDao,
-        userConfig = userConfig,
         transactionBuilder = Transaction.Builder(
             description = description,
             timestamp = timestamp,
             type = Transaction.Type.expense,
         ),
+        description = description,
+        budgetData = budgetData,
+        transactionDao = transactionDao,
+        userConfig = userConfig,
+        accountDao = accountDao,
     )
 }

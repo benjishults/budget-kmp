@@ -1,6 +1,6 @@
 package bps.budget.jdbc
 
-import bps.budget.JdbcDao
+import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.model.AuthenticatedUser
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.model.BudgetData
@@ -34,11 +34,9 @@ import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
 import java.util.UUID
 
-class SomeBasicTransactionsTest : FreeSpec(),
+class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
     WithMockClock,
-    BasicAccountsJdbcTestFixture {
-
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
+    BasicAccountsJdbcCliBudgetTestFixture by BasicAccountsJdbcCliBudgetTestFixture() {
 
     init {
         val clock = produceSecondTickingClock()
@@ -46,8 +44,8 @@ class SomeBasicTransactionsTest : FreeSpec(),
         val userId: UUID = UUID.fromString("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         createBasicAccountsBeforeSpec(
             budgetId,
-            configurations.budget.name,
-            AuthenticatedUser(userId, configurations.user.defaultLogin!!),
+            budgetConfigurations.budget.name,
+            AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
             TimeZone.of("America/Chicago"),
             clock,
         )
@@ -55,9 +53,11 @@ class SomeBasicTransactionsTest : FreeSpec(),
 
         "with data from config" - {
             val budgetData = loadBudgetData(
-                authenticatedUser = jdbcDao.userBudgetDao.getUserByLoginOrNull(configurations.user.defaultLogin!!) as AuthenticatedUser,
-                budgetDao = jdbcDao,
-                budgetName = configurations.budget.name,
+                authenticatedUser = userBudgetDao.getUserByLoginOrNull(budgetConfigurations.user.defaultLogin!!) as AuthenticatedUser,
+                initializingBudgetDao = initializingBudgetDao,
+                budgetName = budgetConfigurations.budget.name,
+                cliBudgetDao = cliBudgetDao,
+                accountDao = accountDao,
             )
             "record income" {
                 val amount = BigDecimal("1000.00").setScale(2)
@@ -82,7 +82,7 @@ class SomeBasicTransactionsTest : FreeSpec(),
                             }
                         }
                         .build()
-                commitTransactionConsistently(income, jdbcDao.transactionDao, budgetData)
+                commitTransactionConsistently(income, transactionDao, accountDao, budgetData)
             }
             "allocate to food" {
                 val amount = BigDecimal("300.00")
@@ -106,7 +106,7 @@ class SomeBasicTransactionsTest : FreeSpec(),
                             }
                         }
                         .build()
-                commitTransactionConsistently(allocate, jdbcDao.transactionDao, budgetData)
+                commitTransactionConsistently(allocate, transactionDao, accountDao, budgetData)
             }
             "write a check for food" {
                 val amount = BigDecimal("100.00")
@@ -132,7 +132,7 @@ class SomeBasicTransactionsTest : FreeSpec(),
                         }
                     }
                     .build()
-                commitTransactionConsistently(writeCheck, jdbcDao.transactionDao, budgetData)
+                commitTransactionConsistently(writeCheck, transactionDao, accountDao, budgetData)
             }
             "check balances after writing check" {
                 budgetData.realAccounts.forEach { realAccount: RealAccount ->
@@ -196,13 +196,13 @@ class SomeBasicTransactionsTest : FreeSpec(),
                         }
                     }
                     .build()
-                commitTransactionConsistently(writeCheck, jdbcDao.transactionDao, budgetData)
+                commitTransactionConsistently(writeCheck, transactionDao, accountDao, budgetData)
             }
             "check balances after check clears" {
                 checkBalancesAfterCheckClears(budgetData)
             }
             "check balances in DB" {
-                checkBalancesAfterCheckClears(jdbcDao.load(budgetData.id, userId))
+                checkBalancesAfterCheckClears(cliBudgetDao.load(budgetData.id, userId, accountDao))
             }
         }
 

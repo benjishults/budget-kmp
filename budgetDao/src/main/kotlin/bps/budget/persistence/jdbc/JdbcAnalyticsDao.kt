@@ -3,8 +3,8 @@ package bps.budget.persistence.jdbc
 import bps.budget.analytics.AnalyticsOptions
 import bps.budget.model.CategoryAccount
 import bps.budget.model.RealAccount
-import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AnalyticsDao
+import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import bps.time.NaturalLocalInterval
@@ -18,7 +18,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.math.BigDecimal
-import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -27,10 +26,11 @@ import java.util.TreeMap
 import java.util.UUID
 
 class JdbcAnalyticsDao(
-    val connection: Connection,
-    val accountDao: AccountDao,
+    val  jdbcConnectionProvider: JdbcConnectionProvider,
     override val clock: Clock = Clock.System,
-) : AnalyticsDao, JdbcFixture {
+) : AnalyticsDao, JdbcFixture, AutoCloseable {
+
+    private val connection = jdbcConnectionProvider.connection
 
     data class Item(
         val amount: BigDecimal,
@@ -434,6 +434,10 @@ class JdbcAnalyticsDao(
         } else {
             atIndex
         }
+
+    override fun close() {
+        jdbcConnectionProvider.close()
+    }
 
 }
 

@@ -5,6 +5,7 @@ import bps.budget.model.CoarseAccess
 import bps.budget.model.User
 import bps.budget.model.UserBudgetAccess
 import bps.budget.persistence.UserBudgetDao
+import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import kotlinx.datetime.Instant
@@ -15,9 +16,11 @@ import java.sql.ResultSet
 import java.util.UUID
 
 class JdbcUserBudgetDao(
-    val connection: Connection,
+    val jdbcConnectionProvider: JdbcConnectionProvider,
 //    val errorStateTracker: JdbcBudgetDao.ErrorStateTracker,
-) : UserBudgetDao, JdbcFixture {
+) : UserBudgetDao, JdbcFixture, AutoCloseable {
+
+    private val connection: Connection = jdbcConnectionProvider.connection
 
     override fun getUserByLoginOrNull(login: String): User? =
         connection.transactOrThrow {
@@ -219,6 +222,10 @@ class JdbcUserBudgetDao(
                 }
 //            }
         }
+    }
+
+    override fun close() {
+        jdbcConnectionProvider.close()
     }
 
 }

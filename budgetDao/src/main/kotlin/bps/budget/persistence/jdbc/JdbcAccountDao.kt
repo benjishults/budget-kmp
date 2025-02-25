@@ -9,6 +9,7 @@ import bps.budget.model.RealAccount
 import bps.budget.model.defaultGeneralAccountDescription
 import bps.budget.model.defaultGeneralAccountName
 import bps.budget.persistence.AccountDao
+import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import java.math.BigDecimal
@@ -18,8 +19,10 @@ import java.sql.ResultSet
 import java.util.UUID
 
 open class JdbcAccountDao(
-    val connection: Connection,
-) : AccountDao, JdbcFixture {
+    val jdbcConnectionProvider: JdbcConnectionProvider,
+) : AccountDao, JdbcFixture, AutoCloseable {
+
+    private val connection = jdbcConnectionProvider.connection
 
     override fun <T : Account> getDeactivatedAccounts(
         type: String,
@@ -363,5 +366,9 @@ where aap.account_id = ?
                 setUuid(5, budgetId)
                 setUuid(6, it)
             }
+
+    override fun close() {
+        jdbcConnectionProvider.close()
+    }
 
 }

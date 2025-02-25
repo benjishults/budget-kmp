@@ -1,6 +1,5 @@
 package bps.budget.jdbc
 
-import bps.budget.BudgetConfigurations
 import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.time.atStartOfMonth
@@ -14,9 +13,7 @@ import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
 
-interface BasicAccountsJdbcTestFixture : BaseJdbcTestFixture {
-    override val configurations: BudgetConfigurations
-        get() = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
+interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
 
     /**
      * Ensure that basic accounts are in place with zero balances in the DB before the test starts and deletes
@@ -30,24 +27,24 @@ interface BasicAccountsJdbcTestFixture : BaseJdbcTestFixture {
         clock: Clock,
     ) {
         beforeSpec {
-            jdbcDao.prepForFirstLoad()
+            initializingBudgetDao.prepForFirstLoad()
 //            try {
-            deleteAccounts(budgetId, jdbcDao.connection)
+            deleteAccounts(budgetId, jdbcConnectionProvider.connection)
 //            } catch (e: Exception) {
 //                e.printStackTrace()
 //            }
 //            try {
-            jdbcDao.userBudgetDao.deleteBudget(budgetId)
+            userBudgetDao.deleteBudget(budgetId)
 //            } catch (e: Exception) {
 //                e.printStackTrace()
 //            }
 //            try {
-            jdbcDao.userBudgetDao.deleteUser(authenticatedUser.id)
+            userBudgetDao.deleteUser(authenticatedUser.id)
 //            } catch (e: Exception) {
 //                e.printStackTrace()
 //            }
 //            try {
-            jdbcDao.userBudgetDao.deleteUserByLogin(authenticatedUser.login)
+            userBudgetDao.deleteUserByLogin(authenticatedUser.login)
 //            } catch (e: Exception) {
 //                e.printStackTrace()
 //            }
@@ -63,13 +60,13 @@ interface BasicAccountsJdbcTestFixture : BaseJdbcTestFixture {
 
     fun Spec.resetAfterEach(budgetId: AtomicReference<UUID?>) {
         afterEach {
-            cleanupTransactions(budgetId.value!!, jdbcDao.connection)
+            cleanupTransactions(budgetId.value!!, jdbcConnectionProvider.connection)
         }
     }
 
     fun Spec.resetBalancesAndTransactionAfterSpec(budgetId: UUID) {
         afterSpec {
-            cleanupTransactions(budgetId, jdbcDao.connection)
+            cleanupTransactions(budgetId, jdbcConnectionProvider.connection)
         }
     }
 
@@ -85,10 +82,10 @@ interface BasicAccountsJdbcTestFixture : BaseJdbcTestFixture {
         budgetId: UUID,
         clock: Clock,
     ) {
-        jdbcDao.prepForFirstLoad()
-        jdbcDao.userBudgetDao.createUser(authenticatedUser.login, "a", authenticatedUser.id)
-        jdbcDao.userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
-        jdbcDao.userBudgetDao.grantAccess(
+        initializingBudgetDao.prepForFirstLoad()
+        userBudgetDao.createUser(authenticatedUser.login, "a", authenticatedUser.id)
+        userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
+        userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,
             analyticsStart =
@@ -112,8 +109,14 @@ interface BasicAccountsJdbcTestFixture : BaseJdbcTestFixture {
             generalAccountId = generalAccountId,
             timeZone = timeZone,
             budgetId = budgetId,
-            accountDao = jdbcDao.accountDao,
+            accountDao = accountDao,
         )
+    }
+
+    companion object {
+        operator fun invoke(configFileName: String = "hasBasicAccountsJdbc.yml"): BasicAccountsJdbcCliBudgetTestFixture =
+            object : BasicAccountsJdbcCliBudgetTestFixture,
+                JdbcCliBudgetTestFixture by JdbcCliBudgetTestFixture(configFileName) {}
     }
 
 }

@@ -3,9 +3,10 @@ package bps.budget.ui
 import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
-import bps.budget.BudgetDao
+import bps.budget.InitializingBudgetDao
 import bps.budget.persistence.UserBudgetDao
 import bps.budget.UserConfiguration
+import bps.budget.persistence.AccountDao
 import bps.console.app.QuitException
 import bps.console.inputs.EmailStringValidator
 import bps.console.inputs.SimplePrompt
@@ -31,7 +32,8 @@ class ConsoleUiFacade(
 
     override fun firstTimeSetup(
         budgetName: String,
-        budgetDao: BudgetDao,
+        accountDao: AccountDao,
+        userBudgetDao: UserBudgetDao,
         authenticatedUser: AuthenticatedUser,
         clock: Clock,
     ): BudgetData {
@@ -39,8 +41,8 @@ class ConsoleUiFacade(
         val timeZone: TimeZone = getDesiredTimeZone()
         val generalAccountId: UUID = UUID.randomUUID()
         val budgetId: UUID = UUID.randomUUID()
-        budgetDao.userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
-        budgetDao.userBudgetDao.grantAccess(
+        userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
+        userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,
             analyticsStart =
@@ -77,7 +79,7 @@ class ConsoleUiFacade(
                     "Wallet",
                     "this is cash you might carry on your person",
                 ),
-                accountDao = budgetDao.accountDao,
+                accountDao = accountDao,
             )
                 .also {
                     info(
@@ -91,7 +93,7 @@ class ConsoleUiFacade(
                     )
                 }
         } else {
-            budgetDao.accountDao.createGeneralAccountWithIdOrNull(generalAccountId, budgetId = UUID.randomUUID())!!
+            accountDao.createGeneralAccountWithIdOrNull(generalAccountId, budgetId = UUID.randomUUID())!!
                 .let { generalAccount: CategoryAccount ->
                     BudgetData(
                         id = budgetId,

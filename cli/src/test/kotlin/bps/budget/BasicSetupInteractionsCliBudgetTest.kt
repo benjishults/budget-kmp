@@ -1,6 +1,6 @@
 package bps.budget
 
-import bps.budget.jdbc.NoDataJdbcTestFixture
+import bps.budget.jdbc.NoDataJdbcCliBudgetTestFixture
 import bps.budget.model.BudgetData
 import bps.budget.ui.ConsoleUiFacade
 import bps.console.SimpleConsoleIoTestFixture
@@ -12,11 +12,10 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.TimeZone
 
-class BasicSetupInteractionsTest : FreeSpec(),
-    NoDataJdbcTestFixture,
+class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
+    NoDataJdbcCliBudgetTestFixture by NoDataJdbcCliBudgetTestFixture(),
     SimpleConsoleIoTestFixture {
 
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
     override val inputs: MutableList<String> = mutableListOf()
     override val outputs: MutableList<String> = mutableListOf()
 
@@ -31,7 +30,7 @@ class BasicSetupInteractionsTest : FreeSpec(),
             )
             BudgetApplication(
                 uiFunctions,
-                configurations,
+                budgetConfigurations,
                 inputReader,
                 outPrinter,
             )
@@ -41,7 +40,7 @@ class BasicSetupInteractionsTest : FreeSpec(),
                         budgetData.categoryAccounts shouldContain budgetData.generalAccount
                         budgetData.categoryAccounts.size shouldBe 14
                     }
-                    application.budgetDao.load(application.budgetData.id, application.authenticatedUser.id)
+                    application.cliBudgetDao.load(application.budgetData.id, application.authenticatedUser.id, application.accountDao)
                         .asClue { budgetData: BudgetData ->
                             budgetData.categoryAccounts shouldContain budgetData.generalAccount
                             budgetData.categoryAccounts.size shouldBe 14

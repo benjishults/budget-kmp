@@ -9,6 +9,7 @@ import bps.budget.model.Transaction
 import bps.budget.model.Transaction.Type
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
+import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import kotlinx.datetime.Instant
@@ -19,10 +20,11 @@ import java.sql.ResultSet
 import java.util.UUID
 
 open class JdbcTransactionDao(
-    val connection: Connection,
 //    val errorStateTracker: JdbcDao.ErrorStateTracker,
-    val accountDao: AccountDao,
-) : TransactionDao, JdbcFixture {
+    val jdbcConnectionProvider: JdbcConnectionProvider,
+) : TransactionDao, JdbcFixture, AutoCloseable {
+
+    private val connection: Connection = jdbcConnectionProvider.connection
 
     /**
      * 1. Sets the [Transaction.Item.draftStatus] to [DraftStatus.cleared] for each [draftTransactionItems]
@@ -36,6 +38,7 @@ open class JdbcTransactionDao(
         draftTransactionItems: List<Transaction.Item<DraftAccount>>,
         clearingTransaction: Transaction,
         budgetId: UUID,
+        accountDao: AccountDao,
     ) {
 //        errorStateTracker.catchCommitErrorState {
         // require clearTransaction is a simple draft transaction(s) clearing transaction
@@ -198,6 +201,7 @@ open class JdbcTransactionDao(
     override fun commit(
         transaction: Transaction,
         budgetId: UUID,
+        accountDao: AccountDao,
         saveBalances: Boolean,
     ) =
 //        errorStateTracker.catchCommitErrorState {
@@ -295,6 +299,7 @@ open class JdbcTransactionDao(
         clearedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>>,
         billPayTransaction: Transaction,
         budgetId: UUID,
+        accountDao: AccountDao
     ) {
 //        errorStateTracker.catchCommitErrorState {
         // require billPayTransaction is a simple real transfer between a real and a charge account
@@ -628,6 +633,10 @@ open class JdbcTransactionDao(
         transactionItemInsert.setString(parameterIndex + 4, transactionItem.draftStatus.name)
         transactionItemInsert.setUuid(parameterIndex + 5, budgetId)
         return 6
+    }
+
+    override fun close() {
+        jdbcConnectionProvider.close()
     }
 
 //    private fun Connection.insertTransactionPreparedStatement(

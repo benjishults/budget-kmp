@@ -13,6 +13,7 @@ import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
 import bps.budget.UserConfiguration
+import bps.budget.persistence.AccountDao
 import bps.budget.transaction.showRecentRelevantTransactions
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
@@ -32,6 +33,7 @@ import java.math.BigDecimal
 fun WithIo.recordIncomeSelectionMenu(
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     analyticsDao: AnalyticsDao,
     userConfig: UserConfiguration,
     clock: Clock,
@@ -155,6 +157,7 @@ fun WithIo.recordIncomeSelectionMenu(
             commitTransactionConsistently(
                 createIncomeTransaction(description, timestamp, amount, budgetData, realAccount),
                 transactionDao,
+                accountDao,
                 budgetData,
             )
             outPrinter.important("Income recorded")

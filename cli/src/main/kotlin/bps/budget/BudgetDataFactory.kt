@@ -2,7 +2,9 @@ package bps.budget
 
 import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
+import bps.budget.persistence.AccountDao
 import bps.budget.persistence.DataConfigurationException
+import bps.budget.persistence.UserBudgetDao
 import bps.budget.ui.UiFacade
 import kotlinx.datetime.Clock
 
@@ -12,34 +14,40 @@ import kotlinx.datetime.Clock
 fun loadOrBuildBudgetData(
     authenticatedUser: AuthenticatedUser,
     uiFacade: UiFacade,
-    budgetDao: BudgetDao,
+    initializingBudgetDao: InitializingBudgetDao,
+    cliBudgetDao: CliBudgetDao,
+    accountDao: AccountDao,
+    userBudgetDao: UserBudgetDao,
     budgetName: String,
     clock: Clock,
 ): BudgetData =
     try {
-        loadBudgetData(budgetDao, authenticatedUser, budgetName)
+        loadBudgetData(initializingBudgetDao, cliBudgetDao,accountDao, authenticatedUser, budgetName)
     } catch (ex: Exception) {
         when (ex) {
             is DataConfigurationException, is NoSuchElementException -> {
-                uiFacade.firstTimeSetup(budgetName, budgetDao, authenticatedUser, clock)
+                uiFacade.firstTimeSetup(budgetName, accountDao, userBudgetDao, authenticatedUser, clock)
             }
             else -> throw ex
         }
     }
 
 fun loadBudgetData(
-    budgetDao: BudgetDao,
+    initializingBudgetDao: InitializingBudgetDao,
+    cliBudgetDao: CliBudgetDao,
+    accountDao: AccountDao,
     authenticatedUser: AuthenticatedUser,
     budgetName: String,
 ): BudgetData =
-    with(budgetDao) {
+    with(initializingBudgetDao) {
         // FIXME this should have already been called, no?
         prepForFirstLoad()
-        load(
+        cliBudgetDao.load(
             authenticatedUser
                 .access
                 .first { it.budgetName == budgetName }
                 .budgetId,
             authenticatedUser.id,
+            accountDao,
         )
     }

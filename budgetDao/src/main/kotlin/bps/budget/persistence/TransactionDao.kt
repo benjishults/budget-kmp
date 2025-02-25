@@ -15,6 +15,7 @@ interface TransactionDao {
     fun commit(
         transaction: Transaction,
         budgetId: UUID,
+        accountDao: AccountDao,
         saveBalances: Boolean = true,
     ) {
     }
@@ -33,19 +34,22 @@ interface TransactionDao {
         draftTransactionItems: List<Transaction.Item<DraftAccount>>,
         clearingTransaction: Transaction,
         budgetId: UUID,
+        accountDao: AccountDao,
     ) = Unit
 
     fun clearCheck(
         draftTransactionItem: Transaction.Item<DraftAccount>,
         clearingTransaction: Transaction,
         budgetId: UUID,
+        accountDao: AccountDao,
     ) =
-        clearCheck(listOf(draftTransactionItem), clearingTransaction, budgetId)
+        clearCheck(listOf(draftTransactionItem), clearingTransaction, budgetId, accountDao)
 
     fun commitCreditCardPayment(
         clearedItems: List<ExtendedTransactionItem<ChargeAccount>>,
         billPayTransaction: Transaction,
         budgetId: UUID,
+        accountDao: AccountDao
     ) {
     }
 

@@ -1,7 +1,7 @@
 package bps.budget
 
 import bps.budget.model.AuthenticatedUser
-import bps.budget.jdbc.BasicAccountsJdbcTestFixture
+import bps.budget.jdbc.BasicAccountsJdbcCliBudgetTestFixture
 import bps.budget.model.BudgetData
 import bps.budget.model.defaultCheckingAccountName
 import bps.budget.model.defaultFoodAccountName
@@ -20,14 +20,14 @@ import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
 import java.util.UUID
 
-class BudgetApplicationTransactionsTest : FreeSpec(),
-    BasicAccountsJdbcTestFixture,
+class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
+    BasicAccountsJdbcCliBudgetTestFixture by BasicAccountsJdbcCliBudgetTestFixture("hasBasicAccountsJdbc.yml"),
     WithMockClock,
     // NOTE for debugging
 //    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(90_000, true) {
     ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1500, true) {
 
-    override val jdbcDao = JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
+//    override val jdbcCliBudgetDao = JdbcCliBudgetDao(jdbcConfig, jdbcConfig.budget.name)
 
     init {
         System.setProperty("kotest.assertions.collection.print.size", "1000")
@@ -41,8 +41,8 @@ class BudgetApplicationTransactionsTest : FreeSpec(),
         clearInputsAndOutputsBeforeEach()
         createBasicAccountsBeforeSpec(
             budgetId = budgetId,
-            budgetName = configurations.budget.name,
-            authenticatedUser = AuthenticatedUser(userId, configurations.user.defaultLogin!!),
+            budgetName = budgetConfigurations.budget.name,
+            authenticatedUser = AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
             timeZone = TimeZone.of("America/Chicago"),
             clock = clock,
         )
@@ -55,7 +55,7 @@ class BudgetApplicationTransactionsTest : FreeSpec(),
         "run application with data from DB" - {
             val application = BudgetApplication(
                 uiFunctions,
-                configurations,
+                budgetConfigurations,
                 inputReader,
                 outPrinter,
                 clock,
@@ -158,7 +158,7 @@ class BudgetApplicationTransactionsTest : FreeSpec(),
                     budgetData.generalAccount.balance shouldBe BigDecimal(5200).setScale(2)
                     budgetData.categoryAccounts.size shouldBe 14
                 }
-                application.budgetDao.load(application.budgetData.id, userId).asClue { budgetData: BudgetData ->
+                application.cliBudgetDao.load(application.budgetData.id, userId, application.accountDao).asClue { budgetData: BudgetData ->
                     budgetData.categoryAccounts shouldContain budgetData.generalAccount
                     budgetData.generalAccount.balance shouldBe BigDecimal(5200).setScale(2)
                     budgetData.categoryAccounts.size shouldBe 14

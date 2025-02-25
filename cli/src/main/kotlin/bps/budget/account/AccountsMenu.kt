@@ -1,7 +1,7 @@
 package bps.budget.account
 
+import bps.budget.UserConfiguration
 import bps.budget.budgetQuitItem
-import bps.console.io.WithIo
 import bps.budget.consistency.createCategoryAccountConsistently
 import bps.budget.consistency.createChargeAccountConsistently
 import bps.budget.consistency.createRealAccountConsistentlyWithIo
@@ -9,9 +9,7 @@ import bps.budget.model.Account
 import bps.budget.model.BudgetData
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
-import bps.budget.BudgetDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.AcceptAnythingStringValidator
@@ -20,6 +18,7 @@ import bps.console.inputs.NotInListStringValidator
 import bps.console.inputs.SimplePrompt
 import bps.console.inputs.SimplePromptWithDefault
 import bps.console.io.OutPrinter
+import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.backItem
@@ -31,40 +30,42 @@ import kotlin.math.min
 
 fun WithIo.manageAccountsMenu(
     budgetData: BudgetData,
-    budgetDao: BudgetDao,
+    accountDao: AccountDao,
+    transactionDao: TransactionDao,
     userConfig: UserConfiguration,
     clock: Clock,
 ) =
     Menu {
         add(
             takeAction({ "Create a New Category" }) {
-                createCategory(budgetData, budgetDao.accountDao)
+                createCategory(budgetData, accountDao)
             },
         )
         add(
             takeAction({ "Create a Real Fund" }) {
-                createRealFund(budgetData, budgetDao.accountDao, budgetDao.transactionDao, clock)
+                createRealFund(budgetData, accountDao, transactionDao, clock)
             },
         )
         add(
             takeAction({ "Add a Credit Card" }) {
-                createCreditAccount(budgetData, budgetDao.accountDao)
+                createCreditAccount(budgetData, accountDao)
             },
         )
         add(
             pushMenu({ "Edit Account Details" }) {
-                editAccountDetails(budgetData, budgetDao.accountDao, userConfig)
+                editAccountDetails(budgetData, accountDao, userConfig)
             },
         )
         add(
             pushMenu({ "Deactivate an Account" }) {
-                deactivateAccount(budgetData, budgetDao.accountDao, userConfig)
+                deactivateAccount(budgetData, accountDao, userConfig)
             },
         )
         add(backItem)
         add(budgetQuitItem)
     }
 
+@Suppress("DefaultLocale")
 fun WithIo.editAccountDetails(
     budgetData: BudgetData,
     accountDao: AccountDao,
@@ -405,6 +406,7 @@ fun deactivateDraftAccountMenu(
         budgetData.draftAccounts.filter { it.balance == BigDecimal.ZERO.setScale(2) }
     }
 
+@Suppress("DefaultLocale")
 fun <T : Account> deactivateAccountMenu(
     budgetData: BudgetData,
     accountDao: AccountDao,

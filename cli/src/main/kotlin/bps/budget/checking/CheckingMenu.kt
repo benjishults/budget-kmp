@@ -47,12 +47,27 @@ fun WithIo.checksMenu(
             Menu {
                 add(
                     takeAction({ "Write a check on '${draftAccount.name}'" }) {
-                        writeCheckOnAccount(transactionDao, draftAccount, budgetData, clock, menuSession, userConfig)
+                        writeCheckOnAccount(
+                            transactionDao,
+                            accountDao,
+                            draftAccount,
+                            budgetData,
+                            clock,
+                            menuSession,
+                            userConfig
+                        )
                     },
                 )
                 add(
                     pushMenu({ "Record check cleared on '${draftAccount.name}'" }) {
-                        recordCheckClearedOnAccount(draftAccount, transactionDao, budgetData, userConfig, clock)
+                        recordCheckClearedOnAccount(
+                            draftAccount,
+                            transactionDao,
+                            accountDao,
+                            budgetData,
+                            userConfig,
+                            clock,
+                        )
                     },
                 )
                 add(
@@ -104,6 +119,7 @@ fun WithIo.deleteCheckOnAccount(
 fun WithIo.recordCheckClearedOnAccount(
     draftAccount: DraftAccount,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     budgetData: BudgetData,
     userConfig: UserConfiguration,
     clock: Clock,
@@ -128,12 +144,13 @@ fun WithIo.recordCheckClearedOnAccount(
         )
             ?.toInstant(budgetData.timeZone)
             ?: throw TryAgainAtMostRecentMenuException("No timestamp entered.")
-    clearCheckConsistently(draftTransactionItem, timestamp, draftAccount, transactionDao, budgetData)
+    clearCheckConsistently(draftTransactionItem, timestamp, draftAccount, transactionDao, accountDao, budgetData)
     outPrinter.important("Cleared check recorded")
 }
 
 fun WithIo.writeCheckOnAccount(
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     draftAccount: DraftAccount,
     budgetData: BudgetData,
     clock: Clock,
@@ -201,6 +218,7 @@ fun WithIo.writeCheckOnAccount(
                 description,
                 budgetData,
                 transactionDao,
+                accountDao,
                 userConfig,
             ),
         )

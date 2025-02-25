@@ -1,10 +1,11 @@
-package bps.budget.persistence.jdbc
+package bps.jdbc
 
 import java.net.URLEncoder
 import java.sql.Connection
 import java.sql.DriverManager
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 class JdbcConnectionProvider(
     database: String,
@@ -15,6 +16,8 @@ class JdbcConnectionProvider(
     user: String? = null,
     password: String? = null,
 ) : AutoCloseable {
+
+    private var closed = AtomicReference<Boolean>(false)
 
     private var jdbcURL: String =
         "jdbc:${dbProvider}://${host}:${port}/${
@@ -64,9 +67,14 @@ class JdbcConnectionProvider(
                 autoCommit = false
             }
 
+    /**
+     * It is safe to call this multiple times.  On first call, this stops the keep-alive process and closes the connection.
+     */
     override fun close() {
-        keepAliveSingleThreadScheduledExecutor.close()
-        connection.close()
+        if (closed.compareAndSet(false, true)) {
+            keepAliveSingleThreadScheduledExecutor.close()
+            connection.close()
+        }
     }
 
 }

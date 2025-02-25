@@ -10,6 +10,7 @@ import bps.budget.model.Transaction
 import bps.budget.persistence.TransactionDao
 import bps.budget.UserConfiguration
 import bps.budget.model.toCurrencyAmountOrNull
+import bps.budget.persistence.AccountDao
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.InRangeInclusiveStringValidator
@@ -18,6 +19,7 @@ import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import java.math.BigDecimal
 
+@Suppress("DefaultLocale")
 fun WithIo.chooseRealAccountsThenCategories(
     totalAmount: BigDecimal,
     runningTotal: BigDecimal,
@@ -25,6 +27,7 @@ fun WithIo.chooseRealAccountsThenCategories(
     description: String,
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     userConfig: UserConfiguration,
 ): Menu =
     ScrollingSelectionMenu(
@@ -130,6 +133,7 @@ fun WithIo.chooseRealAccountsThenCategories(
                         description,
                         budgetData,
                         transactionDao,
+                        accountDao,
                         userConfig,
                     ),
                 )
@@ -142,6 +146,7 @@ fun WithIo.chooseRealAccountsThenCategories(
                         description,
                         budgetData,
                         transactionDao,
+                        accountDao,
                         userConfig,
                     ),
                 )
@@ -151,12 +156,14 @@ fun WithIo.chooseRealAccountsThenCategories(
         }
     }
 
+@Suppress("DefaultLocale")
 fun WithIo.allocateSpendingItemMenu(
     runningTotal: BigDecimal,
     transactionBuilder: Transaction.Builder,
     description: String,
     budgetData: BudgetData,
     transactionDao: TransactionDao,
+    accountDao: AccountDao,
     userConfig: UserConfiguration,
 ): Menu =
     ScrollingSelectionMenu(
@@ -270,12 +277,13 @@ fun WithIo.allocateSpendingItemMenu(
                         description,
                         budgetData,
                         transactionDao,
+                        accountDao,
                         userConfig,
                     ),
                 )
             } else {
                 val transaction = transactionBuilder.build()
-                commitTransactionConsistently(transaction, transactionDao, budgetData)
+                commitTransactionConsistently(transaction, transactionDao, accountDao, budgetData)
                 outPrinter.important("Spending recorded")
             }
         } else {

@@ -5,7 +5,7 @@ import bps.budget.persistence.jdbc.JdbcAnalyticsDao
 import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.budget.persistence.jdbc.JdbcUserBudgetDao
 import bps.budget.server.account.accountRoutes
-import bps.budget.persistence.jdbc.JdbcConnectionProvider
+import bps.jdbc.JdbcConnectionProvider
 import bps.config.convertToPath
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer

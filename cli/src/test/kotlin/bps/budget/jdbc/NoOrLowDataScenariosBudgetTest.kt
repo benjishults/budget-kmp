@@ -2,11 +2,12 @@ package bps.budget.jdbc
 
 import bps.budget.BudgetApplication
 import bps.budget.BudgetConfigurations
-import bps.budget.JdbcDao
+import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.makeAllowancesLabel
 import bps.budget.recordIncomeLabel
 import bps.budget.recordSpendingLabel
 import bps.budget.manageAccountsLabel
+import bps.jdbc.toJdbcConnectionProvider
 import bps.budget.transferLabel
 import bps.budget.ui.ConsoleUiFacade
 import bps.budget.useOrPayCreditCardsLabel
@@ -26,9 +27,9 @@ class NoOrLowDataScenariosBudgetTest : FreeSpec(),
         clearInputsAndOutputsBeforeEach()
         val configurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
         afterEach {
-            JdbcDao(configurations.persistence.jdbc!!, configurations.budget.name)
+            JdbcInitializingBudgetDao(configurations.budget.name, configurations.persistence.jdbc!!.toJdbcConnectionProvider())
                 .use {
-                    dropTables(it.connection, it.config.schema)
+                    dropTables(it.connection, configurations.persistence.jdbc!!.schema)
                 }
         }
 
