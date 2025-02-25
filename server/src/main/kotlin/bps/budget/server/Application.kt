@@ -14,6 +14,7 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import kotlinx.datetime.Clock
 
 fun main() {
     val configurations =
@@ -32,10 +33,10 @@ fun main() {
         user = configurations.jdbc.user,
         password = configurations.jdbc.password,
     )
-    val accountDao = JdbcAccountDao(jdbcConnectionProvider.connection)
-    val transactionDao = JdbcTransactionDao(jdbcConnectionProvider.connection, accountDao)
-    val userBudgetDao = JdbcUserBudgetDao(jdbcConnectionProvider.connection)
-    val analyticsDao = JdbcAnalyticsDao(jdbcConnectionProvider.connection, accountDao)
+    val accountDao = JdbcAccountDao(jdbcConnectionProvider)
+    val transactionDao = JdbcTransactionDao(jdbcConnectionProvider)
+    val userBudgetDao = JdbcUserBudgetDao(jdbcConnectionProvider)
+    val analyticsDao = JdbcAnalyticsDao(jdbcConnectionProvider, Clock.System)
 
     embeddedServer(
         factory = Netty,
