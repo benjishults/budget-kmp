@@ -10,7 +10,7 @@ import bps.budget.model.defaultNecessitiesAccountName
 import bps.budget.model.defaultWalletAccountName
 import bps.budget.ui.ConsoleUiFacade
 import bps.console.ComplexConsoleIoTestFixture
-import bps.kotlin.WithMockClock
+import bps.kotlin.test.WithMockClock
 import io.kotest.assertions.asClue
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.collections.shouldContain
@@ -21,13 +21,17 @@ import java.math.BigDecimal
 import java.util.UUID
 
 class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
-    BasicAccountsJdbcCliBudgetTestFixture by BasicAccountsJdbcCliBudgetTestFixture("hasBasicAccountsJdbc.yml"),
     WithMockClock,
     // NOTE for debugging
-//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(90_000, true) {
     ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1500, true) {
+    val budgetConfigurations: BudgetConfigurations = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
 
-//    override val jdbcCliBudgetDao = JdbcCliBudgetDao(jdbcConfig, jdbcConfig.budget.name)
+    val basicAccountsJdbcCliBudgetTestFixture: BasicAccountsJdbcCliBudgetTestFixture =
+        BasicAccountsJdbcCliBudgetTestFixture(
+            budgetConfigurations.persistence.jdbc!!,
+            budgetConfigurations.budget.name,
+            budgetConfigurations.user.defaultLogin!!,
+        )
 
     init {
         System.setProperty("kotest.assertions.collection.print.size", "1000")
@@ -39,15 +43,17 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
         val userId = UUID.fromString("f0f209c8-1b1e-43b3-8799-2dba58524d02")
 
         clearInputsAndOutputsBeforeEach()
-        createBasicAccountsBeforeSpec(
-            budgetId = budgetId,
-            budgetName = budgetConfigurations.budget.name,
-            authenticatedUser = AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
-            timeZone = TimeZone.of("America/Chicago"),
-            clock = clock,
-        )
-        resetBalancesAndTransactionAfterSpec(budgetId)
-        closeJdbcAfterSpec()
+        with(basicAccountsJdbcCliBudgetTestFixture) {
+            createBasicAccountsBeforeSpec(
+                budgetId = budgetId,
+                budgetName = budgetName,
+                authenticatedUser = AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
+                timeZone = TimeZone.of("America/Chicago"),
+                clock = clock,
+            )
+            resetBalancesAndTransactionAfterSpec(budgetId)
+            closeJdbcAfterSpec()
+        }
         stopApplicationAfterSpec()
 
         val uiFunctions = ConsoleUiFacade(inputReader, outPrinter)
@@ -158,11 +164,12 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
                     budgetData.generalAccount.balance shouldBe BigDecimal(5200).setScale(2)
                     budgetData.categoryAccounts.size shouldBe 14
                 }
-                application.cliBudgetDao.load(application.budgetData.id, userId, application.accountDao).asClue { budgetData: BudgetData ->
-                    budgetData.categoryAccounts shouldContain budgetData.generalAccount
-                    budgetData.generalAccount.balance shouldBe BigDecimal(5200).setScale(2)
-                    budgetData.categoryAccounts.size shouldBe 14
-                }
+                application.cliBudgetDao.load(application.budgetData.id, userId, application.accountDao)
+                    .asClue { budgetData: BudgetData ->
+                        budgetData.categoryAccounts shouldContain budgetData.generalAccount
+                        budgetData.generalAccount.balance shouldBe BigDecimal(5200).setScale(2)
+                        budgetData.categoryAccounts.size shouldBe 14
+                    }
             }
             "delete Cosmetics account" {
                 validateInteraction(

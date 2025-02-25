@@ -4,7 +4,7 @@ import bps.budget.analytics.AnalyticsOptions
 import bps.budget.model.CategoryAccount
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
-import bps.kotlin.WithMockClock
+import bps.kotlin.test.WithMockClock
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.every

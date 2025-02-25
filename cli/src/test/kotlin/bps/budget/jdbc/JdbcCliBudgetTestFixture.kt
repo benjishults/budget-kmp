@@ -1,6 +1,6 @@
 package bps.budget.jdbc
 
-import bps.budget.BudgetConfigurations
+//import bps.budget.BudgetConfigurations
 import bps.budget.CliBudgetDao
 import bps.budget.InitializingBudgetDao
 import bps.budget.JdbcCliBudgetDao
@@ -11,16 +11,17 @@ import bps.budget.persistence.TransactionDao
 import bps.budget.persistence.UserBudgetDao
 import bps.budget.persistence.jdbc.JdbcAccountDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
-import bps.jdbc.JdbcConfig
-import bps.jdbc.JdbcConnectionProvider
 import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.budget.persistence.jdbc.JdbcUserBudgetDao
-import bps.jdbc.toJdbcConnectionProvider
+import bps.jdbc.JdbcConfig
+import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
+import bps.jdbc.test.JdbcTestFixture
+import bps.jdbc.toJdbcConnectionProvider
 
 interface JdbcCliBudgetTestFixture : JdbcFixture, JdbcTestFixture {
 
-    val budgetConfigurations: BudgetConfigurations
+    val budgetName: String
     val cliBudgetDao: CliBudgetDao
     val initializingBudgetDao: InitializingBudgetDao
     val accountDao: AccountDao
@@ -30,26 +31,25 @@ interface JdbcCliBudgetTestFixture : JdbcFixture, JdbcTestFixture {
 
     companion object {
         operator fun invoke(
-            budgetConfigurations: BudgetConfigurations,
+            jdbcConfig: JdbcConfig,
+            budgetName: String,
         ): JdbcCliBudgetTestFixture =
             object : JdbcCliBudgetTestFixture {
-                override val budgetConfigurations: BudgetConfigurations =
-                    budgetConfigurations
 
-                override val jdbcConfig: JdbcConfig =
-                    budgetConfigurations.persistence.jdbc!!
+                override val budgetName: String = budgetName
+                override val jdbcConfig: JdbcConfig = jdbcConfig
 
                 override val jdbcConnectionProvider: JdbcConnectionProvider =
                     jdbcConfig.toJdbcConnectionProvider()
 
                 override val initializingBudgetDao: JdbcInitializingBudgetDao =
                     JdbcInitializingBudgetDao(
-                        budgetName = budgetConfigurations.budget.name,
+                        budgetName = budgetName,
                         connectionProvider = jdbcConnectionProvider,
                     )
                 override val cliBudgetDao: CliBudgetDao =
                     JdbcCliBudgetDao(
-                        budgetName = budgetConfigurations.budget.name,
+                        budgetName = budgetName,
                         connectionProvider = jdbcConnectionProvider,
                     )
                 override val accountDao: AccountDao =
@@ -61,11 +61,6 @@ interface JdbcCliBudgetTestFixture : JdbcFixture, JdbcTestFixture {
                 override val analyticsDao: AnalyticsDao =
                     JdbcAnalyticsDao(jdbcConnectionProvider)
             }
-
-        operator fun invoke(
-            configFileName: String,
-        ): JdbcCliBudgetTestFixture =
-            invoke(BudgetConfigurations(sequenceOf(configFileName)))
     }
 
 }

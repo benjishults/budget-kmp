@@ -1,4 +1,4 @@
-package bps.kotlin
+package bps.kotlin.test
 
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -8,8 +8,8 @@ import kotlin.time.Duration
 interface WithMockClock {
 
     class TickingClock(
-        startTime: Instant = Instant.parse("2024-08-09T00:00:00.500Z"),
-        val duration: Duration = Duration.parse("PT1S"),
+        startTime: Instant = Instant.Companion.parse("2024-08-09T00:00:00.500Z"),
+        val duration: Duration = Duration.Companion.parse("PT1S"),
     ) : Clock {
 
         var currentInstant: Instant = startTime
@@ -32,7 +32,7 @@ interface WithMockClock {
      * will produce an [Instant] one second later that the previous.
      * @param startTime determines the first [Instant] to be returned by [Clock.now]
      */
-    fun produceSecondTickingClock(startTime: Instant = Instant.parse("2024-08-09T00:00:00.500Z")) =
+    fun produceSecondTickingClock(startTime: Instant = Instant.Companion.parse("2024-08-09T00:00:00.500Z")) =
         TickingClock(startTime)
 
     /**
@@ -43,7 +43,7 @@ interface WithMockClock {
      * will produce an [Instant] one day later that the previous.
      * @param startTime determines the first [Instant] to be returned by [Clock.now]
      */
-    fun produceDayTickingClock(startTime: Instant = Instant.parse("2024-08-09T00:00:00.500Z")) =
-        TickingClock(startTime, Duration.parse("P1D"))
+    fun produceDayTickingClock(startTime: Instant = Instant.Companion.parse("2024-08-09T00:00:00.500Z")) =
+        TickingClock(startTime, Duration.Companion.parse("P1D"))
 
 }

@@ -30,7 +30,7 @@ class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
             )
             BudgetApplication(
                 uiFunctions,
-                budgetConfigurations,
+                BudgetConfigurations(sequenceOf("noDataJdbc.yml")),
                 inputReader,
                 outPrinter,
             )

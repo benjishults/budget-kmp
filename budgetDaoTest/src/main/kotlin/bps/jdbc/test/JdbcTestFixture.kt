@@ -1,4 +1,4 @@
-package bps.budget.jdbc
+package bps.jdbc.test
 
 import bps.jdbc.JdbcConfig
 import bps.jdbc.JdbcConnectionProvider

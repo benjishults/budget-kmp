@@ -1,7 +1,9 @@
 package bps.budget.jdbc
 
+import bps.budget.BudgetConfigurations
 import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
+import bps.jdbc.JdbcConfig
 import bps.time.atStartOfMonth
 import io.kotest.core.spec.Spec
 import io.kotest.mpp.atomics.AtomicReference
@@ -14,6 +16,8 @@ import kotlinx.datetime.toLocalDateTime
 import java.util.UUID
 
 interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
+
+    val userName: String
 
     /**
      * Ensure that basic accounts are in place with zero balances in the DB before the test starts and deletes
@@ -114,9 +118,12 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
     }
 
     companion object {
-        operator fun invoke(configFileName: String = "hasBasicAccountsJdbc.yml"): BasicAccountsJdbcCliBudgetTestFixture =
-            object : BasicAccountsJdbcCliBudgetTestFixture,
-                JdbcCliBudgetTestFixture by JdbcCliBudgetTestFixture(configFileName) {}
+        operator fun invoke(jdbcConfig: JdbcConfig, budgetName: String, userName: String): BasicAccountsJdbcCliBudgetTestFixture {
+            return object : BasicAccountsJdbcCliBudgetTestFixture,
+                JdbcCliBudgetTestFixture by JdbcCliBudgetTestFixture(jdbcConfig, budgetName) {
+                override val userName: String = userName
+            }
+        }
     }
 
 }

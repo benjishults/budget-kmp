@@ -1,5 +1,6 @@
 package bps.budget.jdbc
 
+import bps.budget.BudgetConfigurations
 import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.model.AuthenticatedUser
 import bps.budget.consistency.commitTransactionConsistently
@@ -26,7 +27,7 @@ import bps.budget.model.defaultTravelAccountName
 import bps.budget.model.defaultWalletAccountName
 import bps.budget.model.defaultWorkAccountName
 import bps.budget.loadBudgetData
-import bps.kotlin.WithMockClock
+import bps.kotlin.test.WithMockClock
 import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
@@ -35,174 +36,181 @@ import java.math.BigDecimal
 import java.util.UUID
 
 class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
-    WithMockClock,
-    BasicAccountsJdbcCliBudgetTestFixture by BasicAccountsJdbcCliBudgetTestFixture() {
+    WithMockClock {
 
     init {
+        val budgetConfigurations = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
+        val basicAccountsJdbcCliBudgetTestFixture = BasicAccountsJdbcCliBudgetTestFixture(
+            budgetConfigurations.persistence.jdbc!!,
+            budgetConfigurations.budget.name,
+            budgetConfigurations.user.defaultLogin!!,
+        )
         val clock = produceSecondTickingClock()
         val budgetId: UUID = UUID.fromString("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
         val userId: UUID = UUID.fromString("f0f209c8-1b1e-43b3-8799-2dba58524d02")
-        createBasicAccountsBeforeSpec(
-            budgetId,
-            budgetConfigurations.budget.name,
-            AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
-            TimeZone.of("America/Chicago"),
-            clock,
-        )
-        closeJdbcAfterSpec()
-
-        "with data from config" - {
-            val budgetData = loadBudgetData(
-                authenticatedUser = userBudgetDao.getUserByLoginOrNull(budgetConfigurations.user.defaultLogin!!) as AuthenticatedUser,
-                initializingBudgetDao = initializingBudgetDao,
-                budgetName = budgetConfigurations.budget.name,
-                cliBudgetDao = cliBudgetDao,
-                accountDao = accountDao,
+        with(basicAccountsJdbcCliBudgetTestFixture) {
+            createBasicAccountsBeforeSpec(
+                budgetId,
+                budgetConfigurations.budget.name,
+                AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
+                TimeZone.of("America/Chicago"),
+                clock,
             )
-            "record income" {
-                val amount = BigDecimal("1000.00").setScale(2)
-                val income: Transaction =
-                    Transaction
-                        .Builder(
-                            description = "income into $defaultCheckingAccountName",
-                            timestamp = clock.now(),
-                            type = Type.income,
-                        )
-                        .apply {
-                            with(budgetData.generalAccount) {
-                                addItemBuilderTo(amount)
+            closeJdbcAfterSpec()
+
+            "with data from config" - {
+                val budgetData = loadBudgetData(
+                    authenticatedUser = userBudgetDao.getUserByLoginOrNull(budgetConfigurations.user.defaultLogin!!) as AuthenticatedUser,
+                    initializingBudgetDao = initializingBudgetDao,
+                    budgetName = budgetConfigurations.budget.name,
+                    cliBudgetDao = cliBudgetDao,
+                    accountDao = accountDao,
+                )
+                "record income" {
+                    val amount = BigDecimal("1000.00").setScale(2)
+                    val income: Transaction =
+                        Transaction
+                            .Builder(
+                                description = "income into $defaultCheckingAccountName",
+                                timestamp = clock.now(),
+                                type = Type.income,
+                            )
+                            .apply {
+                                with(budgetData.generalAccount) {
+                                    addItemBuilderTo(amount)
+                                }
+                                with(
+                                    budgetData.realAccounts
+                                        .find {
+                                            it.name == defaultCheckingAccountName
+                                        }!!,
+                                ) {
+                                    addItemBuilderTo(amount)
+                                }
                             }
-                            with(
-                                budgetData.realAccounts
-                                    .find {
-                                        it.name == defaultCheckingAccountName
+                            .build()
+                    commitTransactionConsistently(income, transactionDao, accountDao, budgetData)
+                }
+                "allocate to food" {
+                    val amount = BigDecimal("300.00")
+                    val allocate: Transaction =
+                        Transaction
+                            .Builder(
+                                description = "allocate into $defaultFoodAccountName",
+                                timestamp = clock.now(),
+                                type = Type.allowance,
+                            )
+                            .apply {
+                                with(budgetData.generalAccount) {
+                                    addItemBuilderTo(-amount)
+                                }
+                                with(
+                                    budgetData.categoryAccounts.find {
+                                        it.name == defaultFoodAccountName
                                     }!!,
-                            ) {
-                                addItemBuilderTo(amount)
+                                ) {
+                                    addItemBuilderTo(amount)
+                                }
                             }
-                        }
-                        .build()
-                commitTransactionConsistently(income, transactionDao, accountDao, budgetData)
-            }
-            "allocate to food" {
-                val amount = BigDecimal("300.00")
-                val allocate: Transaction =
-                    Transaction
-                        .Builder(
-                            description = "allocate into $defaultFoodAccountName",
-                            timestamp = clock.now(),
-                            type = Type.allowance,
-                        )
+                            .build()
+                    commitTransactionConsistently(allocate, transactionDao, accountDao, budgetData)
+                }
+                "write a check for food" {
+                    val amount = BigDecimal("100.00")
+                    val writeCheck: Transaction = Transaction.Builder(
+                        description = "groceries",
+                        timestamp = clock.now(),
+                        type = Type.expense,
+                    )
                         .apply {
-                            with(budgetData.generalAccount) {
-                                addItemBuilderTo(-amount)
-                            }
                             with(
                                 budgetData.categoryAccounts.find {
                                     it.name == defaultFoodAccountName
+                                }!!,
+                            ) {
+                                addItemBuilderTo(-amount)
+                            }
+                            with(
+                                budgetData.draftAccounts.find {
+                                    it.name == defaultCheckingAccountName
                                 }!!,
                             ) {
                                 addItemBuilderTo(amount)
                             }
                         }
                         .build()
-                commitTransactionConsistently(allocate, transactionDao, accountDao, budgetData)
-            }
-            "write a check for food" {
-                val amount = BigDecimal("100.00")
-                val writeCheck: Transaction = Transaction.Builder(
-                    description = "groceries",
-                    timestamp = clock.now(),
-                    type = Type.expense,
-                )
-                    .apply {
-                        with(
-                            budgetData.categoryAccounts.find {
-                                it.name == defaultFoodAccountName
-                            }!!,
-                        ) {
-                            addItemBuilderTo(-amount)
-                        }
-                        with(
-                            budgetData.draftAccounts.find {
-                                it.name == defaultCheckingAccountName
-                            }!!,
-                        ) {
-                            addItemBuilderTo(amount)
+                    commitTransactionConsistently(writeCheck, transactionDao, accountDao, budgetData)
+                }
+                "check balances after writing check" {
+                    budgetData.realAccounts.forEach { realAccount: RealAccount ->
+                        when (realAccount.name) {
+                            defaultCheckingAccountName -> {
+                                realAccount.balance shouldBe BigDecimal("1000.00")
+                            }
+                            defaultWalletAccountName ->
+                                realAccount.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            else ->
+                                fail("unexpected real account")
                         }
                     }
-                    .build()
-                commitTransactionConsistently(writeCheck, transactionDao, accountDao, budgetData)
-            }
-            "check balances after writing check" {
-                budgetData.realAccounts.forEach { realAccount: RealAccount ->
-                    when (realAccount.name) {
-                        defaultCheckingAccountName -> {
-                            realAccount.balance shouldBe BigDecimal("1000.00")
+                    budgetData.categoryAccounts.forEach { it: CategoryAccount ->
+                        when (it.name) {
+                            defaultGeneralAccountName -> it.balance shouldBe BigDecimal("700.00")
+                            defaultCosmeticsAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultEducationAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultEntertainmentAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultFoodAccountName -> it.balance shouldBe BigDecimal("200.00")
+                            defaultHobbyAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultHomeAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultHousingAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultMedicalAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultNecessitiesAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultNetworkAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultTransportationAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultTravelAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            defaultWorkAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
+                            else -> fail("unexpected category account: $it")
                         }
-                        defaultWalletAccountName ->
-                            realAccount.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        else ->
-                            fail("unexpected real account")
+                    }
+                    budgetData.draftAccounts.forEach { it: DraftAccount ->
+                        when (it.name) {
+                            defaultCheckingAccountName -> it.balance shouldBe BigDecimal("100.00")
+                            else -> fail("unexpected draft account: $it")
+                        }
                     }
                 }
-                budgetData.categoryAccounts.forEach { it: CategoryAccount ->
-                    when (it.name) {
-                        defaultGeneralAccountName -> it.balance shouldBe BigDecimal("700.00")
-                        defaultCosmeticsAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultEducationAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultEntertainmentAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultFoodAccountName -> it.balance shouldBe BigDecimal("200.00")
-                        defaultHobbyAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultHomeAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultHousingAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultMedicalAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultNecessitiesAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultNetworkAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultTransportationAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultTravelAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        defaultWorkAccountName -> it.balance shouldBe BigDecimal.ZERO.setScale(2)
-                        else -> fail("unexpected category account: $it")
-                    }
-                }
-                budgetData.draftAccounts.forEach { it: DraftAccount ->
-                    when (it.name) {
-                        defaultCheckingAccountName -> it.balance shouldBe BigDecimal("100.00")
-                        else -> fail("unexpected draft account: $it")
-                    }
-                }
-            }
-            "check clears" {
-                val amount = BigDecimal("100.00")
-                val writeCheck: Transaction = Transaction.Builder(
-                    description = "groceries",
-                    timestamp = clock.now(),
-                    type = Type.clearing,
-                )
-                    .apply {
-                        with(
-                            budgetData.realAccounts.find {
-                                it.name == defaultCheckingAccountName
-                            }!!,
-                        ) {
-                            addItemBuilderTo(-amount)
+                "check clears" {
+                    val amount = BigDecimal("100.00")
+                    val writeCheck: Transaction = Transaction.Builder(
+                        description = "groceries",
+                        timestamp = clock.now(),
+                        type = Type.clearing,
+                    )
+                        .apply {
+                            with(
+                                budgetData.realAccounts.find {
+                                    it.name == defaultCheckingAccountName
+                                }!!,
+                            ) {
+                                addItemBuilderTo(-amount)
+                            }
+                            with(
+                                budgetData.draftAccounts.find {
+                                    it.name == defaultCheckingAccountName
+                                }!!,
+                            ) {
+                                addItemBuilderTo(-amount)
+                            }
                         }
-                        with(
-                            budgetData.draftAccounts.find {
-                                it.name == defaultCheckingAccountName
-                            }!!,
-                        ) {
-                            addItemBuilderTo(-amount)
-                        }
-                    }
-                    .build()
-                commitTransactionConsistently(writeCheck, transactionDao, accountDao, budgetData)
-            }
-            "check balances after check clears" {
-                checkBalancesAfterCheckClears(budgetData)
-            }
-            "check balances in DB" {
-                checkBalancesAfterCheckClears(cliBudgetDao.load(budgetData.id, userId, accountDao))
+                        .build()
+                    commitTransactionConsistently(writeCheck, transactionDao, accountDao, budgetData)
+                }
+                "check balances after check clears" {
+                    checkBalancesAfterCheckClears(budgetData)
+                }
+                "check balances in DB" {
+                    checkBalancesAfterCheckClears(cliBudgetDao.load(budgetData.id, userId, accountDao))
+                }
             }
         }
 
