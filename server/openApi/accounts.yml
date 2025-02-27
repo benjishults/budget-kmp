@@ -208,6 +208,7 @@ components:
           type: number
         companionId:
           type: string
+          description: only meaningful when `type` is `"draft"`
           format: uuid
         budgetId:
           type: string
@@ -232,6 +233,7 @@ components:
           type: number
         companionId:
           type: string
+          description: only meaningful when `type` is `"draft"`
           format: uuid
         budgetId:
           type: string

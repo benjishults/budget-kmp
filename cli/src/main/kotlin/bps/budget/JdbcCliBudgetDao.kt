@@ -15,6 +15,7 @@ import bps.jdbc.JdbcFixture.Companion.transact
 import bps.kotlin.Instrumentable
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
+import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
@@ -78,52 +79,36 @@ class JdbcCliBudgetDao(
                         }
                 // TODO pull out duplicate code in these next three sections
                 val categoryAccounts: List<CategoryAccount> =
-                    accountDao.getActiveAccounts(AccountType.category.name, budgetId, ::CategoryAccount)
+                    accountDao.getActiveAccounts(
+                        AccountType.category.name,
+                        budgetId,
+                        CategoryAccount,
+                    )
                 val generalAccount: CategoryAccount =
                     categoryAccounts.find {
                         it.id == generalAccountId
                     }!!
                 val realAccounts: List<RealAccount> =
-                    accountDao.getActiveAccounts(AccountType.real.name, budgetId, ::RealAccount)
-                val chargeAccounts: List<ChargeAccount> =
-                    accountDao.getActiveAccounts(AccountType.charge.name, budgetId, ::ChargeAccount)
-                val draftAccounts: List<DraftAccount> = // getAccounts("draft", budgetId, ::DraftAccount)
-                    prepareStatement(
-                        """
-select acc.*
-from accounts acc
-         join account_active_periods aap
-              on acc.id = aap.account_id
-                  and acc.budget_id = aap.budget_id
-where acc.budget_id = ?
-  and acc.type = ?
-  and now() > aap.start_date_utc
-  and now() < aap.end_date_utc
-""".trimIndent(),
+                    accountDao.getActiveAccounts(
+                        AccountType.real.name,
+                        budgetId,
+                        RealAccount,
                     )
-                        .use { getDraftAccountsStatement ->
-                            getDraftAccountsStatement.setUuid(1, budgetId)
-                            getDraftAccountsStatement.setString(2, AccountType.draft.name)
-                            getDraftAccountsStatement.executeQuery()
-                                .use { result ->
-                                    buildList {
-                                        while (result.next()) {
-                                            add(
-                                                DraftAccount(
-                                                    result.getString("name"),
-                                                    result.getString("description"),
-                                                    result.getObject("id", UUID::class.java),
-                                                    result.getCurrencyAmount("balance"),
-                                                    realAccounts.find {
-                                                        it.id.toString() == result.getString("companion_account_id")
-                                                    }!!,
-                                                    budgetId,
-                                                ),
-                                            )
-                                        }
-                                    }
-                                }
-                        }
+                val chargeAccounts: List<ChargeAccount> =
+                    accountDao.getActiveAccounts(
+                        AccountType.charge.name,
+                        budgetId,
+                        ChargeAccount,
+                    )
+                val draftAccounts: List<DraftAccount> =
+                    accountDao.getActiveAccounts(
+                        AccountType.draft.name, budgetId,
+                        DraftAccount { companionId ->
+                            realAccounts.find {
+                                it.id == companionId
+                            }!!
+                        },
+                    )
                 BudgetData(
                     budgetId,
                     budgetName,
@@ -146,7 +131,7 @@ where acc.budget_id = ?
     /**
      * Must be called within a transaction with manual commits
      */
-    // TODO we want to be in a state where we don't need to call this!
+// TODO we want to be in a state where we don't need to call this!
     private fun Connection.upsertAccountData(
         accounts: List<Account>,
         accountType: String,
