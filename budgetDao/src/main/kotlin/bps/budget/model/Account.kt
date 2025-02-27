@@ -116,6 +116,8 @@ enum class AccountType {
     charge,
 }
 
+fun interface AccountFactory<out A : Account> : (String, String, UUID, BigDecimal, UUID, UUID?) -> A
+
 // TODO consider merging (most of) these into a single class.
 
 class CategoryAccount(
@@ -175,6 +177,19 @@ class CategoryAccount(
             budgetId = this@CategoryAccount.budgetId,
             accountBalanceAfterItem = accountBalanceAfterItem,
         )
+
+    companion object : AccountFactory<CategoryAccount> {
+        override fun invoke(
+            name: String,
+            description: String,
+            id: UUID,
+            balance: BigDecimal,
+            budgetId: UUID,
+            companionId: UUID?,
+        ): CategoryAccount =
+            CategoryAccount(name, description, id, balance, budgetId)
+
+    }
 
 }
 
@@ -236,6 +251,18 @@ open class RealAccount(
             draftStatus = draftStatus,
         )
 
+    companion object : AccountFactory<RealAccount> {
+        override fun invoke(
+            name: String,
+            description: String,
+            id: UUID,
+            balance: BigDecimal,
+            budgetId: UUID,
+            companionId: UUID?,
+        ): RealAccount =
+            RealAccount(name, description, id, balance, budgetId)
+
+    }
 }
 
 /**
@@ -301,6 +328,28 @@ class DraftAccount(
             draftStatus = draftStatus,
         )
 
+    companion object {
+        operator fun invoke(realAccountFinder: (UUID) -> RealAccount) =
+            AccountFactory<DraftAccount> {
+                    name: String,
+                    description: String,
+                    id: UUID,
+                    balance: BigDecimal,
+                    budgetId: UUID,
+                    companionId: UUID?,
+                ->
+                DraftAccount(
+                    name,
+                    description,
+                    id,
+                    balance,
+                    realAccountFinder(companionId!!),
+                    budgetId,
+                )
+
+            }
+    }
+
 }
 
 class ChargeAccount(
@@ -362,5 +411,18 @@ class ChargeAccount(
             budgetId = this@ChargeAccount.budgetId,
             accountBalanceAfterItem = accountBalanceAfterItem,
         )
+
+    companion object : AccountFactory<ChargeAccount> {
+        override fun invoke(
+            name: String,
+            description: String,
+            id: UUID,
+            balance: BigDecimal,
+            budgetId: UUID,
+            companionId: UUID?,
+        ): ChargeAccount =
+            ChargeAccount(name, description, id, balance, budgetId)
+
+    }
 
 }

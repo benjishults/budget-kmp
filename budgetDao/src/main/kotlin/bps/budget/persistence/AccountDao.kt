@@ -1,6 +1,7 @@
 package bps.budget.persistence
 
 import bps.budget.model.Account
+import bps.budget.model.AccountFactory
 import bps.budget.model.AccountType
 import bps.budget.model.CategoryAccount
 import bps.budget.model.ChargeAccount
@@ -22,7 +23,7 @@ interface AccountDao {
     fun <T : Account> getDeactivatedAccounts(
         type: String,
         budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        factory: AccountFactory<T>,
     ): List<T> = TODO()
 
     /**
@@ -32,9 +33,9 @@ interface AccountDao {
     fun getAllAccountNamesForBudget(budgetId: UUID): List<String> =
         buildList {
             mapOf(
-                AccountType.category.name to ::CategoryAccount,
-                AccountType.real.name to ::RealAccount,
-                AccountType.charge.name to ::ChargeAccount,
+                AccountType.category.name to CategoryAccount,
+                AccountType.real.name to RealAccount,
+                AccountType.charge.name to ChargeAccount,
             )
                 .forEach { (type, factory) ->
                     addAll(
@@ -59,7 +60,7 @@ interface AccountDao {
     fun <T : Account> getActiveAccounts(
         type: String,
         budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        factory: AccountFactory<T>,
     ): List<T> = TODO()
 
     fun List<BalanceToAdd>.updateBalances(budgetId: UUID)

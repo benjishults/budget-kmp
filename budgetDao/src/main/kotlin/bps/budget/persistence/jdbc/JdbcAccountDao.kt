@@ -1,6 +1,7 @@
 package bps.budget.persistence.jdbc
 
 import bps.budget.model.Account
+import bps.budget.model.AccountFactory
 import bps.budget.model.AccountType
 import bps.budget.model.CategoryAccount
 import bps.budget.model.ChargeAccount
@@ -27,7 +28,7 @@ open class JdbcAccountDao(
     override fun <T : Account> getDeactivatedAccounts(
         type: String,
         budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        factory: AccountFactory<T>,
     ): List<T> =
         connection.transactOrThrow {
             prepareStatement(
@@ -60,7 +61,7 @@ open class JdbcAccountDao(
     override fun <T : Account> getActiveAccounts(
         type: String,
         budgetId: UUID,
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        factory: AccountFactory<T>,
     ): List<T> =
         connection.prepareStatement(
             """
@@ -90,7 +91,7 @@ where acc.budget_id = ?
      * @param T the [Account] type
      */
     private fun <T : Account> ResultSet.extractAccounts(
-        factory: (String, String, UUID, BigDecimal, UUID) -> T,
+        factory: (String, String, UUID, BigDecimal, UUID, UUID?) -> T,
         budgetId: UUID,
     ): List<T> =
         buildList {
@@ -99,9 +100,10 @@ where acc.budget_id = ?
                     factory(
                         getString("name"),
                         getString("description"),
-                        getObject("id", UUID::class.java),
+                        getUuid("id")!!,
                         getCurrencyAmount("balance"),
                         budgetId,
+                        getUuid("companion_account_id"),
                     ),
                 )
             }

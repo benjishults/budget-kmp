@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
     application
+    alias(libs.plugins.serialization)
 }
 
 group = "bps.budget"
@@ -19,9 +20,12 @@ dependencies {
     implementation(libs.jackson.jdk8)
     implementation(libs.konf)
     implementation(libs.kotlinx.datetime)
+    implementation(libs.kotlinx.serialization.json.jvm)
     implementation(libs.logback)
     implementation(libs.ktor.server.core.jvm)
+    implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.netty)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
     testImplementation(libs.ktor.server.test.host)
 //    testImplementation(libs.kotlin.test.junit)
