@@ -17,6 +17,25 @@ interface AccountDao {
         val amountToRevert: BigDecimal,
     )
 
+    fun <T : Account> getAccountOrNull(
+        accountId: UUID,
+        budgetId: UUID,
+        accountFactory: AccountFactory<T>,
+    ): T? =
+        TODO()
+
+    fun getRealAccountOrNull(accountId: UUID, budgetId: UUID): RealAccount? =
+        getAccountOrNull(accountId, budgetId, RealAccount)
+
+    fun getCategoryAccountOrNull(accountId: UUID, budgetId: UUID): CategoryAccount? =
+        getAccountOrNull(accountId, budgetId, CategoryAccount)
+
+    fun getChargeAccountOrNull(accountId: UUID, budgetId: UUID): ChargeAccount? =
+        getAccountOrNull(accountId, budgetId, ChargeAccount)
+
+    fun getDraftAccountOrNull(accountId: UUID, budgetId: UUID): DraftAccount? =
+        TODO()
+
     /**
      * The default implementation throws [NotImplementedError]
      */

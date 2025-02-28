@@ -25,6 +25,61 @@ open class JdbcAccountDao(
 
     private val connection = jdbcConnectionProvider.connection
 
+    override fun getDraftAccountOrNull(accountId: UUID, budgetId: UUID): DraftAccount? =
+        connection.transactOrThrow {
+            internalGetAccountOrNull<DraftAccount>(
+                accountId, budgetId,
+                DraftAccount { companionId ->
+                    internalGetAccountOrNull(companionId, budgetId, RealAccount)!!
+                },
+            )
+        }
+
+    override fun <T : Account> getAccountOrNull(
+        accountId: UUID,
+        budgetId: UUID,
+        accountFactory: AccountFactory<T>,
+    ): T? =
+        connection.transactOrThrow {
+            internalGetAccountOrNull(accountId, budgetId, accountFactory)
+        }
+
+    private fun <T : Account> Connection.internalGetAccountOrNull(
+        accountId: UUID,
+        budgetId: UUID,
+        accountFactory: AccountFactory<T>,
+    ): T? =
+        prepareStatement(
+            """
+                |select name, type, description, balance, companion_account_id
+                |from accounts
+                |where id = ?
+                |  and budget_id = ?
+            """.trimMargin(),
+        )
+            .use { statement ->
+                statement.setUuid(1, accountId)
+                statement.setUuid(2, budgetId)
+                statement.executeQuery()
+                    .use { result ->
+                        if (result.next()) {
+                            val type: AccountType = AccountType.valueOf(result.getString("type")!!)
+                            if (type === accountFactory.type) {
+                                val companionId = result.getUuid("companion_account_id")
+                                val name = result.getString("name")!!
+                                val description = result.getString("description")!!
+                                val balance = result.getCurrencyAmount("balance")
+                                accountFactory(name, description, accountId, balance, budgetId, companionId)
+                            } else {
+                                // TODO log account with ID but unexpected type found
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    }
+            }
+
     override fun <T : Account> getDeactivatedAccounts(
         type: String,
         budgetId: UUID,

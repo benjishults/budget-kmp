@@ -7,6 +7,7 @@ import io.github.nhubbard.konf.toValue
 
 interface BudgetServerConfigurations {
     val jdbc: JdbcConfig
+    val server: ServerConfig
     val config: Config
 
     companion object {
@@ -23,9 +24,13 @@ interface BudgetServerConfigurations {
                     config
                         .at("jdbc")
                         .toValue()
+                override val server: ServerConfig =
+                    config
+                        .at("server")
+                        .toValue()
 
                 override fun toString(): String =
-                    "BudgetServerConfigurations($jdbc)"
+                    "BudgetServerConfigurations($jdbc, $server)"
             }
     }
 }

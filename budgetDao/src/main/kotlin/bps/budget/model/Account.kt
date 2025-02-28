@@ -1,10 +1,12 @@
 package bps.budget.model
 
 import bps.budget.model.Transaction.Type
+import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
 import java.util.UUID
+import kotlin.reflect.KClass
 
 // TODO consider creating all these accounts on first run
 const val defaultGeneralAccountName = "General"
@@ -109,14 +111,44 @@ abstract class Account(
 
 }
 
-enum class AccountType {
-    category,
-    real,
-    draft,
-    charge,
+enum class AccountType(val accountType: KClass<out Account>) {
+
+    category(CategoryAccount::class),
+    real(RealAccount::class),
+    draft(DraftAccount::class),
+    charge(ChargeAccount::class),
+    ;
+
 }
 
-fun interface AccountFactory<out A : Account> : (String, String, UUID, BigDecimal, UUID, UUID?) -> A
+//fun <T : Account> AccountType.daoAccountGetter(accountDao: AccountDao): (UUID, UUID) -> T? =
+//    when (this) {
+//        AccountType.category -> { accountId: UUID, budgetId: UUID ->
+//            accountDao.getCategoryAccountOrNull(
+//                accountId,
+//                budgetId,
+//            )
+//        }
+//        AccountType.real -> { accountId: UUID, budgetId: UUID ->
+//            accountDao.getRealAccountOrNull(accountId, budgetId)
+//        }
+//        AccountType.draft -> { accountId: UUID, budgetId: UUID ->
+//            accountDao.getDraftAccountOrNull(
+//                accountId,
+//                budgetId,
+//            )
+//        }
+//        AccountType.charge -> { accountId: UUID, budgetId: UUID ->
+//            accountDao.getRealAccountOrNull(
+//                accountId,
+//                budgetId,
+//            )
+//        }
+//    }
+
+interface AccountFactory<out A : Account> : (String, String, UUID, BigDecimal, UUID, UUID?) -> A {
+    val type: AccountType
+}
 
 // TODO consider merging (most of) these into a single class.
 
@@ -188,6 +220,8 @@ class CategoryAccount(
             companionId: UUID?,
         ): CategoryAccount =
             CategoryAccount(name, description, id, balance, budgetId)
+
+        override val type: AccountType = AccountType.category
 
     }
 
@@ -262,6 +296,8 @@ open class RealAccount(
         ): RealAccount =
             RealAccount(name, description, id, balance, budgetId)
 
+        override val type: AccountType = AccountType.real
+
     }
 }
 
@@ -330,22 +366,25 @@ class DraftAccount(
 
     companion object {
         operator fun invoke(realAccountFinder: (UUID) -> RealAccount) =
-            AccountFactory<DraftAccount> {
+            object : AccountFactory<DraftAccount> {
+                override fun invoke(
                     name: String,
                     description: String,
                     id: UUID,
                     balance: BigDecimal,
                     budgetId: UUID,
                     companionId: UUID?,
-                ->
-                DraftAccount(
-                    name,
-                    description,
-                    id,
-                    balance,
-                    realAccountFinder(companionId!!),
-                    budgetId,
-                )
+                ) =
+                    DraftAccount(
+                        name,
+                        description,
+                        id,
+                        balance,
+                        realAccountFinder(companionId!!),
+                        budgetId,
+                    )
+
+                override val type: AccountType = AccountType.draft
 
             }
     }
@@ -422,6 +461,8 @@ class ChargeAccount(
             companionId: UUID?,
         ): ChargeAccount =
             ChargeAccount(name, description, id, balance, budgetId)
+
+        override val type: AccountType = AccountType.charge
 
     }
 
