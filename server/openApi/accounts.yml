@@ -10,6 +10,9 @@ paths:
     summary: Accounts
     parameters:
       - $ref: "#/components/parameters/budgetIdParam"
+      - $ref: "#/components/parameters/typeParam"
+        required: false
+        description: type(s) of desired accounts
     get:
       description: Get a list of all accounts for the specified budget.
       operationId: getAccounts
@@ -71,6 +74,9 @@ paths:
     parameters:
       - $ref: "#/components/parameters/budgetIdParam"
       - $ref: "#/components/parameters/accountIdParam"
+      - $ref: "#/components/parameters/typeParam"
+        required: true
+        description: type of desired account
     get:
       description: Get the specified account.
       operationId: getAccount
@@ -191,6 +197,18 @@ components:
       schema:
         format: uuid
         description: account ID
+    typeParam:
+      name: type
+      in: query
+      schema:
+        format: string
+        description: |
+          Values should be among these:
+            * real
+            * category
+            * charge
+            * draft
+
   schemas:
     AccountResponse:
       type: object

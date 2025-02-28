@@ -35,5 +35,11 @@ jobs:
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582 # v4.0.0
       - name: Test CLI
         run: ./gradlew cli:test --scan
-      - name: Start Server
-        run: ./gradlew server:run --scan
+
+# TODO instead of this, we'll probably want to
+#      1. build the server
+#      2. launch it in a docker container
+#      3. run functional tests
+
+#      - name: Start Server
+#        run: ./gradlew server:run --scan
