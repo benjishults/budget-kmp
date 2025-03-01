@@ -2,13 +2,11 @@
 package bps.budget.model
 
 import bps.budget.model.Transaction.Type
-import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-import kotlin.reflect.KClass
 
 // TODO consider creating all these accounts on first run
 const val defaultGeneralAccountName = "General"
@@ -113,16 +111,6 @@ abstract class Account(
 
 }
 
-enum class AccountType {
-
-    category,
-    real,
-    draft,
-    charge,
-    ;
-
-}
-
 //fun <T : Account> AccountType.daoAccountGetter(accountDao: AccountDao): (UUID, UUID) -> T? =
 //    when (this) {
 //        AccountType.category -> { accountId: UUID, budgetId: UUID ->
@@ -147,10 +135,6 @@ enum class AccountType {
 //            )
 //        }
 //    }
-
-interface AccountFactory<out A : Account> : (String, String, Uuid, BigDecimal, Uuid, Uuid?) -> A {
-    val type: AccountType
-}
 
 // TODO consider merging (most of) these into a single class.
 

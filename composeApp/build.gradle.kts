@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -46,6 +47,7 @@ kotlin {
 
         androidMain.dependencies {
             implementation(compose.preview)
+//            implementation(projects.allShared)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.lifecycle.runtime.compose)
             implementation(libs.androidx.lifecycle.viewmodel.compose)
@@ -65,6 +67,7 @@ kotlin {
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
+//            implementation(projects.allShared)
             implementation(libs.kotlinx.coroutines.swing)
         }
         wasmJsMain.dependencies {
