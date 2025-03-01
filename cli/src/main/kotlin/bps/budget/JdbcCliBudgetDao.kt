@@ -15,13 +15,14 @@ import bps.jdbc.JdbcFixture.Companion.transact
 import bps.kotlin.Instrumentable
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 // TODO this class is doing too much... could be split up... See how it's done in server.
+@OptIn(ExperimentalUuidApi::class)
 @Instrumentable
 class JdbcCliBudgetDao(
     val budgetName: String,
@@ -31,7 +32,7 @@ class JdbcCliBudgetDao(
     private val connection: Connection = connectionProvider.connection
 
     private data class BudgetDataInfo(
-        val generalAccountId: UUID,
+        val generalAccountId: Uuid,
         val timeZone: TimeZone,
         val analyticsStart: Instant,
         val budgetName: String,
@@ -41,14 +42,14 @@ class JdbcCliBudgetDao(
      * Just loads top-level account info.  Details of transactions are loaded on-demand.
      * @throws DataConfigurationException if data isn't found.
      */
-    override fun load(budgetId: UUID, userId: UUID, accountDao: AccountDao): BudgetData =
+    override fun load(budgetId: Uuid, userId: Uuid, accountDao: AccountDao): BudgetData =
         try {
             connection.transact(
                 onRollback = { ex ->
                     throw DataConfigurationException(ex.message, ex)
                 },
             ) {
-                val (generalAccountId: UUID, timeZone: TimeZone, analyticsStart: Instant, budgetName: String) =
+                val (generalAccountId: Uuid, timeZone: TimeZone, analyticsStart: Instant, budgetName: String) =
                     prepareStatement(
                         """
                             select b.general_account_id, ba.time_zone, ba.budget_name, ba.analytics_start
@@ -66,7 +67,7 @@ class JdbcCliBudgetDao(
                                 .use { result: ResultSet ->
                                     if (result.next()) {
                                         BudgetDataInfo(
-                                            generalAccountId = result.getObject("general_account_id", UUID::class.java),
+                                            generalAccountId = result.getUuid("general_account_id")!!,
                                             timeZone = result.getString("time_zone")
                                                 ?.let { timeZone -> TimeZone.of(timeZone) }
                                                 ?: TimeZone.currentSystemDefault(),
@@ -135,7 +136,7 @@ class JdbcCliBudgetDao(
     private fun Connection.upsertAccountData(
         accounts: List<Account>,
         accountType: String,
-        budgetId: UUID,
+        budgetId: Uuid,
     ) {
         accounts.forEach { account ->
             // upsert account
@@ -189,7 +190,7 @@ class JdbcCliBudgetDao(
                 """.trimIndent(),
             )
                 .use { createActivePeriod: PreparedStatement ->
-                    createActivePeriod.setUuid(1, UUID.randomUUID())
+                    createActivePeriod.setUuid(1, Uuid.random())
                     createActivePeriod.setUuid(2, account.id)
                     createActivePeriod.setUuid(3, budgetId)
                     // NOTE due to the uniqueness constraints on this table, this will be idempotent

@@ -6,8 +6,10 @@ import bps.budget.model.RealAccount
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 interface AnalyticsDao {
 
     val clock: Clock
@@ -15,7 +17,7 @@ interface AnalyticsDao {
     fun averageIncome(
         timeZone: TimeZone,
         options: AnalyticsOptions,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): BigDecimal? =
         TODO()
 
@@ -23,7 +25,7 @@ interface AnalyticsDao {
         realAccount: RealAccount,
         timeZone: TimeZone,
         options: AnalyticsOptions,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): BigDecimal? =
         TODO()
 
@@ -43,7 +45,7 @@ interface AnalyticsDao {
     fun averageExpenditure(
         timeZone: TimeZone,
         options: AnalyticsOptions,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): BigDecimal? =
         TODO()
 

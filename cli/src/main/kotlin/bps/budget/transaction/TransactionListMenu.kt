@@ -13,8 +13,9 @@ import bps.console.menu.MenuItem
 import bps.console.menu.ScrollingSelectionWithContextMenu
 import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.Uuid
 import kotlin.math.max
+import kotlin.uuid.ExperimentalUuidApi
 
 private const val TRANSACTIONS_TABLE_HEADER = "    Time Stamp          | Amount     | Balance    | Description"
 
@@ -22,12 +23,13 @@ private const val TRANSACTIONS_TABLE_HEADER = "    Time Stamp          | Amount 
  * The default behavior after selecting an item is to show details.  Pass a value for [actOnSelectedItem]
  * (and [prompt]) to override that behavior.
  */
+@OptIn(ExperimentalUuidApi::class)
 open class TransactionListMenu<A : Account>(
     private val budgetData: BudgetData,
     private val account: A,
     private val transactionDao: TransactionDao,
-    private val budgetId: UUID,
-    private val accountIdToAccountMap: Map<UUID, Account>,
+    private val budgetId: Uuid,
+    private val accountIdToAccountMap: Map<Uuid, Account>,
     private val timeZone: TimeZone,
     limit: Int = 30,
     offset: Int = 0,

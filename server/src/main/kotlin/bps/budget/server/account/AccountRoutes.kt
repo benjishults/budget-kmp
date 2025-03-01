@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.server.account
 
 import bps.budget.model.Account
@@ -13,7 +15,8 @@ import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.RoutingContext
 import io.ktor.server.routing.get
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 fun Routing.accountRoutes(accountDao: AccountDao) {
     get("/budgets/{budgetId}/accounts") {
@@ -32,11 +35,16 @@ fun Routing.accountRoutes(accountDao: AccountDao) {
                     }
                 }
                 ?: emptyList()
-        getAccounts(
-            budgetId = UUID.fromString(call.pathParameters["budgetId"]),
-            accountDao = accountDao,
-            types = types,
-        )
+        val budgetId = call.pathParameters["budgetId"]
+        if (budgetId === null)
+            call.respond(HttpStatusCode.BadRequest)
+        else {
+            returnAccounts(
+                budgetId = Uuid.parse(budgetId),
+                accountDao = accountDao,
+                types = types,
+            )
+        }
     }
     get("/budgets/{budgetId}/accounts/{accountId}") {
         call.queryParameters["type"]
@@ -51,21 +59,27 @@ fun Routing.accountRoutes(accountDao: AccountDao) {
                     // NOTE non-local exit!
                     return@get
                 }
-                getAccount(
-                    accountId = UUID.fromString(call.pathParameters["accountId"]),
-                    type = type,
-                    budgetId = UUID.fromString(call.pathParameters["budgetId"]),
-                    accountDao = accountDao,
-                )
+                val accountId = call.pathParameters["accountId"]
+                val budgetId = call.pathParameters["budgetId"]
+                if (accountId === null || budgetId === null) {
+                    call.respond(HttpStatusCode.BadRequest)
+                } else {
+                    getAccount(
+                        accountId = Uuid.parse(accountId),
+                        type = type,
+                        budgetId = Uuid.parse(budgetId),
+                        accountDao = accountDao,
+                    )
+                }
             }
             ?: call.respond(HttpStatusCode.BadRequest, "query parameter 'type' is required")
     }
 }
 
 private suspend fun RoutingContext.getAccount(
-    accountId: UUID,
+    accountId: Uuid,
     type: AccountType,
-    budgetId: UUID,
+    budgetId: Uuid,
     accountDao: AccountDao,
 ) {
     val account: Account? =
@@ -95,8 +109,8 @@ private suspend fun RoutingContext.getAccount(
     }
 }
 
-private suspend fun RoutingContext.getAccounts(
-    budgetId: UUID,
+private suspend fun RoutingContext.returnAccounts(
+    budgetId: Uuid,
     accountDao: AccountDao,
     types: List<AccountType> = emptyList(),
 ) {

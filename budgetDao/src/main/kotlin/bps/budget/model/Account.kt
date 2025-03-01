@@ -1,3 +1,4 @@
+@file:OptIn(ExperimentalUuidApi::class)
 package bps.budget.model
 
 import bps.budget.model.Transaction.Type
@@ -5,7 +6,8 @@ import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 import kotlin.reflect.KClass
 
 // TODO consider creating all these accounts on first run
@@ -50,10 +52,10 @@ abstract class Account(
     // TODO why are these vars?
     override var name: String,
     override var description: String = "",
-    override val id: UUID = UUID.randomUUID(),
+    override val id: Uuid = Uuid.random(),
     balance: BigDecimal = BigDecimal.ZERO.setScale(2),
     open val type: String,
-    val budgetId: UUID,
+    val budgetId: Uuid,
 ) : AccountData {
 
     override var balance: BigDecimal = balance
@@ -63,11 +65,11 @@ abstract class Account(
         amount: BigDecimal,
         description: String? = null,
         draftStatus: DraftStatus = DraftStatus.none,
-        id: UUID = UUID.randomUUID(),
+        id: Uuid = Uuid.random(),
     ): Unit = TODO()
 
     open fun itemBuilderFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
@@ -75,11 +77,11 @@ abstract class Account(
         TODO()
 
     open fun TransactionDao.extendedTransactionItemFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        transactionId: UUID,
+        transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
         transactionType: Type,
@@ -111,12 +113,12 @@ abstract class Account(
 
 }
 
-enum class AccountType(val accountType: KClass<out Account>) {
+enum class AccountType {
 
-    category(CategoryAccount::class),
-    real(RealAccount::class),
-    draft(DraftAccount::class),
-    charge(ChargeAccount::class),
+    category,
+    real,
+    draft,
+    charge,
     ;
 
 }
@@ -146,7 +148,7 @@ enum class AccountType(val accountType: KClass<out Account>) {
 //        }
 //    }
 
-interface AccountFactory<out A : Account> : (String, String, UUID, BigDecimal, UUID, UUID?) -> A {
+interface AccountFactory<out A : Account> : (String, String, Uuid, BigDecimal, Uuid, Uuid?) -> A {
     val type: AccountType
 }
 
@@ -155,22 +157,22 @@ interface AccountFactory<out A : Account> : (String, String, UUID, BigDecimal, U
 class CategoryAccount(
     name: String,
     description: String = "",
-    id: UUID = UUID.randomUUID(),
+    id: Uuid = Uuid.random(),
     balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-    budgetId: UUID,
+    budgetId: Uuid,
 ) : Account(name, description, id, balance, AccountType.category.name, budgetId) {
 
     override fun Transaction.Builder.addItemBuilderTo(
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        id: UUID,
+        id: Uuid,
     ) {
         categoryItemBuilders.add(itemBuilderFactory(id, amount, description, draftStatus))
     }
 
     override fun itemBuilderFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
@@ -184,11 +186,11 @@ class CategoryAccount(
         )
 
     override fun TransactionDao.extendedTransactionItemFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        transactionId: UUID,
+        transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
         transactionType: Type,
@@ -214,10 +216,10 @@ class CategoryAccount(
         override fun invoke(
             name: String,
             description: String,
-            id: UUID,
+            id: Uuid,
             balance: BigDecimal,
-            budgetId: UUID,
-            companionId: UUID?,
+            budgetId: Uuid,
+            companionId: Uuid?,
         ): CategoryAccount =
             CategoryAccount(name, description, id, balance, budgetId)
 
@@ -230,26 +232,26 @@ class CategoryAccount(
 open class RealAccount(
     name: String,
     description: String = "",
-    id: UUID = UUID.randomUUID(),
+    id: Uuid = Uuid.random(),
     balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-    budgetId: UUID,
+    budgetId: Uuid,
 ) : Account(name, description, id, balance, AccountType.real.name, budgetId) {
 
     override fun Transaction.Builder.addItemBuilderTo(
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        id: UUID,
+        id: Uuid,
     ) {
         realItemBuilders.add(itemBuilderFactory(id, amount, description, draftStatus))
     }
 
     override fun TransactionDao.extendedTransactionItemFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        transactionId: UUID,
+        transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
         transactionType: Type,
@@ -272,7 +274,7 @@ open class RealAccount(
         )
 
     override fun itemBuilderFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
@@ -289,10 +291,10 @@ open class RealAccount(
         override fun invoke(
             name: String,
             description: String,
-            id: UUID,
+            id: Uuid,
             balance: BigDecimal,
-            budgetId: UUID,
-            companionId: UUID?,
+            budgetId: Uuid,
+            companionId: Uuid?,
         ): RealAccount =
             RealAccount(name, description, id, balance, budgetId)
 
@@ -308,27 +310,27 @@ open class RealAccount(
 class DraftAccount(
     name: String,
     description: String = "",
-    id: UUID = UUID.randomUUID(),
+    id: Uuid = Uuid.random(),
     balance: BigDecimal = BigDecimal.ZERO.setScale(2),
     val realCompanion: RealAccount,
-    budgetId: UUID,
+    budgetId: Uuid,
 ) : Account(name, description, id, balance, AccountType.draft.name, budgetId) {
 
     override fun Transaction.Builder.addItemBuilderTo(
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        id: UUID,
+        id: Uuid,
     ) {
         draftItemBuilders.add(itemBuilderFactory(id, amount, description, draftStatus))
     }
 
     override fun TransactionDao.extendedTransactionItemFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        transactionId: UUID,
+        transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
         transactionType: Type,
@@ -351,7 +353,7 @@ class DraftAccount(
         )
 
     override fun itemBuilderFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
@@ -365,15 +367,15 @@ class DraftAccount(
         )
 
     companion object {
-        operator fun invoke(realAccountFinder: (UUID) -> RealAccount) =
+        operator fun invoke(realAccountFinder: (Uuid) -> RealAccount) =
             object : AccountFactory<DraftAccount> {
                 override fun invoke(
                     name: String,
                     description: String,
-                    id: UUID,
+                    id: Uuid,
                     balance: BigDecimal,
-                    budgetId: UUID,
-                    companionId: UUID?,
+                    budgetId: Uuid,
+                    companionId: Uuid?,
                 ) =
                     DraftAccount(
                         name,
@@ -394,9 +396,9 @@ class DraftAccount(
 class ChargeAccount(
     name: String,
     description: String = "",
-    id: UUID = UUID.randomUUID(),
+    id: Uuid = Uuid.random(),
     balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-    budgetId: UUID,
+    budgetId: Uuid,
 ) : RealAccount(name, description, id, balance, budgetId) {
 
     override val type: String = AccountType.charge.name
@@ -405,13 +407,13 @@ class ChargeAccount(
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        id: UUID,
+        id: Uuid,
     ) {
         chargeItemBuilders.add(itemBuilderFactory(id, amount, description, draftStatus))
     }
 
     override fun itemBuilderFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
@@ -425,11 +427,11 @@ class ChargeAccount(
         )
 
     override fun TransactionDao.extendedTransactionItemFactory(
-        id: UUID,
+        id: Uuid,
         amount: BigDecimal,
         description: String?,
         draftStatus: DraftStatus,
-        transactionId: UUID,
+        transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
         transactionType: Type,
@@ -455,10 +457,10 @@ class ChargeAccount(
         override fun invoke(
             name: String,
             description: String,
-            id: UUID,
+            id: Uuid,
             balance: BigDecimal,
-            budgetId: UUID,
-            companionId: UUID?,
+            budgetId: Uuid,
+            companionId: Uuid?,
         ): ChargeAccount =
             ChargeAccount(name, description, id, balance, budgetId)
 

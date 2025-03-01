@@ -12,7 +12,9 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.TimeZone
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
     SimpleConsoleIoTestFixture {
 

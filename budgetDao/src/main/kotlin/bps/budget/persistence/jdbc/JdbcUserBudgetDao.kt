@@ -13,11 +13,12 @@ import kotlinx.datetime.TimeZone
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class JdbcUserBudgetDao(
     val jdbcConnectionProvider: JdbcConnectionProvider,
-//    val errorStateTracker: JdbcBudgetDao.ErrorStateTracker,
 ) : UserBudgetDao, JdbcFixture, AutoCloseable {
 
     private val connection: Connection = jdbcConnectionProvider.connection
@@ -38,13 +39,13 @@ class JdbcUserBudgetDao(
                         .use { resultSet: ResultSet ->
                             if (resultSet.next()) {
                                 val budgets = mutableListOf<UserBudgetAccess>()
-                                val id = resultSet.getObject("id", UUID::class.java)
+                                val id: Uuid = resultSet.getUuid("id")!!
                                 do {
                                     val budgetName: String? = resultSet.getString("budget_name")
                                     if (budgetName !== null)
                                         budgets.add(
                                             UserBudgetAccess(
-                                                budgetId = resultSet.getObject("budget_id", UUID::class.java),
+                                                budgetId = resultSet.getUuid("budget_id")!!,
                                                 budgetName = budgetName,
                                                 timeZone = resultSet.getString("time_zone")
                                                     ?.let { timeZone -> TimeZone.of(timeZone) }
@@ -63,7 +64,7 @@ class JdbcUserBudgetDao(
                 }
         }
 
-    override fun createUser(login: String, password: String, userId: UUID): UUID =
+    override fun createUser(login: String, password: String, userId: Uuid): Uuid =
         userId.also {
 //            errorStateTracker.catchCommitErrorState {
             connection.transactOrThrow {
@@ -81,8 +82,8 @@ class JdbcUserBudgetDao(
         budgetName: String,
         timeZoneId: String,
         analyticsStart: Instant,
-        userId: UUID,
-        budgetId: UUID,
+        userId: Uuid,
+        budgetId: Uuid,
     ) {
         connection.transactOrThrow {
             prepareStatement(
@@ -92,7 +93,7 @@ class JdbcUserBudgetDao(
                 """.trimIndent(),
             )
                 .use { createBudgetStatement: PreparedStatement ->
-                    createBudgetStatement.setUuid(1, UUID.randomUUID())
+                    createBudgetStatement.setUuid(1, Uuid.random())
                     createBudgetStatement.setUuid(2, budgetId)
                     createBudgetStatement.setUuid(3, userId)
                     createBudgetStatement.setString(4, timeZoneId)
@@ -103,7 +104,7 @@ class JdbcUserBudgetDao(
         }
     }
 
-    override fun updateTimeZone(timeZoneId: String, userId: UUID, budgetId: UUID): Int =
+    override fun updateTimeZone(timeZoneId: String, userId: Uuid, budgetId: Uuid): Int =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -121,7 +122,7 @@ class JdbcUserBudgetDao(
                 }
         }
 
-    override fun updateAnalyticsStart(analyticsStart: Instant, userId: UUID, budgetId: UUID): Int =
+    override fun updateAnalyticsStart(analyticsStart: Instant, userId: Uuid, budgetId: Uuid): Int =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -139,7 +140,7 @@ class JdbcUserBudgetDao(
                 }
         }
 
-    override fun createBudgetOrNull(generalAccountId: UUID, budgetId: UUID): UUID? =
+    override fun createBudgetOrNull(generalAccountId: Uuid, budgetId: Uuid): Uuid? =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -156,7 +157,7 @@ class JdbcUserBudgetDao(
                 }
         }
 
-    override fun deleteUser(userId: UUID) {
+    override fun deleteUser(userId: Uuid) {
 //        errorStateTracker.catchCommitErrorState {
         connection.transactOrThrow {
             prepareStatement("delete from budget_access where user_id = ?")
@@ -178,7 +179,7 @@ class JdbcUserBudgetDao(
 //        errorStateTracker.catchCommitErrorState {
         connection.transactOrThrow {
             getUserIdByLogin(login)
-                ?.let { userId: UUID ->
+                ?.let { userId: Uuid ->
                     prepareStatement("delete from budget_access where user_id = ?")
                         .use { statement: PreparedStatement ->
                             statement.setUuid(1, userId)
@@ -194,20 +195,20 @@ class JdbcUserBudgetDao(
 //        }
     }
 
-    private fun Connection.getUserIdByLogin(login: String): UUID? =
+    private fun Connection.getUserIdByLogin(login: String): Uuid? =
         prepareStatement("select id from users where login = ?")
             .use { statement: PreparedStatement ->
                 statement.setString(1, login)
                 statement.executeQuery()
                     .use { resultSet: ResultSet ->
                         if (resultSet.next()) {
-                            resultSet.getObject("id", UUID::class.java)
+                            resultSet.getUuid("id")
                         } else
                             null
                     }
             }
 
-    override fun deleteBudget(budgetId: UUID) {
+    override fun deleteBudget(budgetId: Uuid) {
 //        errorStateTracker.catchCommitErrorState {
         connection.transactOrThrow {
             prepareStatement("delete from budget_access where budget_id = ?")

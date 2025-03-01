@@ -6,16 +6,18 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.Uuid
 import kotlin.collections.forEach
 import kotlin.collections.plus
 import kotlin.plus
+import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * Currently not thread safe to add or delete accounts.  So, just be sure to use only a "main" thread.
  */
+@OptIn(ExperimentalUuidApi::class)
 class BudgetData(
-    val id: UUID,
+    val id: Uuid,
     val name: String,
     var timeZone: TimeZone,
     var analyticsStart: Instant,
@@ -42,17 +44,17 @@ class BudgetData(
         require(generalAccount in categoryAccounts) { "general account must be among category accounts" }
     }
 
-    private val byId: MutableMap<UUID, Account> =
+    private val byId: MutableMap<Uuid, Account> =
         (categoryAccounts + realAccounts + draftAccounts + chargeAccounts)
             .associateByTo(mutableMapOf()) {
                 it.id
             }
 
-    val accountIdToAccountMap: Map<UUID, Account>
+    val accountIdToAccountMap: Map<Uuid, Account>
         get() = byId
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Account> getAccountByIdOrNull(id: UUID): T? =
+    fun <T : Account> getAccountByIdOrNull(id: Uuid): T? =
         byId[id] as T?
 
     fun commit(transaction: Transaction) {
@@ -168,8 +170,8 @@ class BudgetData(
 
             checkingBalance: BigDecimal = BigDecimal.ZERO.setScale(2),
             walletBalance: BigDecimal = BigDecimal.ZERO.setScale(2),
-            generalAccountId: UUID = UUID.randomUUID(),
-            budgetId: UUID = UUID.randomUUID(),
+            generalAccountId: Uuid = Uuid.random(),
+            budgetId: Uuid = Uuid.random(),
             accountDao: AccountDao,
         ): BudgetData {
             val (checkingAccount, draftAccount) = accountDao.createRealAndDraftAccountOrNull(

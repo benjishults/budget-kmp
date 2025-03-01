@@ -1,22 +1,25 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.model
 
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 interface User {
-    val id: UUID
+    val id: Uuid
     val login: String
 }
 
 data class AuthenticatedUser(
-    override val id: UUID,
+    override val id: Uuid,
     override val login: String,
     val access: List<UserBudgetAccess> = emptyList(),
 ) : User
 
 data class UserBudgetAccess(
-    val budgetId: UUID,
+    val budgetId: Uuid,
     val budgetName: String,
     val timeZone: TimeZone,
     val analyticsStart: Instant,

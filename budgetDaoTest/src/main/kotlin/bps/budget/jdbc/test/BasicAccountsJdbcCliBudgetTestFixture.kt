@@ -12,8 +12,10 @@ import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
 
     val userName: String
@@ -23,7 +25,7 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
      * transactions once the test is done.
      */
     fun Spec.createBasicAccountsBeforeSpec(
-        budgetId: UUID,
+        budgetId: Uuid,
         budgetName: String,
         authenticatedUser: AuthenticatedUser,
         timeZone: TimeZone,
@@ -62,13 +64,13 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
         }
     }
 
-    fun Spec.resetAfterEach(budgetId: AtomicReference<UUID?>) {
+    fun Spec.resetAfterEach(budgetId: AtomicReference<Uuid?>) {
         afterEach {
             cleanupTransactions(budgetId.value!!, jdbcConnectionProvider.connection)
         }
     }
 
-    fun Spec.resetBalancesAndTransactionAfterSpec(budgetId: UUID) {
+    fun Spec.resetBalancesAndTransactionAfterSpec(budgetId: Uuid) {
         afterSpec {
             cleanupTransactions(budgetId, jdbcConnectionProvider.connection)
         }
@@ -80,10 +82,10 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
      */
     private fun upsertBasicAccounts(
         budgetName: String,
-        generalAccountId: UUID = UUID.fromString("dfa8a21c-f0ad-434d-bcb5-9e37749fa81e"),
+        generalAccountId: Uuid = Uuid.parse("dfa8a21c-f0ad-434d-bcb5-9e37749fa81e"),
         timeZone: TimeZone = TimeZone.Companion.UTC,
         authenticatedUser: AuthenticatedUser,
-        budgetId: UUID,
+        budgetId: Uuid,
         clock: Clock,
     ) {
 //        initializingBudgetDao.prepForFirstLoad()

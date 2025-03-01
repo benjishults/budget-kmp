@@ -35,8 +35,10 @@ import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
     WithMockClock {
 
@@ -48,8 +50,8 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
             budgetConfigurations.user.defaultLogin!!,
         )
         val clock = produceSecondTickingClock()
-        val budgetId: UUID = UUID.fromString("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
-        val userId: UUID = UUID.fromString("f0f209c8-1b1e-43b3-8799-2dba58524d02")
+        val budgetId: Uuid = Uuid.parse("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
+        val userId: Uuid = Uuid.parse("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         with(basicAccountsJdbcCliBudgetTestFixture) {
             val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, jdbcConnectionProvider)
             val cliBudgetDao = JdbcCliBudgetDao(userName, jdbcConnectionProvider)

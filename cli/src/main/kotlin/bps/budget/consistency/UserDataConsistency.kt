@@ -1,10 +1,13 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.consistency
 
 import bps.budget.model.BudgetData
 import bps.budget.persistence.UserBudgetDao
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 /**
  * Updates the persistent data with the new time-zone and modifies the budgetData object if the data update
@@ -13,8 +16,8 @@ import java.util.UUID
  */
 fun updateTimeZoneConsistently(
     newTimeZone: TimeZone,
-    userId: UUID,
-    budgetId: UUID,
+    userId: Uuid,
+    budgetId: Uuid,
     userBudgetDao: UserBudgetDao,
     budgetData: BudgetData,
 ): Int =
@@ -35,8 +38,8 @@ fun updateTimeZoneConsistently(
  */
 fun updateAnalyticsStartConsistently(
     newAnalyticsStart: Instant,
-    userId: UUID,
-    budgetId: UUID,
+    userId: Uuid,
+    budgetId: Uuid,
     userBudgetDao: UserBudgetDao,
     budgetData: BudgetData,
 ): Int =
