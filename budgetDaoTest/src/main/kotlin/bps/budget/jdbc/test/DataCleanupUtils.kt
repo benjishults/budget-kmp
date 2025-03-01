@@ -1,4 +1,5 @@
 @file:JvmName("DataCleanupUtils")
+@file:OptIn(ExperimentalUuidApi::class)
 
 package bps.budget.jdbc.test
 
@@ -7,7 +8,8 @@ import bps.jdbc.JdbcFixture.Companion.setUuid
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import java.math.BigDecimal
 import java.sql.Connection
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 fun dropTables(connection: Connection, schema: String) {
     require(schema == "clean_after_test")
@@ -40,7 +42,7 @@ fun dropTables(connection: Connection, schema: String) {
     }
 }
 
-fun deleteAccounts(budgetId: UUID, connection: Connection) =
+fun deleteAccounts(budgetId: Uuid, connection: Connection) =
     with(JdbcFixture) {
         cleanupTransactions(budgetId, connection)
         connection.transactOrThrow {
@@ -57,7 +59,7 @@ fun deleteAccounts(budgetId: UUID, connection: Connection) =
         }
     }
 
-fun cleanupTransactions(budgetId: UUID, connection: Connection) =
+fun cleanupTransactions(budgetId: Uuid, connection: Connection) =
     with(JdbcFixture) {
         connection.transactOrThrow {
             zeroBalance(budgetId)
@@ -74,7 +76,7 @@ fun cleanupTransactions(budgetId: UUID, connection: Connection) =
         }
     }
 
-private fun Connection.zeroBalance(budgetId: UUID) {
+private fun Connection.zeroBalance(budgetId: Uuid) {
     prepareStatement("update accounts set balance = ? where budget_id = ?")
         .use {
             it.setBigDecimal(1, BigDecimal.ZERO.setScale(2))

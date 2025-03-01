@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.server.model
 
 import bps.budget.model.Account
@@ -8,20 +10,22 @@ import bps.serialization.UUIDSerializer
 import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @Serializable
 class AccountResponse(
     val name: String,
-    @Serializable(with = UUIDSerializer::class)
-    val id: UUID,
+//    @Serializable(with = UUIDSerializer::class)
+    val id: Uuid,
     val type: AccountType,
     @Serializable(with = BigDecimalNumericSerializer::class)
     val balance: BigDecimal,
     val description: String,
-    @Serializable(with = UUIDSerializer::class)
-    val budgetId: UUID,
-    @Serializable(with = UUIDSerializer::class)
-    val companionId: UUID? = null,
+//    @Serializable(with = UUIDSerializer::class)
+    val budgetId: Uuid,
+//    @Serializable(with = UUIDSerializer::class)
+    val companionId: Uuid? = null,
 ) {
     init {
         require(
@@ -56,10 +60,10 @@ class AccountRequest(
     @Serializable(with = BigDecimalNumericSerializer::class)
     val balance: BigDecimal = BigDecimal.ZERO.setScale(2),
     val description: String = "",
-    @Serializable(with = UUIDSerializer::class)
-    val budgetId: UUID,
-    @Serializable(with = UUIDSerializer::class)
-    val companionId: UUID? = null,
+//    @Serializable(with = UUIDSerializer::class)
+    val budgetId: Uuid,
+//    @Serializable(with = UUIDSerializer::class)
+    val companionId: Uuid? = null,
 ) {
     init {
         require(

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.allowance
 
 import bps.budget.analytics.AnalyticsOptions
@@ -26,6 +28,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.math.BigDecimal
+import kotlin.uuid.ExperimentalUuidApi
 
 fun WithIo.makeAllowancesSelectionMenu(
     budgetData: BudgetData,

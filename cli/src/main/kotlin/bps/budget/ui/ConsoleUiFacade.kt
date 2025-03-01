@@ -23,8 +23,10 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class ConsoleUiFacade(
     val inputReader: InputReader = DefaultInputReader,
     val outPrinter: OutPrinter = DefaultOutPrinter,
@@ -39,8 +41,8 @@ class ConsoleUiFacade(
     ): BudgetData {
         announceFirstTime()
         val timeZone: TimeZone = getDesiredTimeZone()
-        val generalAccountId: UUID = UUID.randomUUID()
-        val budgetId: UUID = UUID.randomUUID()
+        val generalAccountId: Uuid = Uuid.random()
+        val budgetId: Uuid = Uuid.random()
         userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
         userBudgetDao.grantAccess(
             budgetName = budgetName,
@@ -93,7 +95,7 @@ class ConsoleUiFacade(
                     )
                 }
         } else {
-            accountDao.createGeneralAccountWithIdOrNull(generalAccountId, budgetId = UUID.randomUUID())!!
+            accountDao.createGeneralAccountWithIdOrNull(generalAccountId, budgetId = Uuid.random())!!
                 .let { generalAccount: CategoryAccount ->
                     BudgetData(
                         id = budgetId,

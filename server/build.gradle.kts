@@ -33,6 +33,7 @@ dependencies {
     testImplementation(libs.kotest.junit5)
     testImplementation(libs.kotest.assertions)
     testImplementation(libs.junit.jupiter)
+    testImplementation(projects.budgetDaoTest)
 }
 
 tasks.test {

@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.settings
 
 import bps.budget.budgetQuitItem
@@ -18,11 +20,12 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 fun WithIo.userSettingsMenu(
     budgetData: BudgetData,
-    userId: UUID,
+    userId: Uuid,
     userBudgetDao: UserBudgetDao,
 ) =
     Menu {
@@ -73,11 +76,11 @@ fun WithIo.userSettingsMenu(
 
 fun WithIo.changeTimeZone(
     budgetData: BudgetData,
-    userId: UUID,
+    userId: Uuid,
     userBudgetDao: UserBudgetDao,
 ) {
     val previousTimeZone: TimeZone = budgetData.timeZone
-    val budgetId: UUID = budgetData.id
+    val budgetId: Uuid = budgetData.id
     outPrinter.verticalSpace()
     SimplePromptWithDefault(
         basicPrompt = "Enter new desired time-zone for dates to be presented in [${previousTimeZone.id}]: ",
@@ -121,8 +124,8 @@ fun WithIo.changeTimeZone(
 private fun WithIo.changeAnalyticsStartDate(
     currentAnalyticsStart: LocalDateTime,
     timeZone: TimeZone,
-    budgetId: UUID,
-    userId: UUID,
+    budgetId: Uuid,
+    userId: Uuid,
     userBudgetDao: UserBudgetDao,
     budgetData: BudgetData,
 ) {

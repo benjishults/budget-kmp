@@ -10,8 +10,10 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.equals.shouldBeEqual
 import kotlinx.datetime.Clock
 import kotlinx.datetime.TimeZone
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class LoadingAccountsJdbcDataCliBudgetTest : FreeSpec() {
 
     init {
@@ -21,8 +23,8 @@ class LoadingAccountsJdbcDataCliBudgetTest : FreeSpec() {
             budgetConfigurations.budget.name,
             budgetConfigurations.user.defaultLogin!!,
         )
-        val budgetId = UUID.fromString("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
-        val userId = UUID.fromString("f0f209c8-1b1e-43b3-8799-2dba58524d02")
+        val budgetId = Uuid.parse("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
+        val userId = Uuid.parse("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         with(basicAccountsJdbcCliBudgetTestFixture) {
             val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, jdbcConnectionProvider)
             val cliBudgetDao = JdbcCliBudgetDao(userName, jdbcConnectionProvider)

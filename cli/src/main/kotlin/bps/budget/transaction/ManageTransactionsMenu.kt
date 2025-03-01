@@ -12,7 +12,9 @@ import bps.console.app.MenuSession
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.item
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 fun WithIo.manageTransactions(
     budgetData: BudgetData,
     transactionDao: TransactionDao,
@@ -75,6 +77,7 @@ fun WithIo.manageTransactions(
 
 const val NUMBER_OF_TRANSACTION_ITEMS_TO_SHOW_BEFORE_PROMPT = 6
 
+@Suppress("DefaultLocale")
 fun WithIo.showRecentRelevantTransactions(
     transactionDao: TransactionDao,
     account: Account,

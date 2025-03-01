@@ -6,7 +6,9 @@ import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import bps.budget.transaction.ViewTransactionFixture
 import bps.console.inputs.userSaysYes
+import kotlin.uuid.ExperimentalUuidApi
 
+@OptIn(ExperimentalUuidApi::class)
 fun WithIo.deleteTransactionConsistently(
     transactionItem: TransactionDao.ExtendedTransactionItem<*>,
     transactionDao: TransactionDao,

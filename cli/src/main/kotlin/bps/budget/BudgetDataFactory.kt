@@ -7,6 +7,7 @@ import bps.budget.persistence.DataConfigurationException
 import bps.budget.persistence.UserBudgetDao
 import bps.budget.ui.UiFacade
 import kotlinx.datetime.Clock
+import kotlin.uuid.ExperimentalUuidApi
 
 /**
  * Loads or initializes data.  If there is an error getting it from the DAO, offers to create fresh data.
@@ -32,6 +33,7 @@ fun loadOrBuildBudgetData(
         }
     }
 
+@OptIn(ExperimentalUuidApi::class)
 fun loadBudgetData(
     initializingBudgetDao: InitializingBudgetDao,
     cliBudgetDao: CliBudgetDao,

@@ -17,8 +17,10 @@ import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 open class JdbcTransactionDao(
 //    val errorStateTracker: JdbcDao.ErrorStateTracker,
     val jdbcConnectionProvider: JdbcConnectionProvider,
@@ -37,7 +39,7 @@ open class JdbcTransactionDao(
     override fun clearCheck(
         draftTransactionItems: List<Transaction.Item<DraftAccount>>,
         clearingTransaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
         accountDao: AccountDao,
     ) {
 //        errorStateTracker.catchCommitErrorState {
@@ -142,7 +144,7 @@ open class JdbcTransactionDao(
 
     private fun Connection.insertTransactionPreparedStatement(
         transaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): PreparedStatement {
         val insertTransaction: PreparedStatement = prepareStatement(
             """
@@ -160,7 +162,7 @@ open class JdbcTransactionDao(
 
     private fun Connection.insertTransactionItemsPreparedStatement(
         transaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): Pair<PreparedStatement, List<AccountDao.BalanceToAdd>> {
         val items = transaction.allItems()
         val transactionItemCounter = items.size
@@ -200,7 +202,7 @@ open class JdbcTransactionDao(
      */
     override fun commit(
         transaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
         accountDao: AccountDao,
         saveBalances: Boolean,
     ) =
@@ -231,9 +233,9 @@ open class JdbcTransactionDao(
      * @return the list of [BalanceToAdd]s that should be applied to correct balances on accounts.
      */
     override fun deleteTransaction(
-        transactionId: UUID,
-        budgetId: UUID,
-        accountIdToAccountMap: Map<UUID, Account>,
+        transactionId: Uuid,
+        budgetId: Uuid,
+        accountIdToAccountMap: Map<Uuid, Account>,
     ): List<AccountDao.BalanceToAdd> {
         connection.transactOrThrow {
             prepareStatement("""select * from transactions where id = ? and budget_id = ?""")
@@ -298,7 +300,7 @@ open class JdbcTransactionDao(
     override fun commitCreditCardPayment(
         clearedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>>,
         billPayTransaction: Transaction,
-        budgetId: UUID,
+        budgetId: Uuid,
         accountDao: AccountDao
     ) {
 //        errorStateTracker.catchCommitErrorState {
@@ -430,10 +432,10 @@ open class JdbcTransactionDao(
                                     var runningBalance: BigDecimal? = balanceAtEndOfPage
 
                                     while (next()) {
-                                        val transactionId: UUID = getUuid("transaction_id")!!
+                                        val transactionId: Uuid = getUuid("transaction_id")!!
                                         val transactionDescription: String = getString("transaction_description")!!
                                         val transactionTimestamp: Instant = getInstant("transaction_timestamp")
-                                        val id: UUID = getUuid("item_id")!!
+                                        val id: Uuid = getUuid("item_id")!!
                                         val amount: BigDecimal = getCurrencyAmount("amount")
                                         val description: String? = getString("description")
                                         val draftStatus: DraftStatus =
@@ -503,9 +505,9 @@ open class JdbcTransactionDao(
         }
 
     override fun getTransactionOrNull(
-        transactionId: UUID,
-        budgetId: UUID,
-        accountIdToAccountMap: Map<UUID, Account>,
+        transactionId: Uuid,
+        budgetId: Uuid,
+        accountIdToAccountMap: Map<Uuid, Account>,
     ): Transaction? =
         connection.transactOrThrow {
             prepareStatement(
@@ -555,8 +557,8 @@ open class JdbcTransactionDao(
 
     private fun initializeTransactionBuilderWithFirstItem(
         result: ResultSet,
-        transactionId: UUID,
-        accountIdToAccountMap: Map<UUID, Account>,
+        transactionId: Uuid,
+        accountIdToAccountMap: Map<Uuid, Account>,
     ): Transaction.Builder =
         Transaction.Builder(
             description = result.getString("transaction_description"),
@@ -570,7 +572,7 @@ open class JdbcTransactionDao(
 
     private fun Transaction.Builder.populateItem(
         result: ResultSet,
-        accountIdToAccountMap: Map<UUID, Account>,
+        accountIdToAccountMap: Map<Uuid, Account>,
     ) {
         with(accountIdToAccountMap[result.getUuid("account_id")!!]!!) {
             addItemBuilderTo(
@@ -584,7 +586,7 @@ open class JdbcTransactionDao(
 
 //    private fun Connection.insertTransactionItemsPreparedStatement(
 //        transaction: Transaction,
-//        budgetId: UUID,
+//        budgetId: Uuid,
 //    ): PreparedStatement {
 //        val transactionItemCounter =
 //            transaction.categoryItems.size + transaction.realItems.size + transaction.draftItems.size + transaction.chargeItems.size
@@ -624,7 +626,7 @@ open class JdbcTransactionDao(
         parameterIndex: Int,
         transaction: Transaction,
         transactionItem: Transaction.Item<*>,
-        budgetId: UUID,
+        budgetId: Uuid,
     ): Int {
         transactionItemInsert.setUuid(parameterIndex, transactionItem.id)
         transactionItemInsert.setUuid(parameterIndex + 1, transaction.id)
@@ -641,7 +643,7 @@ open class JdbcTransactionDao(
 
 //    private fun Connection.insertTransactionPreparedStatement(
 //        transaction: Transaction,
-//        budgetId: UUID,
+//        budgetId: Uuid,
 //    ): PreparedStatement {
 //        val insertTransaction: PreparedStatement = prepareStatement(
 //            """
@@ -725,12 +727,12 @@ open class JdbcTransactionDao(
 //                        .use { result: ResultSet ->
 //                            val returnValue: MutableList<Transaction> = mutableListOf()
 //                            // NOTE this will be a running transaction and will switch to the next when one is done
-//                            var runningTransactionId: UUID? = null
+//                            var runningTransactionId: Uuid? = null
 //                            var transactionBuilder: Transaction.Builder? = null
 //                            while (result.next()) {
 //                                // for each transaction item...
 //                                result.getUuid("transaction_id")!!
-//                                    .let { uuid: UUID ->
+//                                    .let { uuid: Uuid ->
 //                                        if (uuid != runningTransactionId) {
 //                                            conditionallyAddCompleteTransactionToList(
 //                                                runningTransactionId,

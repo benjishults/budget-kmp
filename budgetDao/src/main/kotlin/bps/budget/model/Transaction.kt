@@ -1,8 +1,11 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.model
 
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 interface TransactionItem<out A : Account> /*: Comparable<TransactionItem<*>>*/ {
     val amount: BigDecimal
@@ -13,7 +16,7 @@ interface TransactionItem<out A : Account> /*: Comparable<TransactionItem<*>>*/ 
 
 @ConsistentCopyVisibility
 data class Transaction private constructor(
-    val id: UUID,
+    val id: Uuid,
     val description: String,
     val timestamp: Instant,
     val type: Type,
@@ -83,7 +86,7 @@ data class Transaction private constructor(
      * See src/test/kotlin/bps/kotlin/GenericFunctionTest.kt for a discussion of how I want to improve this
      */
     inner class Item<out A : Account>(
-        val id: UUID,
+        val id: Uuid,
         override val amount: BigDecimal,
         override val description: String? = null,
         override val account: A,
@@ -135,7 +138,7 @@ data class Transaction private constructor(
      * See src/test/kotlin/bps/kotlin/GenericFunctionTest.kt for a discussion of how I want to improve this
      */
     class ItemBuilder<out A : Account>(
-        val id: UUID,
+        val id: Uuid,
         val amount: BigDecimal,
         var description: String? = null,
         val account: A,
@@ -173,7 +176,7 @@ data class Transaction private constructor(
     class Builder(
         var description: String? = null,
         var timestamp: Instant? = null,
-        var id: UUID? = null,
+        var id: Uuid? = null,
         var type: Type? = null,
         var clears: Transaction? = null,
     ) {
@@ -183,7 +186,7 @@ data class Transaction private constructor(
         val draftItemBuilders: MutableList<ItemBuilder<DraftAccount>> = mutableListOf()
 
         fun build(): Transaction = Transaction(
-            id = this@Builder.id ?: UUID.randomUUID(),
+            id = this@Builder.id ?: Uuid.random(),
             description = this@Builder.description!!,
             timestamp = this@Builder.timestamp!!,
             type = this@Builder.type!!,

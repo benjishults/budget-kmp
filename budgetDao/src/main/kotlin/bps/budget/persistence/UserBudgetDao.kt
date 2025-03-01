@@ -2,8 +2,10 @@ package bps.budget.persistence
 
 import bps.budget.model.User
 import kotlinx.datetime.Instant
-import java.util.UUID
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 interface UserBudgetDao {
 
     fun getUserByLoginOrNull(login: String): User? = null
@@ -11,35 +13,35 @@ interface UserBudgetDao {
     fun createUser(
         login: String,
         password: String,
-        userId: UUID = UUID.randomUUID(),
-    ): UUID = TODO()
+        userId: Uuid = Uuid.random(),
+    ): Uuid = TODO()
 
     fun createBudgetOrNull(
-        generalAccountId: UUID,
-        budgetId: UUID = UUID.randomUUID(),
-    ): UUID?
+        generalAccountId: Uuid,
+        budgetId: Uuid = Uuid.random(),
+    ): Uuid?
 
     fun grantAccess(
         budgetName: String,
         timeZoneId: String,
         analyticsStart: Instant,
-        userId: UUID,
-        budgetId: UUID,
+        userId: Uuid,
+        budgetId: Uuid,
     )
 
     fun updateTimeZone(
         timeZoneId: String,
-        userId: UUID,
-        budgetId: UUID,
+        userId: Uuid,
+        budgetId: Uuid,
     ): Int
 
     fun updateAnalyticsStart(
         analyticsStart: Instant,
-        userId: UUID,
-        budgetId: UUID,
+        userId: Uuid,
+        budgetId: Uuid,
     ): Int
 
-    fun deleteBudget(budgetId: UUID) {}
-    fun deleteUser(userId: UUID) {}
+    fun deleteBudget(budgetId: Uuid) {}
+    fun deleteUser(userId: Uuid) {}
     fun deleteUserByLogin(login: String) {}
 }
