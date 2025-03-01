@@ -28,6 +28,7 @@ dependencies {
 
     // TODO see how many of these I can get rid of
     implementation(libs.commons.validator)
+    implementation(projects.allShared)
     runtimeOnly(libs.postgres)
     implementation(libs.kotlinx.datetime)
     implementation(libs.jackson.jsr310)

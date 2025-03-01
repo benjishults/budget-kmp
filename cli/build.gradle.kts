@@ -64,6 +64,7 @@ dependencies {
 //    implementation("de.mkammerer:argon2-jvm:2.11")
     implementation(projects.budgetDao)
     implementation(projects.konfiguration)
+    implementation(projects.allShared)
     implementation(libs.commons.validator)
     implementation(libs.bps.console)
     runtimeOnly(libs.postgres)

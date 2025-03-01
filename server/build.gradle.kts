@@ -16,6 +16,7 @@ dependencies {
     // TODO seems a waste to pull in all this UI code when all I really need is to share the server port.
     implementation(projects.shared)
     implementation(projects.budgetDao)
+    implementation(projects.allShared)
     implementation(projects.konfiguration)
     implementation(libs.jackson.jdk8)
     implementation(libs.konf)

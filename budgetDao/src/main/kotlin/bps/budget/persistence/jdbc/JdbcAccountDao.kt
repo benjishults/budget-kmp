@@ -19,7 +19,6 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-import kotlin.uuid.toKotlinUuid
 
 @OptIn(ExperimentalUuidApi::class)
 open class JdbcAccountDao(

@@ -6,7 +6,6 @@ import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.serialization)
 }
 
 kotlin {
@@ -38,22 +37,10 @@ kotlin {
             }
         }
     }
-
-    sourceSets {
-        commonMain.dependencies {
-            // put your Multiplatform dependencies here
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
-            api(projects.allShared)
-        }
-    }
 }
 
 android {
-    namespace = "bps.budget.shared"
+    namespace = "bps.budget.all"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
