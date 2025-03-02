@@ -84,7 +84,7 @@ class JdbcCliBudgetDao(
                         AccountType.category.name,
                         budgetId,
                         CategoryAccount,
-                    )
+                    ) + accountDao.getDeactivatedAccounts(AccountType.category.name, budgetId, CategoryAccount)
                 val generalAccount: CategoryAccount =
                     categoryAccounts.find {
                         it.id == generalAccountId
@@ -94,13 +94,13 @@ class JdbcCliBudgetDao(
                         AccountType.real.name,
                         budgetId,
                         RealAccount,
-                    )
+                    ) + accountDao.getDeactivatedAccounts(AccountType.real.name, budgetId, RealAccount)
                 val chargeAccounts: List<ChargeAccount> =
                     accountDao.getActiveAccounts(
                         AccountType.charge.name,
                         budgetId,
                         ChargeAccount,
-                    )
+                    ) + accountDao.getDeactivatedAccounts(AccountType.charge.name, budgetId, ChargeAccount)
                 val draftAccounts: List<DraftAccount> =
                     accountDao.getActiveAccounts(
                         AccountType.draft.name, budgetId,
@@ -109,7 +109,15 @@ class JdbcCliBudgetDao(
                                 it.id == companionId
                             }!!
                         },
-                    )
+                    ) +
+                            accountDao.getDeactivatedAccounts(
+                                AccountType.draft.name, budgetId,
+                                DraftAccount { companionId ->
+                                    realAccounts.find {
+                                        it.id == companionId
+                                    }!!
+                                },
+                            )
                 BudgetData(
                     budgetId,
                     budgetName,

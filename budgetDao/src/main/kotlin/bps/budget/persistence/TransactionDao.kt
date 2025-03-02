@@ -25,6 +25,7 @@ interface TransactionDao {
     /**
      * This implementation throws a [NotImplementedError].
      * @return the list of [BalanceToAdd]s that should be applied to correct balances on accounts.
+     * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
      */
     fun deleteTransaction(
         transactionId: Uuid,
@@ -70,6 +71,10 @@ interface TransactionDao {
     ): List<ExtendedTransactionItem<A>> =
         emptyList()
 
+    /**
+     *
+     * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
+     */
     fun getTransactionOrNull(
         transactionId: Uuid,
         budgetId: Uuid,
@@ -95,6 +100,7 @@ interface TransactionDao {
          * The first time this is referenced, a call will be made to the DB to fetch the entire transaction.
          * So, refer to this only if you need more than just the [transactionId], [transactionDescription], or
          * [transactionTimestamp].
+         * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
          */
         fun transaction(budgetId: Uuid, accountIdToAccountMap: Map<Uuid, Account>): Transaction =
             transaction
