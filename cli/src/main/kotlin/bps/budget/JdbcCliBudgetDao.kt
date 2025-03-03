@@ -2,6 +2,7 @@ package bps.budget
 
 import bps.budget.model.Account
 import bps.budget.model.AccountType
+import bps.budget.model.AccountsHolder
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
 import bps.budget.model.ChargeAccount
@@ -124,10 +125,10 @@ class JdbcCliBudgetDao(
                     timeZone,
                     analyticsStart,
                     generalAccount,
-                    categoryAccounts,
-                    realAccounts,
-                    chargeAccounts,
-                    draftAccounts,
+                    AccountsHolder(categoryAccounts),
+                    AccountsHolder(realAccounts),
+                    AccountsHolder(chargeAccounts),
+                    AccountsHolder(draftAccounts),
                 )
             }
         } catch (ex: Exception) {
