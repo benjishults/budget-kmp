@@ -6,6 +6,7 @@ import bps.budget.model.CategoryAccount
 import bps.budget.InitializingBudgetDao
 import bps.budget.persistence.UserBudgetDao
 import bps.budget.UserConfiguration
+import bps.budget.model.AccountsHolder
 import bps.budget.persistence.AccountDao
 import bps.console.app.QuitException
 import bps.console.inputs.EmailStringValidator
@@ -103,7 +104,7 @@ class ConsoleUiFacade(
                         timeZone = timeZone,
                         analyticsStart = Clock.System.now(),
                         generalAccount = generalAccount,
-                        categoryAccounts = listOf(generalAccount),
+                        categoryAccounts = AccountsHolder(listOf(generalAccount)),
                     )
                 }
         }

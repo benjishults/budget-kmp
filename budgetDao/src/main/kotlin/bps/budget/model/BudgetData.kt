@@ -12,6 +12,15 @@ import kotlin.collections.plus
 import kotlin.plus
 import kotlin.uuid.ExperimentalUuidApi
 
+data class AccountsHolder<out T : Account>(
+    val active: List<T> = emptyList(),
+    val inactive: List<T> = emptyList(),
+) {
+    companion object {
+        fun <T : Account> empty() = AccountsHolder<T>()
+    }
+}
+
 /**
  * Currently not thread safe to add or delete accounts.  So, just be sure to use only a "main" thread.
  */
@@ -22,30 +31,33 @@ class BudgetData(
     var timeZone: TimeZone,
     var analyticsStart: Instant,
     val generalAccount: CategoryAccount,
-    categoryAccounts: List<CategoryAccount>,
-    realAccounts: List<RealAccount> = emptyList(),
-    chargeAccounts: List<ChargeAccount> = emptyList(),
-    draftAccounts: List<DraftAccount> = emptyList(),
+    categoryAccounts: AccountsHolder<CategoryAccount>,
+    realAccounts: AccountsHolder<RealAccount> = AccountsHolder.empty(),
+    chargeAccounts: AccountsHolder<ChargeAccount> = AccountsHolder.empty(),
+    draftAccounts: AccountsHolder<DraftAccount> = AccountsHolder.empty(),
 ) {
 
-    var categoryAccounts: List<CategoryAccount> = categoryAccounts.sortedBy { it.name }
+    var categoryAccounts: List<CategoryAccount> = categoryAccounts.active.sortedBy { it.name }
         private set
 
-    var realAccounts: List<RealAccount> = realAccounts.sortedBy { it.name }
+    var realAccounts: List<RealAccount> = realAccounts.active.sortedBy { it.name }
         private set
 
-    var draftAccounts: List<DraftAccount> = draftAccounts.sortedBy { it.name }
+    var draftAccounts: List<DraftAccount> = draftAccounts.active.sortedBy { it.name }
         private set
 
-    var chargeAccounts: List<ChargeAccount> = chargeAccounts.sortedBy { it.name }
+    var chargeAccounts: List<ChargeAccount> = chargeAccounts.active.sortedBy { it.name }
         private set
 
     init {
-        require(generalAccount in categoryAccounts) { "general account must be among category accounts" }
+        require(generalAccount in categoryAccounts.active) { "general account must be among category accounts" }
     }
 
     private val byId: MutableMap<Uuid, Account> =
-        (categoryAccounts + realAccounts + draftAccounts + chargeAccounts)
+        (categoryAccounts.active + categoryAccounts.inactive +
+                realAccounts.active + realAccounts.inactive +
+                draftAccounts.active + draftAccounts.inactive +
+                chargeAccounts.active + chargeAccounts.inactive)
             .associateByTo(mutableMapOf()) {
                 it.id
             }
@@ -174,102 +186,112 @@ class BudgetData(
             budgetId: Uuid = Uuid.random(),
             accountDao: AccountDao,
         ): BudgetData {
-            val (checkingAccount, draftAccount) = accountDao.createRealAndDraftAccountOrNull(
-                name = defaultCheckingAccountName,
-                description = defaultCheckingAccountDescription,
-                balance = checkingBalance,
-                budgetId = budgetId,
-            )!!
-            val generalAccount = accountDao.createGeneralAccountWithIdOrNull(
-                id = generalAccountId,
-                balance = checkingBalance + walletBalance,
-                budgetId = budgetId,
-            )!!
-            val wallet = accountDao.createRealAccountOrNull(
-                name = defaultWalletAccountName,
-                description = defaultWalletAccountDescription,
-                balance = walletBalance,
-                budgetId = budgetId,
-            )!!
+            val (checkingAccount, draftAccount) =
+                accountDao.createRealAndDraftAccountOrNull(
+                    name = defaultCheckingAccountName,
+                    description = defaultCheckingAccountDescription,
+                    balance = checkingBalance,
+                    budgetId = budgetId,
+                )!!
+            val generalAccount =
+                accountDao.createGeneralAccountWithIdOrNull(
+                    id = generalAccountId,
+                    balance = checkingBalance + walletBalance,
+                    budgetId = budgetId,
+                )!!
+            val wallet =
+                accountDao.createRealAccountOrNull(
+                    name = defaultWalletAccountName,
+                    description = defaultWalletAccountDescription,
+                    balance = walletBalance,
+                    budgetId = budgetId,
+                )!!
             return BudgetData(
                 id = budgetId,
                 name = budgetName,
                 timeZone = timeZone,
                 analyticsStart = Clock.System.now(),
                 generalAccount = generalAccount,
-                categoryAccounts = listOf(
-                    generalAccount,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultCosmeticsAccountName,
-                        defaultCosmeticsAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultEducationAccountName,
-                        defaultEducationAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultEntertainmentAccountName,
-                        defaultEntertainmentAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultFoodAccountName,
-                        defaultFoodAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultHobbyAccountName,
-                        defaultHobbyAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultHomeAccountName,
-                        defaultHomeAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultHousingAccountName,
-                        defaultHousingAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultMedicalAccountName,
-                        defaultMedicalAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultNecessitiesAccountName,
-                        defaultNecessitiesAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultNetworkAccountName,
-                        defaultNetworkAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultTransportationAccountName,
-                        defaultTransportationAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultTravelAccountName,
-                        defaultTravelAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                    accountDao.createCategoryAccountOrNull(
-                        defaultWorkAccountName,
-                        defaultWorkAccountDescription,
-                        budgetId = budgetId,
-                    )!!,
-                ),
-                realAccounts = listOf(
-                    wallet,
-                    checkingAccount,
-                ),
-                draftAccounts = listOf(draftAccount),
+                categoryAccounts =
+                    AccountsHolder(
+                        listOf(
+                            generalAccount,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultCosmeticsAccountName,
+                                defaultCosmeticsAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultEducationAccountName,
+                                defaultEducationAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultEntertainmentAccountName,
+                                defaultEntertainmentAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultFoodAccountName,
+                                defaultFoodAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultHobbyAccountName,
+                                defaultHobbyAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultHomeAccountName,
+                                defaultHomeAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultHousingAccountName,
+                                defaultHousingAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultMedicalAccountName,
+                                defaultMedicalAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultNecessitiesAccountName,
+                                defaultNecessitiesAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultNetworkAccountName,
+                                defaultNetworkAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultTransportationAccountName,
+                                defaultTransportationAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultTravelAccountName,
+                                defaultTravelAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                            accountDao.createCategoryAccountOrNull(
+                                defaultWorkAccountName,
+                                defaultWorkAccountDescription,
+                                budgetId = budgetId,
+                            )!!,
+                        ),
+                    ),
+                realAccounts =
+                    AccountsHolder(
+                        listOf(
+                            wallet,
+                            checkingAccount,
+                        ),
+                    ),
+                draftAccounts =
+                    AccountsHolder(listOf(draftAccount)),
             )
         }
 
