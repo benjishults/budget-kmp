@@ -14,9 +14,9 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
-        dependencies {
-            implementation(libs.ktor.client.android)
-        }
+//        dependencies {
+//            implementation(libs.ktor.client.android)
+//        }
     }
 
     jvm()
@@ -35,6 +35,19 @@ kotlin {
                     }
                 }
             }
+        }
+//        dependencies {
+//            testImplementation(libs.kotest.common.wasm.js)
+//            testImplementation(libs.kotest.assertions)
+//            testImplementation(libs.junit.jupiter)
+//        }
+    }
+    sourceSets {
+        commonTest.dependencies {
+            implementation(libs.kotest.framework.engine)
+            implementation(libs.kotest.assertions.core)
+//            implementation(libs.kotest.assertions)
+//            implementation(libs.junit.jupiter)
         }
     }
 }

@@ -41,7 +41,7 @@ dependencies {
 
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)
-    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.junit.jupiter)
 }
 

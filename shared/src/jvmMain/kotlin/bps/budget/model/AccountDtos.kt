@@ -2,9 +2,9 @@
 
 package bps.budget.model
 
-import bps.serialization.BigDecimalNumericSerializer
+import bps.kotlin.DecimalWithCents
+import bps.kotlin.DecimalWithCents_ZERO
 import kotlinx.serialization.Serializable
-import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -13,8 +13,7 @@ class AccountResponse(
     val name: String,
     val id: Uuid,
     val type: AccountType,
-    @Serializable(with = BigDecimalNumericSerializer::class)
-    val balance: BigDecimal,
+    val balance: DecimalWithCents,
     val description: String,
     val budgetId: Uuid,
     val companionId: Uuid? = null,
@@ -33,8 +32,7 @@ class AccountResponse(
 class AccountRequest(
     val name: String,
     val type: AccountType,
-    @Serializable(with = BigDecimalNumericSerializer::class)
-    val balance: BigDecimal = BigDecimal.ZERO.setScale(2),
+    val balance: DecimalWithCents = DecimalWithCents_ZERO,
     val description: String = "",
     val budgetId: Uuid,
     val companionId: Uuid? = null,

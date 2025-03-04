@@ -40,6 +40,6 @@ dependencies {
 
     implementation(libs.mockk.jvm)
     implementation(libs.kotest.junit5)
-    implementation(libs.kotest.assertions)
+    implementation(libs.kotest.assertions.core)
     implementation(libs.junit.jupiter)
 }

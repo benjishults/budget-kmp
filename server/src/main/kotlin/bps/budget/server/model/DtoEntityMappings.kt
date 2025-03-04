@@ -6,6 +6,7 @@ import bps.budget.model.Account
 import bps.budget.model.AccountResponse
 import bps.budget.model.AccountType
 import bps.budget.model.DraftAccount
+import bps.kotlin.DecimalWithCents
 import kotlin.uuid.ExperimentalUuidApi
 
 fun Account.toResponse(): AccountResponse =
@@ -15,11 +16,11 @@ fun Account.toResponse(): AccountResponse =
                 name,
                 id,
                 AccountType.valueOf(type),
-                balance,
+                DecimalWithCents(balance.toPlainString()),
                 description,
                 budgetId,
                 realCompanion.id,
             )
         else ->
-            AccountResponse(name, id, AccountType.valueOf(type), balance, description, budgetId)
+            AccountResponse(name, id, AccountType.valueOf(type), DecimalWithCents(balance.toPlainString()), description, budgetId)
     }

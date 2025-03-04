@@ -17,6 +17,7 @@ kotlin {
         }
         dependencies {
             implementation(libs.ktor.client.android)
+            implementation(projects.jvmShared)
         }
     }
 
@@ -48,6 +49,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             api(projects.allShared)
+        }
+        jvmMain.dependencies {
+            implementation(projects.jvmShared)
         }
     }
 }
