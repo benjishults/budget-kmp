@@ -28,6 +28,7 @@ dependencies {
 
     // TODO see how many of these I can get rid of
     implementation(libs.commons.validator)
+    implementation(projects.allShared)
     runtimeOnly(libs.postgres)
     implementation(libs.kotlinx.datetime)
     implementation(libs.jackson.jsr310)
@@ -40,7 +41,7 @@ dependencies {
 
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)
-    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.junit.jupiter)
 }
 

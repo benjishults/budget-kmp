@@ -16,14 +16,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 @Composable
 fun App(mainViewModel: MainViewModel = viewModel()) {
     MaterialTheme {
-        val greetings by mainViewModel.greetingList.collectAsStateWithLifecycle()
+        val greetings: List<String> by mainViewModel.greetingList.collectAsStateWithLifecycle()
 
         Column(
             modifier = Modifier.padding(all = 20.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             greetings
-                .forEach { greeting ->
+                .forEach { greeting: String ->
                     Text(greeting)
                     Divider()
                 }

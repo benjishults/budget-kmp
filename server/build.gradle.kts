@@ -16,7 +16,9 @@ dependencies {
     // TODO seems a waste to pull in all this UI code when all I really need is to share the server port.
     implementation(projects.shared)
     implementation(projects.budgetDao)
+    implementation(projects.allShared)
     implementation(projects.konfiguration)
+    implementation(projects.jvmShared)
     implementation(libs.jackson.jdk8)
     implementation(libs.konf)
     implementation(libs.kotlinx.datetime)
@@ -31,7 +33,7 @@ dependencies {
 //    testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)
-    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.junit.jupiter)
     testImplementation(projects.budgetDaoTest)
 }

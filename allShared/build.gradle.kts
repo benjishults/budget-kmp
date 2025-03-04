@@ -6,7 +6,6 @@ import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.serialization)
 }
 
 kotlin {
@@ -15,10 +14,9 @@ kotlin {
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
         }
-        dependencies {
-            implementation(libs.ktor.client.android)
-            implementation(projects.jvmShared)
-        }
+//        dependencies {
+//            implementation(libs.ktor.client.android)
+//        }
     }
 
     jvm()
@@ -38,26 +36,24 @@ kotlin {
                 }
             }
         }
+//        dependencies {
+//            testImplementation(libs.kotest.common.wasm.js)
+//            testImplementation(libs.kotest.assertions)
+//            testImplementation(libs.junit.jupiter)
+//        }
     }
-
     sourceSets {
-        commonMain.dependencies {
-            // put your Multiplatform dependencies here
-            implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.content.negotiation)
-            implementation(libs.ktor.serialization.kotlinx.json)
-            implementation(libs.kotlinx.coroutines.core)
-            implementation(libs.kotlinx.serialization.json)
-            api(projects.allShared)
-        }
-        jvmMain.dependencies {
-            implementation(projects.jvmShared)
+        commonTest.dependencies {
+            implementation(libs.kotest.framework.engine)
+            implementation(libs.kotest.assertions.core)
+//            implementation(libs.kotest.assertions)
+//            implementation(libs.junit.jupiter)
         }
     }
 }
 
 android {
-    namespace = "bps.budget.shared"
+    namespace = "bps.budget.all"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

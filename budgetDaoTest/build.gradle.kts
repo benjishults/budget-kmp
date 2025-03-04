@@ -26,6 +26,7 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompilation
 dependencies {
 
     // TODO see how many of these I can get rid of
+    implementation(projects.allShared)
     implementation(projects.budgetDao)
     implementation(libs.commons.validator)
     runtimeOnly(libs.postgres)
@@ -39,6 +40,6 @@ dependencies {
 
     implementation(libs.mockk.jvm)
     implementation(libs.kotest.junit5)
-    implementation(libs.kotest.assertions)
+    implementation(libs.kotest.assertions.core)
     implementation(libs.junit.jupiter)
 }

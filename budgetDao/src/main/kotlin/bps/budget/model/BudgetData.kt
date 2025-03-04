@@ -6,11 +6,11 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
-import kotlin.uuid.Uuid
-import kotlin.collections.forEach
 import kotlin.collections.plus
 import kotlin.plus
+import kotlin.text.buildString
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 data class AccountsHolder<out T : Account>(
     val active: List<T> = emptyList(),

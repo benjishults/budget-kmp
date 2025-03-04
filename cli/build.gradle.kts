@@ -64,6 +64,7 @@ dependencies {
 //    implementation("de.mkammerer:argon2-jvm:2.11")
     implementation(projects.budgetDao)
     implementation(projects.konfiguration)
+    implementation(projects.allShared)
     implementation(libs.commons.validator)
     implementation(libs.bps.console)
     runtimeOnly(libs.postgres)
@@ -82,7 +83,7 @@ dependencies {
     testImplementation(libs.bps.console.test)
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)
-    testImplementation(libs.kotest.assertions)
+    testImplementation(libs.kotest.assertions.core)
     testImplementation(libs.junit.jupiter)
 }
 
