@@ -21,6 +21,8 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.compose.runtime)
+            implementation(projects.shared)
+            implementation(projects.jvmShared)
         }
     }
 
@@ -65,6 +67,7 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
+            implementation(projects.jvmShared)
         }
         wasmJsMain.dependencies {
             implementation(npm("@js-joda/timezone", "2.3.0"))
