@@ -1,5 +1,7 @@
 package bps.budget.account.presentation.balances.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -8,10 +10,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,36 +26,43 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import bps.budget.model.AccountType
 
-@Composable
-fun AccountTypeSelector(
-    selectedTypes: List<AccountType>,
-    onTypesChange: (List<AccountType>) -> Unit,
-    onImeSearch: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-//    val selectedTypes: SnapshotStateList<AccountType?> = remember { mutableStateListOf<AccountType?>() }
-//    val resetSelectionMode = {
-//        isInSelectionMode = false
-//        selectedItems.clear()
-//    }
+//@OptIn(ExperimentalFoundationApi::class)
+//@Composable
+//fun AccountTypeSelector(
+//    onTypesChange: (List<AccountType>) -> Unit = {},
+//    onImeSearch: () -> Unit = {},
+//    modifier: Modifier = Modifier,
+//) {
+////    val selectedTypes: SnapshotStateList<AccountType?> = remember { mutableStateListOf<AccountType?>() }
+////    val resetSelectionMode = {
+////        isInSelectionMode = false
+////        selectedItems.clear()
+////    }
 //    LazyColumn(modifier) {
-//        items(AccountType.entries.toList()) { type: AccountType ->
-//            ListItem(
-//                modifier = Modifier.combinedClickable(
-//                    onClick = {
-//                        // Click action if required when not in selection mode
-//                    },
-//                    leadingContent = { Icon(imageVector =, contentDescription =) },
-//                    headlineContent = { Text(text = type.name) },
-//                ),
-//                text = { Text(type.name) },
-//            )
+//        items(
+//            items = AccountType
+//                .entries
+//                .map { SelectableItemModel(it.name, mutableStateOf(false)) },
+//            key = { type: AccountType -> type.name},
+//        ) { type: AccountType ->
+////            SelectableItemModel(
+////                text = type.name,
+////                selected = false
+////            )
+////                modifier = modifier.combinedClickable(
+////                    onClick = {
+////                        // Click action if required when not in selection mode
+////                    },
+//////                    leadingContent = { Icon(imageVector =, contentDescription =) },
+////                ),
+////                headlineContent = { Text(type.name) },
+////            )
 //        }
 //    }
-}
+//}
 
 @Composable
-fun MultiSelectView(list: MutableList<SelectableItemModel>) {
+fun MultiSelectView(list: List<SelectableItemModel>) {
     Surface(
         modifier = Modifier
             .fillMaxSize(),
@@ -57,7 +71,7 @@ fun MultiSelectView(list: MutableList<SelectableItemModel>) {
         LazyColumn(
             state = rememberLazyListState(),
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxSize(),
         ) {
             items(items = list) { item ->
                 MultiSelectItemView(model = item)
@@ -92,7 +106,7 @@ fun MultiSelectItemView(model: SelectableItemModel) {
                 else
                     FontWeight.Normal,
             modifier = Modifier
-                .align(Alignment.CenterStart)
+                .align(Alignment.CenterStart),
         )
         Checkbox(
             checked = model.selected.value,
@@ -102,10 +116,10 @@ fun MultiSelectItemView(model: SelectableItemModel) {
             colors =
                 CheckboxDefaults.colors(
                     checkedColor = Color.Black,
-                    uncheckedColor = Color.Gray
+                    uncheckedColor = Color.Gray,
                 ),
             modifier = Modifier
-                .align(Alignment.CenterEnd)
+                .align(Alignment.CenterEnd),
         )
 
     }
