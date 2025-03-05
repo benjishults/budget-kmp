@@ -1,16 +1,23 @@
 package bps.kotlin
 
-expect class DecimalWithCents(plainString: String) {
-//    operator fun plus(other: BigNum): BigNum
-//    operator fun minus(other: BigNum): BigNum
-    override fun toString(): String
-    override fun equals(other: Any?): Boolean
-    override fun hashCode(): Int
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.descriptors.SerialDescriptor
+import kotlinx.serialization.encoding.Decoder
+import kotlinx.serialization.encoding.Encoder
+
+@Serializable(with = DecimalWithCentsSerializer::class)
+expect class DecimalWithCents {
     fun toPlainString(): String
     fun toDouble(): Double
-//    fun setScale(scale: Int): BigNum
 }
 
-//expect fun buildBigNum(stringRepresentation: String): BigNum
-
 expect val DecimalWithCents_ZERO: DecimalWithCents
+
+expect fun buildDecimalWithCents(plainString: String): DecimalWithCents
+
+expect object DecimalWithCentsSerializer: KSerializer<DecimalWithCents> {
+    override val descriptor: SerialDescriptor
+    override fun serialize(encoder: Encoder, value: DecimalWithCents)
+    override fun deserialize(decoder: Decoder): DecimalWithCents
+}

@@ -9,17 +9,12 @@
 
 plugins {
     alias(libs.plugins.kotlinJvm)
-    kotlin("plugin.allopen") version "2.1.10"
     application
     id("com.gradleup.shadow") version "8.3.6"
 }
 
 group = "bps"
 version = "1.0-SNAPSHOT"
-
-allOpen {
-    annotations("bps.kotlin.Instrumentable")
-}
 
 application {
     mainClass = "bps.budget.Budget"

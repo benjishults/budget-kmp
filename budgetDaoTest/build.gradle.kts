@@ -1,15 +1,10 @@
 plugins {
     alias(libs.plugins.kotlinJvm)
-    kotlin("plugin.allopen") version "2.1.10"
     `java-library`
 }
 
 group = "bps"
 version = "1.0-SNAPSHOT"
-
-allOpen {
-    annotations("bps.kotlin.Instrumentable")
-}
 
 repositories {
     mavenLocal()

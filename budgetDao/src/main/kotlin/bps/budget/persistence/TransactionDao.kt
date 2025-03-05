@@ -27,6 +27,10 @@ interface TransactionDao {
      * @return the list of [BalanceToAdd]s that should be applied to correct balances on accounts.
      * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
      */
+    // TODO consider options rather than this map:
+    //      1. use (Uuid) -> Account rather than map
+    //      2. pass in the AccountDao and just look things up rather than the map
+    //      I think I like option 1 above because it leaves us open to more possibilities
     fun deleteTransaction(
         transactionId: Uuid,
         budgetId: Uuid,
@@ -75,6 +79,10 @@ interface TransactionDao {
      *
      * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
      */
+    // TODO consider options rather than this map:
+    //      1. use (Uuid) -> Account rather than map
+    //      2. pass in the AccountDao and just look things up rather than the map
+    //      I think I like option 1 above because it leaves us open to more possibilities
     fun getTransactionOrNull(
         transactionId: Uuid,
         budgetId: Uuid,
@@ -102,6 +110,10 @@ interface TransactionDao {
          * [transactionTimestamp].
          * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
          */
+        // TODO consider options rather than this map:
+        //      1. use (Uuid) -> Account rather than map
+        //      2. pass in the AccountDao and just look things up rather than the map
+        //      I think I like option 1 above because it leaves us open to more possibilities
         fun transaction(budgetId: Uuid, accountIdToAccountMap: Map<Uuid, Account>): Transaction =
             transaction
                 ?: run {

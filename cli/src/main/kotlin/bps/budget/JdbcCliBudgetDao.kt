@@ -13,7 +13,6 @@ import bps.budget.persistence.DataConfigurationException
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transact
-import bps.kotlin.Instrumentable
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import java.sql.Connection
@@ -24,7 +23,6 @@ import kotlin.uuid.Uuid
 
 // TODO this class is doing too much... could be split up... See how it's done in server.
 @OptIn(ExperimentalUuidApi::class)
-@Instrumentable
 class JdbcCliBudgetDao(
     val budgetName: String,
     private val connectionProvider: JdbcConnectionProvider,
