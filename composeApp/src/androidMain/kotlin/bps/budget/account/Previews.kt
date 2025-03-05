@@ -37,18 +37,16 @@ private fun AccountBalancePreview() {
     AccountBalancesScreen(
         state = AccountBalancesState(
             accountTypes = listOf(AccountType.real),
-            accounts = listOf(AccountResponse(
-                name = "Savings",
-                id = Uuid.random(),
-                type = AccountType.real,
-                balance = DecimalWithCents("25.09"),
-                description = TODO(),
-                budgetId = TODO(),
-                companionId = TODO()
-            )),
-            isLoading = TODO(),
-            selectedAccount = TODO(),
-            errorMessage = TODO()
-        )
+            accounts = listOf(
+                AccountResponse(
+                    name = "Savings",
+                    id = Uuid.random(),
+                    type = AccountType.real,
+                    balance = DecimalWithCents("25.09"),
+                    description = "bank",
+                    budgetId = Uuid.random(),
+                )
+            ),
+        ),
     ) {  }
 }
