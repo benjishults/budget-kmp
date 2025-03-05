@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import bps.budget.account.presentation.balances.components.AccountBalanceList
 import bps.budget.model.AccountResponse
 //import bps.budget.account.presentation.balances.components.AccountTypeSelector
 
@@ -49,5 +50,9 @@ fun AccountBalancesScreen(
 //        AccountTypeSelector()
         // TODO put type selection here
         // TODO put list of accounts here
+        AccountBalanceList(
+            accounts = state.accounts,
+            onAccountClick = {  },
+        )
     }
 }
