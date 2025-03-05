@@ -22,12 +22,6 @@ class JvmDecimalWithCents private constructor(
 
     constructor(plainString: String) : this(BigDecimal(plainString).setScale(2, RoundingMode.HALF_UP))
 
-//    override operator fun plus(other: BigNum): BigNum =
-//        JvmBigNum(bigDecimal + (other as JvmBigNum).bigDecimal)
-//
-//    override operator fun minus(other: BigNum): BigNum =
-//        JvmBigNum(bigDecimal - (other as JvmBigNum).bigDecimal)
-
     fun toPlainString(): String =
         bigDecimal.toPlainString()
 
@@ -50,14 +44,11 @@ class JvmDecimalWithCents private constructor(
         return bigDecimal.hashCode()
     }
 
-//    override fun setScale(scale: Int): BigNum =
-//        JvmBigNum(this.bigDecimal.setScale(scale))
-
 }
 
 object JvmDecimalWithCentsSerializer : KSerializer<JvmDecimalWithCents> {
     // Serial names of descriptors should be unique, this is why we advise including app package in the name.
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("bps.kotlin.BigNum", PrimitiveKind.DOUBLE)
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("bps.kotlin.DecimalWithCents", PrimitiveKind.DOUBLE)
 
     override fun deserialize(decoder: Decoder): JvmDecimalWithCents =
         if (decoder is JsonDecoder) {

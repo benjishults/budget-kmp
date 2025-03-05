@@ -1,4 +1,3 @@
-import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -6,8 +5,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
+    alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
 }
@@ -17,6 +16,11 @@ kotlin {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_11)
+        }
+        dependencies {
+            implementation(compose.preview)
+            implementation(libs.androidx.activity.compose)
+            implementation(libs.androidx.compose.runtime)
         }
     }
 
@@ -45,18 +49,10 @@ kotlin {
     sourceSets {
         val desktopMain by getting
 
-        androidMain.dependencies {
-            implementation(compose.preview)
-//            implementation(projects.allShared)
-            implementation(libs.androidx.activity.compose)
-            implementation(libs.androidx.lifecycle.runtime.compose)
-            implementation(libs.androidx.lifecycle.viewmodel.compose)
-            implementation(libs.androidx.lifecycle.viewmodel.ktx)
-        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
-            implementation(compose.material)
+            implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
@@ -64,10 +60,10 @@ kotlin {
             implementation(libs.jetbrains.androidx.lifecycle.runtime.compose)
             implementation(projects.shared)
             implementation(libs.kotlinx.datetime)
+            implementation(projects.allShared)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
-//            implementation(projects.allShared)
             implementation(libs.kotlinx.coroutines.swing)
         }
         wasmJsMain.dependencies {
@@ -80,6 +76,9 @@ android {
     namespace = "bps.budget"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
+    buildFeatures {
+        compose = true
+    }
     defaultConfig {
         applicationId = "bps.budget"
         minSdk = libs.versions.android.minSdk.get().toInt()

@@ -16,6 +16,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
         dependencies {
+            // TODO ktor client used in shared?
             implementation(libs.ktor.client.android)
             implementation(projects.jvmShared)
         }
@@ -48,7 +49,7 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
-            api(projects.allShared)
+            implementation(projects.allShared)
         }
         jvmMain.dependencies {
             implementation(projects.jvmShared)

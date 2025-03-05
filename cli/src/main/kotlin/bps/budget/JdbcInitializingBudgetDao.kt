@@ -3,12 +3,10 @@ package bps.budget
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
-import bps.kotlin.Instrumentable
 import java.sql.Connection
 import java.sql.Statement
 
 // TODO this class is doing too much... could be split up... See how it's done in server.
-@Instrumentable
 class JdbcInitializingBudgetDao(
     val budgetName: String,
     private val connectionProvider: JdbcConnectionProvider,
