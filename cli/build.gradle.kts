@@ -1,11 +1,4 @@
-//val commonsValidatorVersion: String by project
-//val consoleVersion: String by project
-//val jacksonVersion: String by project
-//val konfVersion: String by project
-//val kotestVersion: String by project
-//val kotlinXDateTimeVersion: String by project
-//val mockkVersion: String by project
-//val postgresqlVersion: String by project
+import java.nio.file.Paths
 
 plugins {
     alias(libs.plugins.kotlinJvm)
@@ -18,6 +11,25 @@ version = "1.0-SNAPSHOT"
 
 application {
     mainClass = "bps.budget.Budget"
+}
+
+val classPathDirectory =
+    file(
+        System
+            .getenv("BPS_BUDGET_CLASSPATH")
+            ?: Paths.get(
+                System.getProperty("user.home"),
+                ".local",
+                "share",
+                "bps-budget",
+                "libs",
+            ),
+    )
+
+tasks.register<Copy>("copyShadowJarToClasspath") {
+    dependsOn("shadowJar")
+    from(layout.buildDirectory.file("libs/cli-1.0-SNAPSHOT-all.jar"))
+    into(classPathDirectory)
 }
 
 repositories {
