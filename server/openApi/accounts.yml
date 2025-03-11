@@ -54,10 +54,10 @@ paths:
       responses:
         201:
           description: created account
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/GetAccount'
+        #          content:
+        #            application/json:
+        #              schema:
+        #                $ref: '#/components/schemas/GetAccount'
         400:
           description: Bad Request
         401:
@@ -116,10 +116,10 @@ paths:
       responses:
         204:
           description: account after update
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/GetAccount'
+        #          content:
+        #            application/json:
+        #              schema:
+        #                $ref: '#/components/schemas/GetAccount'
         400:
           description: Bad Request
         401:
@@ -166,10 +166,10 @@ paths:
       responses:
         204:
           description: account deleted
-#          content:
-#            application/json:
-#              schema:
-#                $ref: '#/components/schemas/GetAccount'
+        #          content:
+        #            application/json:
+        #              schema:
+        #                $ref: '#/components/schemas/GetAccount'
         400:
           description: Bad Request
         401:
@@ -210,6 +210,15 @@ components:
             * draft
 
   schemas:
+    Links:
+      type: object
+      properties:
+        next:
+          type: string
+          description: URI of next page of results
+        previous:
+          type: string
+          description: URI of previous page of results
     AccountResponse:
       type: object
       properties:
@@ -238,6 +247,17 @@ components:
         - description
         - balance
         - budgetId
+    AccountsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountResponse'
+        links:
+          $ref: '#/components/schemas/Links'
+      required:
+        - items
     CreateOrReplaceAccountRequest:
       type: object
       properties:

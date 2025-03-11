@@ -25,6 +25,18 @@ class AccountResponse(
     }
 }
 
+@Serializable
+class AccountsResponse(
+    val items: List<AccountResponse>,
+    val links: Links? = null,
+)
+
+@Serializable
+class Links(
+    val next: String? = null,
+    val previous: String? = null,
+)
+
 /**
  * Used for POST and PUT requests.
  */
