@@ -1,13 +1,13 @@
 package bps.budget
 
 import androidx.compose.runtime.Composable
-import org.jetbrains.compose.ui.tooling.preview.Preview
+import bps.budget.account.presentation.balances.AccountBalanceScreenRoot
+import bps.budget.account.presentation.balances.AccountBalancesViewModel
 
 @Composable
-@Preview
-fun App(/*mainViewModel: MainViewModel = viewModel()*/) {
-//    AccountBalanceScreenRoot(
-//        viewModel = remember { AccountBalancesViewModel() },
-////        onAccountClick = {},
-//    )
+fun App(viewModel: AccountBalancesViewModel) {
+    AccountBalanceScreenRoot(
+        viewModel = viewModel,
+        onAccountClick = {},
+    )
 }

@@ -21,7 +21,9 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.compose.runtime)
-            implementation(projects.shared)
+            implementation(libs.ktor.client.okhttp)
+            // TODO needed?
+//            implementation(projects.shared)
             implementation(projects.jvmShared)
         }
     }
@@ -48,6 +50,8 @@ kotlin {
         binaries.executable()
     }
 
+//    applyDefaultHierarchyTemplate()
+
     sourceSets {
         val desktopMain by getting
 
@@ -60,17 +64,28 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.jetbrains.androidx.lifecycle.viewmodel)
             implementation(libs.jetbrains.androidx.lifecycle.runtime.compose)
+
             implementation(projects.shared)
             implementation(libs.kotlinx.datetime)
             implementation(projects.allShared)
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.serialization.kotlinx.json)
+
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(projects.jvmShared)
+            // TODO needed?
+//            implementation(projects.shared)
+            implementation(libs.ktor.client.okhttp)
         }
         wasmJsMain.dependencies {
             implementation(npm("@js-joda/timezone", "2.3.0"))
+            implementation(libs.ktor.client.js)
         }
     }
 }

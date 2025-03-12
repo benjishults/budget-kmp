@@ -12,14 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import bps.budget.model.AccountResponse
+import bps.budget.account.domain.Account
 import kotlin.uuid.ExperimentalUuidApi
 
 @OptIn(ExperimentalUuidApi::class)
 @Composable
 fun AccountBalanceList(
-    accounts: List<AccountResponse>,
-    onAccountClick: () -> Unit,
+    accounts: List<Account>,
+    onAccountClick: (Account) -> Unit,
     modifier: Modifier = Modifier,
     scrollState: LazyListState = rememberLazyListState(),
 ) {
@@ -31,11 +31,11 @@ fun AccountBalanceList(
     ) {
         items(
             items = accounts,
-            key = { it.id }
-            ) { account ->
+            key = { it.id },
+        ) { account ->
             AccountBalanceItem(
                 account = account,
-                onClick = onAccountClick,
+                onClick = { onAccountClick(account) },
                 modifier = Modifier
                     .widthIn(max = 700.dp)
                     .fillMaxWidth()

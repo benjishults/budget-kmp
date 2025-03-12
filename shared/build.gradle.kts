@@ -16,7 +16,6 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
         dependencies {
-            // TODO ktor client used in shared?
             implementation(libs.ktor.client.android)
             implementation(projects.jvmShared)
         }

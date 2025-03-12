@@ -4,6 +4,7 @@ package bps.budget.server.account
 
 import bps.budget.model.Account
 import bps.budget.model.AccountType
+import bps.budget.model.AccountsResponse
 import bps.budget.model.CategoryAccount
 import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftAccount
@@ -140,8 +141,13 @@ private suspend fun RoutingContext.returnAccounts(
             accountDao.getActiveAccounts(AccountType.charge.name, budgetId, ChargeAccount)
         }
     call.respond(
-        realAccounts.map { it.toResponse() } + categoryAccounts.map { it.toResponse() } + chargeAccounts.map { it.toResponse() } + draftAccounts.map { it.toResponse() },
-//                    TypeInfo(AccountResponse::class),
+        AccountsResponse(
+            items =
+                realAccounts.map { it.toResponse() } +
+                        categoryAccounts.map { it.toResponse() } +
+                        chargeAccounts.map { it.toResponse() } +
+                        draftAccounts.map { it.toResponse() },
+        ),
     )
 }
 

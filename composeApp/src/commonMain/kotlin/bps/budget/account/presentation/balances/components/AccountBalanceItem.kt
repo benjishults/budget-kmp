@@ -14,14 +14,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import bps.budget.model.AccountResponse
+import bps.budget.account.domain.Account
 
 @Composable
 fun AccountBalanceItem(
-    account: AccountResponse,
+    account: Account,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -36,13 +37,14 @@ fun AccountBalanceItem(
                 .padding(16.dp)
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(1f),
                 verticalArrangement = Arrangement.Center,
-                ) {
+            ) {
                 Text(
                     text = account.name,
                     style = MaterialTheme.typography.titleMedium,
