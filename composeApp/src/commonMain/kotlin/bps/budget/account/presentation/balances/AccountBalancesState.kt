@@ -7,7 +7,7 @@ import bps.budget.model.AccountType
 data class AccountBalancesState(
     val accountTypes: List<AccountType> = emptyList(),
     val accounts: List<Account> = emptyList(),
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val selectedTabIndex: Int = 0,
     val selectedAccount: Account? = null,
     val errorMessage: UiText? = null,

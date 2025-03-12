@@ -1,15 +1,17 @@
 package bps.budget
 
-import androidx.compose.runtime.remember
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
-import io.ktor.client.engine.okhttp.OkHttp
+import bps.budget.di.productionAccountBalancesViewModel
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "BPS Budget",
-    ) {
-        App(engine = remember { OkHttp.create() })
+fun main() {
+//    initKoin()
+    return application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "BPS Budget",
+        ) {
+            App(productionAccountBalancesViewModel)
+        }
     }
 }
