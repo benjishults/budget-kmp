@@ -9,6 +9,7 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
+    alias(libs.plugins.serialization)
 }
 
 kotlin {
@@ -22,8 +23,6 @@ kotlin {
             implementation(libs.androidx.activity.compose)
             implementation(libs.androidx.compose.runtime)
             implementation(libs.ktor.client.okhttp)
-            // TODO needed?
-//            implementation(projects.shared)
             implementation(projects.jvmShared)
         }
     }
@@ -64,6 +63,7 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.jetbrains.androidx.lifecycle.viewmodel)
             implementation(libs.jetbrains.androidx.lifecycle.runtime.compose)
+            implementation(libs.jetbrains.androidx.navigation.compose)
 
             implementation(projects.shared)
             implementation(libs.kotlinx.datetime)
@@ -79,8 +79,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(projects.jvmShared)
-            // TODO needed?
-//            implementation(projects.shared)
+            implementation(compose.desktop.currentOs)
             implementation(libs.ktor.client.okhttp)
         }
         wasmJsMain.dependencies {

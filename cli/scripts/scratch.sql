@@ -365,16 +365,15 @@ order by t.timestamp_utc desc, t.id
 limit 30
 ;
 
-select
-    t.description   as transaction_description,
-    t.timestamp_utc as transaction_timestamp,
-    i.amount,
+select t.description   as transaction_description,
+       t.timestamp_utc as transaction_timestamp,
+       i.amount,
 --     t.type,
-    i.description,
+       i.description,
 --        i.account_id,
-    i.draft_status,
-    a.name,
-    i.id
+       i.draft_status,
+       a.name,
+       i.id
 from transaction_items i
          join transactions t
               on i.transaction_id = t.id
@@ -383,7 +382,7 @@ from transaction_items i
               on a.id = i.account_id
 where t.type = 'income'
   and i.amount > 0
-    and a.type = 'real'
+  and a.type = 'real'
 --   and t.timestamp_utc >= ?
 --   ${if (options.endDateLimited) "and t.timestamp_utc < ?" else ""}
 --   and ti.budget_id = ?
