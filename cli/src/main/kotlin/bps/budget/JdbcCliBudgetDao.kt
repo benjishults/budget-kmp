@@ -78,55 +78,69 @@ class JdbcCliBudgetDao(
                                 }
                         }
                 // TODO pull out duplicate code in these next three sections
-                val categoryAccounts: List<CategoryAccount> =
-                    accountDao.getActiveAccounts(
-                        AccountType.category.name,
-                        budgetId,
-                        CategoryAccount,
-                    ) + accountDao.getDeactivatedAccounts(AccountType.category.name, budgetId, CategoryAccount)
+                val categoryAccountsHolder =
+                    AccountsHolder(
+                        active = accountDao.getActiveAccounts(
+                            type = AccountType.category.name,
+                            budgetId = budgetId,
+                            factory = CategoryAccount,
+                        ),
+                        inactive = accountDao.getDeactivatedAccounts(
+                            type = AccountType.category.name,
+                            budgetId = budgetId,
+                            factory = CategoryAccount,
+                        ),
+                    )
                 val generalAccount: CategoryAccount =
-                    categoryAccounts.find {
-                        it.id == generalAccountId
-                    }!!
-                val realAccounts: List<RealAccount> =
-                    accountDao.getActiveAccounts(
-                        AccountType.real.name,
-                        budgetId,
-                        RealAccount,
-                    ) + accountDao.getDeactivatedAccounts(AccountType.real.name, budgetId, RealAccount)
-                val chargeAccounts: List<ChargeAccount> =
-                    accountDao.getActiveAccounts(
-                        AccountType.charge.name,
-                        budgetId,
-                        ChargeAccount,
-                    ) + accountDao.getDeactivatedAccounts(AccountType.charge.name, budgetId, ChargeAccount)
-                val draftAccounts: List<DraftAccount> =
-                    accountDao.getActiveAccounts(
+                    categoryAccountsHolder
+                        .active
+                        .find { it.id == generalAccountId }!!
+                val realAccountsHolder =
+                    AccountsHolder(
+                        active = accountDao.getActiveAccounts(
+                            type = AccountType.real.name,
+                            budgetId = budgetId,
+                            factory = RealAccount,
+                        ),
+                        inactive = accountDao.getDeactivatedAccounts(AccountType.real.name, budgetId, RealAccount),
+                    )
+                val chargeAccountsHolder =
+                    AccountsHolder(
+                        active = accountDao.getActiveAccounts(
+                            type = AccountType.charge.name,
+                            budgetId = budgetId,
+                            factory = ChargeAccount,
+                        ),
+                        inactive = accountDao.getDeactivatedAccounts(AccountType.charge.name, budgetId, ChargeAccount),
+                    )
+                val draftAccountsHolder = AccountsHolder(
+                    active = accountDao.getActiveAccounts(
                         AccountType.draft.name, budgetId,
                         DraftAccount { companionId ->
-                            realAccounts.find {
-                                it.id == companionId
-                            }!!
+                            realAccountsHolder
+                                .active
+                                .find { it.id == companionId }!!
                         },
-                    ) +
-                            accountDao.getDeactivatedAccounts(
-                                AccountType.draft.name, budgetId,
-                                DraftAccount { companionId ->
-                                    realAccounts.find {
-                                        it.id == companionId
-                                    }!!
-                                },
-                            )
+                    ),
+                    inactive = accountDao.getDeactivatedAccounts(
+                        AccountType.draft.name, budgetId,
+                        DraftAccount { companionId ->
+                            realAccountsHolder
+                                .inactive
+                                .find { it.id == companionId }!!
+                        },
+                    ),
+                )
                 BudgetData(
                     budgetId,
                     budgetName,
                     timeZone,
                     analyticsStart,
                     generalAccount,
-                    AccountsHolder(categoryAccounts),
-                    AccountsHolder(realAccounts),
-                    AccountsHolder(chargeAccounts),
-                    AccountsHolder(draftAccounts),
+                    categoryAccountsHolder,
+                    realAccountsHolder,
+                    chargeAccountsHolder,
+                    draftAccountsHolder,
                 )
             }
         } catch (ex: Exception) {

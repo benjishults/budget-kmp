@@ -6,9 +6,6 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
-import kotlin.collections.plus
-import kotlin.plus
-import kotlin.text.buildString
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -16,6 +13,9 @@ data class AccountsHolder<out T : Account>(
     val active: List<T> = emptyList(),
     val inactive: List<T> = emptyList(),
 ) {
+
+    val allAccounts: List<T> = active + inactive
+
     companion object {
         fun <T : Account> empty() = AccountsHolder<T>()
     }
@@ -125,9 +125,8 @@ class BudgetData(
         byId[draftAccount.id] = draftAccount
     }
 
-    fun deleteAccount(account: Account) {
+    fun deactivateAccount(account: Account) {
         require(account.balance == BigDecimal.ZERO.setScale(2)) { "account balance must be zero before being deleted" }
-        byId.remove(account.id)
         when (account) {
             is CategoryAccount -> {
                 categoryAccounts = categoryAccounts - account

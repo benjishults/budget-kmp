@@ -429,7 +429,7 @@ fun <T : Account> deactivateAccountMenu(
         },
         labelGenerator = { String.format("%,10.2f | %-15s | %s", balance, name, description) },
     ) { _: MenuSession, account: T ->
-        budgetData.deleteAccount(account)
+        budgetData.deactivateAccount(account)
         accountDao.deactivateAccount(account)
         outPrinter.important("Deactivated account '${account.name}'")
     }
