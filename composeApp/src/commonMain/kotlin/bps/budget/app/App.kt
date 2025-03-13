@@ -22,7 +22,7 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 @Composable
-fun App(viewModel: AccountBalancesViewModel) {
+fun App() {
     MaterialTheme {
         val navController = rememberNavController()
         NavHost(
