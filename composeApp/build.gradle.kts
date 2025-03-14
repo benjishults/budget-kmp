@@ -24,6 +24,8 @@ kotlin {
             implementation(libs.androidx.compose.runtime)
             implementation(libs.ktor.client.okhttp)
             implementation(projects.jvmShared)
+            implementation(libs.koin.android)
+            implementation(libs.koin.androidx.compose)
         }
     }
 
@@ -74,6 +76,9 @@ kotlin {
             implementation(libs.ktor.client.logging)
             implementation(libs.ktor.serialization.kotlinx.json)
 
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            api(libs.koin.core)
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
