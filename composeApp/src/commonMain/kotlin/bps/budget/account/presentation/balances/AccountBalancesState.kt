@@ -4,6 +4,9 @@ import bps.budget.account.domain.Account
 import bps.budget.core.presentation.UiText
 import bps.budget.model.AccountType
 
+/**
+ * State needed for the associated [androidx.lifecycle.ViewModel].
+ */
 data class AccountBalancesState(
     val accountTypes: List<AccountType> = emptyList(),
     val accounts: List<Account> = emptyList(),

@@ -1,15 +1,10 @@
 package bps.budget.app
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavBackStackEntry
@@ -21,6 +16,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import bps.budget.account.domain.Account
 import bps.budget.account.presentation.SelectedAccountViewModel
+import bps.budget.account.presentation.account_detail.AccountDetailScreenRoot
 import bps.budget.account.presentation.balances.AccountBalanceScreenRoot
 import bps.budget.account.presentation.balances.AccountBalancesViewModel
 import org.koin.compose.viewmodel.koinViewModel
@@ -40,8 +36,12 @@ fun App() {
             navigation<Route.AccountGraph>(
                 startDestination = Route.AccountBalanceList,
             ) {
-                composable<Route.AccountBalanceList>(typeMap = mapOf(typeOf<Uuid>() to UuidNavType)) { backStackEntry ->
+                composable<Route.AccountBalanceList>(
+                    typeMap = mapOf(typeOf<Uuid>() to UuidNavType),
+                ) { backStackEntry: NavBackStackEntry ->
+                    // NOTE a NavBackStackEntry has a Bundle which contains the Route.AccountBalanceList
                     val viewModel: AccountBalancesViewModel = koinViewModel<AccountBalancesViewModel>()
+                    // NOTE initialize the selectedAccountViewModel to be shared with the Route.AccountDetail
                     val selectedAccountViewModel: SelectedAccountViewModel =
                         backStackEntry.sharedKoinViewModel<SelectedAccountViewModel>(navController)
 
@@ -57,18 +57,34 @@ fun App() {
                         },
                     )
                 }
-                composable<Route.AccountDetail>(typeMap = mapOf(typeOf<Uuid>() to UuidNavType)) { backStackEntry: NavBackStackEntry ->
+                composable<Route.AccountDetail>(
+                    typeMap = mapOf(typeOf<Uuid>() to UuidNavType),
+                ) { backStackEntry: NavBackStackEntry ->
+                    // NOTE a NavBackStackEntry has a Bundle which contains the Route.AccountDetail
+                    // NOTE the selectedAccountViewModel will be remembered from the AccountBalanceList initialization
                     val selectedAccountViewModel: SelectedAccountViewModel =
                         backStackEntry.sharedKoinViewModel<SelectedAccountViewModel>(navController)
+                    // NOTE here just to remind me of what's possible
+                    // NOTE options:
+                    //      1. use a special viewModel with the account info (as done with SelectedAccountViewModel)
+                    //      2. pass a lot of data through the route (limited size of bundle is a downside)
+                    //      3. use a local cache
+//                    val accountDetailRoute: Route.AccountDetail = backStackEntry.toRoute<Route.AccountDetail>()
+//                    val accountId: Uuid = accountDetailRoute.id
                     val selectedAccount: Account? by selectedAccountViewModel.selectedAccount.collectAsStateWithLifecycle()
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Text(text = "Account Detail: ID is $selectedAccount")
-                    }
-
-                    //
+                    AccountDetailScreenRoot(
+                        viewModel = koinViewModel(),
+                        onBackClick = {
+                            navController.navigate(Route.AccountBalanceList)
+                            selectedAccountViewModel.onSelectAccount(null)
+                        },
+                    )
+//                    Box(
+//                        modifier = Modifier.fillMaxSize(),
+//                        contentAlignment = Alignment.Center,
+//                    ) {
+//                        Text(text = "Account Detail: ID is $selectedAccount")
+//                    }
                 }
             }
         }
@@ -86,10 +102,14 @@ private inline fun <reified T : ViewModel> NavBackStackEntry.sharedKoinViewModel
     val navGraphRoute: String? =
         this.destination.parent?.route
     return if (navGraphRoute !== null) {
+        val parentBackStackEntry: NavBackStackEntry = navController.getBackStackEntry(navGraphRoute)
         koinViewModel(
             viewModelStoreOwner =
+                // NOTE make a new ViewModel only when this is called on a different receiver (child) NavBackStackEntry.
+                //      No need to recreate it if we visit the same Account immediately.
                 remember(this) {
-                    navController.getBackStackEntry(navGraphRoute)
+                    // NOTE scoping the ViewModel to the parent NavBackStackEntry
+                    parentBackStackEntry
                 },
         )
     } else {

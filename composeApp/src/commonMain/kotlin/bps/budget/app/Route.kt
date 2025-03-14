@@ -9,6 +9,9 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 sealed interface Route {
+    /**
+     * Parent of [AccountBalanceList] and [AccountDetail].
+     */
     @Serializable
     data object AccountGraph : Route
 
