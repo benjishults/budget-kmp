@@ -2,6 +2,7 @@
 
 package bps.budget.income
 
+import bps.budget.UserConfiguration
 import bps.budget.analytics.AnalyticsOptions
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.model.Account
@@ -10,12 +11,11 @@ import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
-import bps.budget.model.Transaction.Type
+import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
+import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
-import bps.budget.persistence.AccountDao
 import bps.budget.transaction.showRecentRelevantTransactions
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
@@ -206,7 +206,7 @@ fun createIncomeTransaction(
 ): Transaction = createTransactionAddingToRealAccountAndGeneral(
     description = description,
     timestamp = timestamp,
-    type = Type.income,
+    transactionType = TransactionType.income,
     amount = amount,
     budgetData = budgetData,
     realAccount = realAccount,
@@ -221,7 +221,7 @@ fun createInitialBalanceTransaction(
 ): Transaction = createTransactionAddingToRealAccountAndGeneral(
     description = description,
     timestamp = timestamp,
-    type = Type.initial,
+    transactionType = TransactionType.initial,
     amount = amount,
     budgetData = budgetData,
     realAccount = realAccount,
@@ -233,11 +233,11 @@ fun createTransactionAddingToRealAccountAndGeneral(
     amount: BigDecimal,
     budgetData: BudgetData,
     realAccount: RealAccount,
-    type: Type,
+    transactionType: TransactionType,
 ) = Transaction.Builder(
     description = description,
     timestamp = timestamp,
-    type = type,
+    transactionType = transactionType,
 )
     .apply {
         with(budgetData.generalAccount) {

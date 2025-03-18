@@ -4,8 +4,8 @@ import bps.budget.model.Account
 import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftAccount
 import bps.budget.model.Transaction
-import bps.budget.model.Transaction.Type
 import bps.budget.model.TransactionItem
+import bps.budget.model.TransactionType
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
@@ -56,7 +56,7 @@ interface TransactionDao {
         clearedItems: List<ExtendedTransactionItem<ChargeAccount>>,
         billPayTransaction: Transaction,
         budgetId: Uuid,
-        accountDao: AccountDao
+        accountDao: AccountDao,
     ) {
     }
 
@@ -98,7 +98,7 @@ interface TransactionDao {
         val transactionId: Uuid,
         val transactionDescription: String,
         val transactionTimestamp: Instant,
-        val transactionType: Type,
+        val transactionType: TransactionType,
         val transactionDao: TransactionDao,
         val budgetId: Uuid,
     ) : TransactionItem<A>,

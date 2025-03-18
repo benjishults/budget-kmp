@@ -4,7 +4,7 @@ import bps.budget.BudgetConfigurations
 import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.model.AccountType
 import bps.budget.model.DraftStatus
-import bps.budget.model.Transaction
+import bps.budget.model.TransactionType
 import bps.config.convertToPath
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
@@ -143,16 +143,19 @@ class DataMigrations {
                                     }
                                 }
                         }
-                    updateTypes(incomes, Transaction.Type.income)
-                    updateTypes(clears, Transaction.Type.clearing)
-                    updateTypes(allowances, Transaction.Type.allowance)
-                    updateTypes(transfers, Transaction.Type.transfer)
+                    updateTypes(incomes, TransactionType.income)
+                    updateTypes(clears, TransactionType.clearing)
+                    updateTypes(allowances, TransactionType.allowance)
+                    updateTypes(transfers, TransactionType.transfer)
                     prepareStatement("alter table transactions alter type drop default").use { it.execute() }
                 }
             }
         }
 
-        private fun Connection.updateTypes(incomes: MutableList<TransactionInfo>, type: Transaction.Type) {
+        private fun Connection.updateTypes(
+            incomes: MutableList<TransactionInfo>,
+            transactionType: TransactionType,
+        ) {
             incomes.forEach { transactionInfo: TransactionInfo ->
                 prepareStatement(
                     """
@@ -163,7 +166,7 @@ class DataMigrations {
                                                         """.trimMargin(),
                 )
                     .use { statement ->
-                        statement.setString(1, type.name)
+                        statement.setString(1, transactionType.name)
                         statement.setUuid(2, transactionInfo.budgetId!!)
                         statement.setUuid(3, transactionInfo.transactionId!!)
                         if (statement.executeUpdate() != 1)

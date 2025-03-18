@@ -7,6 +7,7 @@ import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.Transaction
+import bps.budget.model.TransactionType
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import kotlinx.datetime.Instant
@@ -34,7 +35,7 @@ fun commitCreditCardPaymentConsistently(
         allSelectedItems,
         transaction,
         budgetData.id,
-        accountDao
+        accountDao,
     )
 }
 
@@ -49,7 +50,7 @@ fun clearCheckConsistently(
     Transaction.Builder(
         draftTransactionItem.transactionDescription,
         timestamp,
-        type = Transaction.Type.clearing,
+        transactionType = TransactionType.clearing,
     )
         .apply {
             with(draftAccount) {
@@ -77,6 +78,6 @@ fun clearCheckConsistently(
                     ),
                 clearingTransaction,
                 budgetData.id,
-                accountDao
+                accountDao,
             )
         }

@@ -1,7 +1,7 @@
 @file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.model
 
-import bps.budget.model.Transaction.Type
 import bps.budget.persistence.TransactionDao
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
@@ -82,7 +82,7 @@ abstract class Account(
         transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
-        transactionType: Type,
+        transactionType: TransactionType,
         accountBalanceAfterItem: BigDecimal?,
     ): TransactionDao.ExtendedTransactionItem<*> =
         TODO()
@@ -177,7 +177,7 @@ class CategoryAccount(
         transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
-        transactionType: Type,
+        transactionType: TransactionType,
         accountBalanceAfterItem: BigDecimal?,
     ): TransactionDao.ExtendedTransactionItem<CategoryAccount> =
         TransactionDao.ExtendedTransactionItem(
@@ -238,7 +238,7 @@ open class RealAccount(
         transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
-        transactionType: Type,
+        transactionType: TransactionType,
         accountBalanceAfterItem: BigDecimal?,
     ): TransactionDao.ExtendedTransactionItem<RealAccount> =
         TransactionDao.ExtendedTransactionItem(
@@ -317,7 +317,7 @@ class DraftAccount(
         transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
-        transactionType: Type,
+        transactionType: TransactionType,
         accountBalanceAfterItem: BigDecimal?,
     ): TransactionDao.ExtendedTransactionItem<DraftAccount> =
         TransactionDao.ExtendedTransactionItem(
@@ -418,7 +418,7 @@ class ChargeAccount(
         transactionId: Uuid,
         transactionDescription: String,
         transactionTimestamp: Instant,
-        transactionType: Type,
+        transactionType: TransactionType,
         accountBalanceAfterItem: BigDecimal?,
     ): TransactionDao.ExtendedTransactionItem<ChargeAccount> =
         TransactionDao.ExtendedTransactionItem(

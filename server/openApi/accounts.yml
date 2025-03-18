@@ -10,7 +10,7 @@ paths:
     summary: Accounts
     parameters:
       - $ref: "#/components/parameters/budgetIdParam"
-      - $ref: "#/components/parameters/typeParam"
+      - $ref: "#/components/parameters/accountTypeParam"
         required: false
         description: type(s) of desired accounts
     get:
@@ -74,15 +74,16 @@ paths:
     parameters:
       - $ref: "#/components/parameters/budgetIdParam"
       - $ref: "#/components/parameters/accountIdParam"
-      - $ref: "#/components/parameters/typeParam"
-        required: true
-        description: type of desired account
     get:
       description: Get the specified account.
       operationId: getAccount
       security:
         - budget_auth:
             - 'r:accounts'
+      parameters:
+        - $ref: "#/components/parameters/accountTypeParam"
+          required: true
+          description: type of desired account
       responses:
         200:
           description: requested account
@@ -180,6 +181,43 @@ paths:
           description: Not Found
         500:
           description: Internal Server Error
+  /budgets/{budgetId}/accounts/{accountId}/transactions:
+    parameters:
+      - $ref: "#/components/parameters/budgetIdParam"
+      - $ref: "#/components/parameters/accountIdParam"
+    get:
+      description: Get recent transactions on the given account.
+      operationId: getAccountTransactions
+      security:
+        - budget_auth:
+            - 'r:transactions'
+      parameters:
+        - $ref: "#/components/parameters/transactionTypeParam"
+        - name: offset
+          in: query
+          schema:
+            format: number
+        - name: limit
+          in: query
+          schema:
+            format: number
+      responses:
+        200:
+          description: requested account
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountTransactionsResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        500:
+          description: Internal Server Error
 
 components:
   parameters:
@@ -197,19 +235,36 @@ components:
       schema:
         format: uuid
         description: account ID
-    typeParam:
+    accountTypeParam:
       name: type
       in: query
       schema:
-        format: string
-        description: |
-          Values should be among these:
-            * real
-            * category
-            * charge
-            * draft
+        $ref: '#/components/schemas/accountType'
+    transactionTypeParam:
+      name: type
+      in: query
+      schema:
+        $ref: '#/components/schemas/transactionType'
 
   schemas:
+    accountType:
+      type: string
+      description: |
+        Values should be among these:
+          * real
+          * category
+          * charge
+          * draft
+    transactionType:
+      type: string
+      description: |
+        Values should be among these:
+          * expense
+          * transfer
+          * allowance
+          * income
+          * clearing
+          * initial
     Links:
       type: object
       properties:
@@ -281,4 +336,44 @@ components:
         - type
         - description
         - balance
+        - budgetId
+    AccountTransactionsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountTransactionResponse'
+        links:
+          $ref: '#/components/schemas/Links'
+      required:
+        - items
+    AccountTransactionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        description:
+          type: string
+        amount:
+          type: number
+        balance:
+          type: number
+        accountId:
+          type: string
+          format: uuid
+        budgetId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+      required:
+        - id
+        - amount
+        - timestamp
+        - accountId
         - budgetId

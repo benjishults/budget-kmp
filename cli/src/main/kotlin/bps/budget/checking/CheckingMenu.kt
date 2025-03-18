@@ -2,18 +2,18 @@
 
 package bps.budget.checking
 
+import bps.budget.UserConfiguration
 import bps.budget.budgetQuitItem
-import bps.console.io.WithIo
 import bps.budget.consistency.clearCheckConsistently
 import bps.budget.consistency.deleteTransactionConsistently
 import bps.budget.model.BudgetData
 import bps.budget.model.DraftAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.Transaction
+import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
 import bps.budget.transaction.allocateSpendingItemMenu
 import bps.budget.transaction.showRecentRelevantTransactions
@@ -22,6 +22,7 @@ import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.InRangeInclusiveStringValidator
 import bps.console.inputs.SimplePrompt
 import bps.console.inputs.getTimestampFromUser
+import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.backItem
@@ -57,7 +58,7 @@ fun WithIo.checksMenu(
                             budgetData,
                             clock,
                             menuSession,
-                            userConfig
+                            userConfig,
                         )
                     },
                 )
@@ -207,7 +208,7 @@ fun WithIo.writeCheckOnAccount(
             Transaction.Builder(
                 description = description,
                 timestamp = timestamp,
-                type = Transaction.Type.expense,
+                transactionType = TransactionType.expense,
             )
                 .apply {
                     with(draftAccount) {

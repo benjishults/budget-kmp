@@ -2,17 +2,18 @@
 
 package bps.budget.allowance
 
+import bps.budget.UserConfiguration
 import bps.budget.analytics.AnalyticsOptions
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.income.formatAccountAnalyticsLabel
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
 import bps.budget.model.Transaction
+import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
+import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
-import bps.budget.persistence.AccountDao
 import bps.budget.transaction.showRecentRelevantTransactions
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
@@ -115,9 +116,9 @@ fun WithIo.makeAllowancesSelectionMenu(
             label = "Recent allowances:",
         ) { transactionItem: TransactionDao.ExtendedTransactionItem<*> ->
             transactionItem.transactionType in listOf(
-                Transaction.Type.allowance,
-                Transaction.Type.expense,
-                Transaction.Type.transfer,
+                TransactionType.allowance,
+                TransactionType.expense,
+                TransactionType.transfer,
             )
         }
 
@@ -155,7 +156,7 @@ fun WithIo.makeAllowancesSelectionMenu(
             val allocate = Transaction.Builder(
                 description = description,
                 timestamp = timestamp,
-                type = Transaction.Type.allowance,
+                transactionType = TransactionType.allowance,
             )
                 .apply {
                     with(budgetData.generalAccount) {

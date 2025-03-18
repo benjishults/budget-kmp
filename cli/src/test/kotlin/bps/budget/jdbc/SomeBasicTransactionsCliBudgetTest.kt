@@ -3,15 +3,16 @@ package bps.budget.jdbc
 import bps.budget.BudgetConfigurations
 import bps.budget.JdbcCliBudgetDao
 import bps.budget.JdbcInitializingBudgetDao
-import bps.budget.model.AuthenticatedUser
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.jdbc.test.BasicAccountsJdbcCliBudgetTestFixture
+import bps.budget.loadBudgetData
+import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
 import bps.budget.model.DraftAccount
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
-import bps.budget.model.Transaction.Type
+import bps.budget.model.TransactionType
 import bps.budget.model.defaultCheckingAccountName
 import bps.budget.model.defaultCosmeticsAccountName
 import bps.budget.model.defaultEducationAccountName
@@ -28,7 +29,6 @@ import bps.budget.model.defaultTransportationAccountName
 import bps.budget.model.defaultTravelAccountName
 import bps.budget.model.defaultWalletAccountName
 import bps.budget.model.defaultWorkAccountName
-import bps.budget.loadBudgetData
 import bps.kotlin.test.WithMockClock
 import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FreeSpec
@@ -81,7 +81,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                             .Builder(
                                 description = "income into $defaultCheckingAccountName",
                                 timestamp = clock.now(),
-                                type = Type.income,
+                                transactionType = TransactionType.income,
                             )
                             .apply {
                                 with(budgetData.generalAccount) {
@@ -106,7 +106,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                             .Builder(
                                 description = "allocate into $defaultFoodAccountName",
                                 timestamp = clock.now(),
-                                type = Type.allowance,
+                                transactionType = TransactionType.allowance,
                             )
                             .apply {
                                 with(budgetData.generalAccount) {
@@ -128,7 +128,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                     val writeCheck: Transaction = Transaction.Builder(
                         description = "groceries",
                         timestamp = clock.now(),
-                        type = Type.expense,
+                        transactionType = TransactionType.expense,
                     )
                         .apply {
                             with(
@@ -192,7 +192,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                     val writeCheck: Transaction = Transaction.Builder(
                         description = "groceries",
                         timestamp = clock.now(),
-                        type = Type.clearing,
+                        transactionType = TransactionType.clearing,
                     )
                         .apply {
                             with(
