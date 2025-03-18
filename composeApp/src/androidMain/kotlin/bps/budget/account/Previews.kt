@@ -30,31 +30,31 @@ private fun MultiSelectPreview() {
     }
 }
 
-@OptIn(ExperimentalUuidApi::class)
-@Preview
-@Composable
-private fun AccountBalancesPreview() {
-    AccountBalancesScreen(
-        state = AccountBalancesState(
-            accountTypes = listOf(AccountType.real),
-            accounts = listOf(
-                Account(
-                    name = "Savings",
-                    id = Uuid.random(),
-                    type = AccountType.real,
-                    balance = DecimalWithCents("25.09"),
-                    description = "description of bank",
-                    budgetId = Uuid.random(),
-                ),
-                Account(
-                    name = "Checking",
-                    id = Uuid.random(),
-                    type = AccountType.real,
-                    balance = DecimalWithCents("2500.09"),
-                    description = "stuff about things",
-                    budgetId = Uuid.random(),
-                )
-            ),
-        ),
-    ) {  }
-}
+//@OptIn(ExperimentalUuidApi::class)
+//@Preview
+//@Composable
+//private fun AccountBalancesPreview() {
+//    AccountBalancesScreen(
+//        state = AccountBalancesState(
+//            accountTypes = listOf(AccountType.real),
+//            accounts = listOf(
+//                Account(
+//                    name = "Savings",
+//                    id = Uuid.random(),
+//                    type = AccountType.real,
+//                    balance = DecimalWithCents("25.09"),
+//                    description = "description of bank",
+//                    budgetId = Uuid.random(),
+//                ),
+//                Account(
+//                    name = "Checking",
+//                    id = Uuid.random(),
+//                    type = AccountType.real,
+//                    balance = DecimalWithCents("2500.09"),
+//                    description = "stuff about things",
+//                    budgetId = Uuid.random(),
+//                )
+//            ),
+//        ),
+//    ) {  }
+//}
