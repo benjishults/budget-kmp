@@ -8,7 +8,7 @@ import bps.budget.model.AccountType
  * State needed for the associated [androidx.lifecycle.ViewModel].
  */
 data class AccountBalancesState(
-    val accountTypes: List<AccountType> = emptyList(),
+    val accountType: AccountType = AccountType.real,
     val accounts: List<Account> = emptyList(),
     val isLoading: Boolean = true,
     val selectedTabIndex: Int = 0,

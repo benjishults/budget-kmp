@@ -8,13 +8,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.TabRowDefaults
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,7 +47,7 @@ fun AccountBalanceScreenRoot(
                     onAccountClick(action.account)
                 }
                 is AccountBalancesAction.OnAccountTypesChange -> {
-                    //
+                    // NOTE viewModel seems to take care of this
                 }
             }
             viewModel.onAction(action)
@@ -56,8 +60,8 @@ fun AccountBalancesScreen(
     state: AccountBalancesState,
     onAction: (AccountBalancesAction) -> Unit,
 ) {
-    val pagerState = rememberPagerState { AccountType.entries.size }
-    val selectedAccountsLazyListState = rememberLazyListState()
+    val pagerState: PagerState = rememberPagerState { AccountType.entries.size }
+    val selectedAccountsLazyListState: LazyListState = rememberLazyListState()
 
     LaunchedEffect(state.accounts) {
         selectedAccountsLazyListState.animateScrollToItem(0)
@@ -66,7 +70,7 @@ fun AccountBalancesScreen(
         pagerState.animateScrollToPage(state.selectedTabIndex)
     }
     LaunchedEffect(pagerState.currentPage) {
-        onAction(AccountBalancesAction.OnAccountTypesChange(listOf(AccountType.entries[pagerState.currentPage])))
+        onAction(AccountBalancesAction.OnAccountTypesChange(AccountType.entries[pagerState.currentPage]))
     }
 //        Surface(
 //            modifier = Modifier
@@ -91,24 +95,29 @@ fun AccountBalancesScreen(
                 .widthIn(max = 700.dp)
                 .padding(horizontal = 12.dp)
                 .fillMaxWidth(),
+            indicator = { tabPositions ->
+                TabRowDefaults.SecondaryIndicator(
+                    modifier = Modifier
+                        .tabIndicatorOffset(tabPositions[state.selectedTabIndex]),
+                )
+            },
         ) {
-//listOf(            AccountType.category, AccountType.real )
             AccountType
                 .entries
                 .forEachIndexed { index, type: AccountType ->
                     Tab(
                         selected = index == state.selectedTabIndex,
-                        onClick = { onAction(AccountBalancesAction.OnAccountTypesChange(listOf(type))) },
+                        onClick = { onAction(AccountBalancesAction.OnAccountTypesChange(type)) },
                         modifier = Modifier.weight(1f),
                         selectedContentColor = MaterialTheme.colorScheme.primary,
                         unselectedContentColor = MaterialTheme.colorScheme.secondary,
                     ) {
                         Text(
                             text = type.name,
-                            modifier = Modifier.padding(vertical = 12.dp),
+                            modifier = Modifier
+                                .padding(vertical = 12.dp),
                         )
                     }
-
                 }
         }
         HorizontalPager(

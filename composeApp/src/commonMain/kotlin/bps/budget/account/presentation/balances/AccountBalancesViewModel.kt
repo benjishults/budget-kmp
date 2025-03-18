@@ -51,7 +51,7 @@ class AccountBalancesViewModel(
             }
             is AccountBalancesAction.OnAccountTypesChange -> {
                 _state.update {
-                    it.copy(accountTypes = action.types)
+                    it.copy(accountType = action.type)
                 }
             }
         }
@@ -60,13 +60,13 @@ class AccountBalancesViewModel(
     private fun observeTypeChange() {
         state
             .map { accountBalanceState: AccountBalancesState ->
-                accountBalanceState.accountTypes
+                accountBalanceState.accountType
             }
             .distinctUntilChanged()
             .debounce(500L)
-            .onEach { query: List<AccountType> ->
+            .onEach { selectedType: AccountType ->
                 typeSwitchJob?.cancel()
-                typeSwitchJob = searchAccounts(query)
+                typeSwitchJob = searchAccounts(selectedType)
 //                _state.update {
 //                    it.copy(
 //                        errorMessage = null,
@@ -79,18 +79,20 @@ class AccountBalancesViewModel(
 
     }
 
-    private fun searchAccounts(types: List<AccountType>): Job =
+    private fun searchAccounts(selectedType: AccountType): Job =
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            accountRepository.searchAccounts(types).onSuccess { results ->
-                _state.update {
-                    it.copy(
-                        isLoading = false,
-                        accounts = results,
-                        errorMessage = null,
-                    )
+            accountRepository
+                .searchAccounts(listOf(selectedType))
+                .onSuccess { results ->
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            accounts = results,
+                            errorMessage = null,
+                        )
+                    }
                 }
-            }
                 .onError { error ->
                     _state.update {
                         it.copy(

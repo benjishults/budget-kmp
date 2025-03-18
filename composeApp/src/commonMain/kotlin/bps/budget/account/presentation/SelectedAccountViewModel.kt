@@ -17,4 +17,5 @@ class SelectedAccountViewModel : ViewModel() {
     fun onSelectAccount(account: Account?) {
         _selectedAccount.value = account
     }
+
 }
