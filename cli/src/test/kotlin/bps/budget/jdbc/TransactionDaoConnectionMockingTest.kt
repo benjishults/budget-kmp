@@ -126,10 +126,13 @@ class TransactionDaoConnectionMockingTest : FreeSpec(), JdbcFixture, ConnectionM
             val secondPage =
                 transactionDaoTestSubject
                     .fetchTransactionItemsInvolvingAccount(
-                        account,
-                        3,
-                        3,
-                        (995 - (6 + 7)).toBigDecimal().setScale(2),
+                        account = account,
+                        limit = 3,
+                        offset = 3,
+                        balanceAtEndOfPage =
+                            (995 - (6 + 7))
+                                .toBigDecimal()
+                                .setScale(2),
                     )
                     .sorted()
             withClue("secondPage size") { secondPage.size shouldBe 3 }

@@ -15,6 +15,7 @@ import kotlin.uuid.ExperimentalUuidApi
 private const val TRANSACTIONS_WITHOUT_BALANCES_TABLE_HEADER =
     "    Time Stamp          | Amount     | Description"
 
+@Suppress("DefaultLocale")
 @OptIn(ExperimentalUuidApi::class)
 open class ViewTransactionsWithoutBalancesMenu<A : Account>(
     private val account: A,

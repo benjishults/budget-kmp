@@ -23,6 +23,7 @@ private const val TRANSACTIONS_TABLE_HEADER = "    Time Stamp          | Amount 
  * The default behavior after selecting an item is to show details.  Pass a value for [actOnSelectedItem]
  * (and [prompt]) to override that behavior.
  */
+@Suppress("DefaultLocale")
 @OptIn(ExperimentalUuidApi::class)
 open class TransactionListMenu<A : Account>(
     private val budgetData: BudgetData,
