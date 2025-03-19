@@ -213,6 +213,17 @@ class CategoryAccount(
 
 }
 
+fun AccountEntity.toCategoryAccount(): CategoryAccount? =
+    if (type == AccountType.category.name) {
+        CategoryAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+        )
+    } else null
+
 open class RealAccount(
     name: String,
     description: String = "",
@@ -286,6 +297,18 @@ open class RealAccount(
 
     }
 }
+
+fun AccountEntity.toRealAccount(): RealAccount? =
+    if (type == AccountType.real.name) {
+        RealAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+        )
+    } else
+        null
 
 /**
  * A separate [DraftAccount] is useful for quickly determining the outstanding balance.  One only has to look at the
@@ -377,6 +400,19 @@ class DraftAccount(
 
 }
 
+fun AccountEntity.toDraftAccount(accountIdToAccountMap: Map<Uuid, Account>): DraftAccount? =
+    if (type == AccountType.draft.name) {
+        DraftAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+            realCompanion = accountIdToAccountMap[companionId!!]!! as RealAccount,
+        )
+    } else
+        null
+
 class ChargeAccount(
     name: String,
     description: String = "",
@@ -453,3 +489,15 @@ class ChargeAccount(
     }
 
 }
+
+fun AccountEntity.toChargeAccount(): ChargeAccount? =
+    if (type == AccountType.charge.name) {
+        ChargeAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+        )
+    } else
+        null

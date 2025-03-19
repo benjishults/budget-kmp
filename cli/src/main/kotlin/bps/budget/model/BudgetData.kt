@@ -21,6 +21,7 @@ data class AccountsHolder<out T : Account>(
     }
 }
 
+// FIXME this doesn't make sense outside the CLI, does it?
 /**
  * Currently not thread safe to add or delete accounts.  So, just be sure to use only a "main" thread.
  */
@@ -185,7 +186,7 @@ class BudgetData(
             budgetId: Uuid = Uuid.random(),
             accountDao: AccountDao,
         ): BudgetData {
-            val (checkingAccount, draftAccount) =
+            val (checkingAccount: AccountEntity, draftAccount: AccountEntity) =
                 accountDao.createRealAndDraftAccountOrNull(
                     name = defaultCheckingAccountName,
                     description = defaultCheckingAccountDescription,
@@ -199,98 +200,110 @@ class BudgetData(
                     budgetId = budgetId,
                 )!!
             val wallet =
-                accountDao.createRealAccountOrNull(
+                accountDao.createAccountOrNull(
                     name = defaultWalletAccountName,
                     description = defaultWalletAccountDescription,
                     balance = walletBalance,
+                    type = AccountType.real.name,
                     budgetId = budgetId,
                 )!!
+            val generalCategoryAccount = generalAccount.toCategoryAccount()!!
+            val realWalletAccount = wallet.toRealAccount()!!
+            val realCheckingAccount = checkingAccount.toRealAccount()!!
             return BudgetData(
                 id = budgetId,
                 name = budgetName,
                 timeZone = timeZone,
                 analyticsStart = Clock.System.now(),
-                generalAccount = generalAccount,
+                generalAccount = generalCategoryAccount,
                 categoryAccounts =
                     AccountsHolder(
                         listOf(
-                            generalAccount,
+                            generalCategoryAccount,
                             accountDao.createCategoryAccountOrNull(
-                                defaultCosmeticsAccountName,
-                                defaultCosmeticsAccountDescription,
+                                name = defaultCosmeticsAccountName,
+                                description = defaultCosmeticsAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultEducationAccountName,
                                 defaultEducationAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultEntertainmentAccountName,
                                 defaultEntertainmentAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultFoodAccountName,
                                 defaultFoodAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultHobbyAccountName,
                                 defaultHobbyAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultHomeAccountName,
                                 defaultHomeAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultHousingAccountName,
                                 defaultHousingAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultMedicalAccountName,
                                 defaultMedicalAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultNecessitiesAccountName,
                                 defaultNecessitiesAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultNetworkAccountName,
                                 defaultNetworkAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultTransportationAccountName,
                                 defaultTransportationAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultTravelAccountName,
                                 defaultTravelAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultWorkAccountName,
                                 defaultWorkAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                         ),
                     ),
                 realAccounts =
                     AccountsHolder(
                         listOf(
-                            wallet,
-                            checkingAccount,
+                            realWalletAccount,
+                            realCheckingAccount,
                         ),
                     ),
                 draftAccounts =
-                    AccountsHolder(listOf(draftAccount)),
+                    AccountsHolder(
+                        listOf(
+                            draftAccount.toDraftAccount(
+                                buildMap {
+                                    put(realCheckingAccount.id, realCheckingAccount)
+                                },
+                            )!!,
+                        ),
+                    ),
             )
         }
 

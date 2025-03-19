@@ -8,6 +8,10 @@ import bps.budget.model.CategoryAccount
 import bps.budget.model.ChargeAccount
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
+import bps.budget.model.toCategoryAccount
+import bps.budget.model.toChargeAccount
+import bps.budget.model.toDraftAccount
+import bps.budget.model.toRealAccount
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
 import bps.console.app.TryAgainAtMostRecentMenuException
@@ -28,6 +32,7 @@ fun createCategoryAccountConsistently(
 ): CategoryAccount? =
     accountDao
         .createCategoryAccountOrNull(name, description, budgetId = budgetData.id)
+        ?.toCategoryAccount()
         ?.also { categoryAccount: CategoryAccount ->
             budgetData.addCategoryAccount(categoryAccount)
         }
@@ -51,9 +56,10 @@ fun WithIo.createRealAccountConsistentlyWithIo(
                 budgetId = budgetData.id,
             )
             ?.let { (real, draft) ->
-                budgetData.addRealAccount(real)
-                budgetData.addDraftAccount(draft)
-                real
+                val realAccount = real.toRealAccount()!!
+                budgetData.addRealAccount(realAccount)
+                budgetData.addDraftAccount(draft.toDraftAccount(mapOf(realAccount.id to realAccount))!!)
+                realAccount
             }
     } else {
         accountDao.createRealAccountOrNull(
@@ -61,6 +67,7 @@ fun WithIo.createRealAccountConsistentlyWithIo(
             description,
             budgetId = budgetData.id,
         )
+            ?.toRealAccount()
             ?.also {
                 budgetData.addRealAccount(it)
             }
@@ -119,7 +126,9 @@ fun createChargeAccountConsistently(
     accountDao: AccountDao,
     budgetData: BudgetData,
 ): ChargeAccount? =
-    accountDao.createChargeAccountOrNull(name, description, budgetId = budgetData.id)
+    accountDao
+        .createChargeAccountOrNull(name, description, budgetId = budgetData.id)
+        ?.toChargeAccount()
         ?.also { chargeAccount: ChargeAccount ->
             budgetData.addChargeAccount(chargeAccount)
         }

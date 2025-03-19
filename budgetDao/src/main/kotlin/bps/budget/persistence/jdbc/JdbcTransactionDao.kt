@@ -21,6 +21,7 @@ import java.sql.ResultSet
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@Suppress("SqlSourceToSinkFlow")
 @OptIn(ExperimentalUuidApi::class)
 open class JdbcTransactionDao(
 //    val errorStateTracker: JdbcDao.ErrorStateTracker,
@@ -391,14 +392,18 @@ open class JdbcTransactionDao(
         account: A,
         limit: Int,
         offset: Int,
+        types: List<TransactionType>,
         balanceAtEndOfPage: BigDecimal?,
-    ): List<TransactionDao.ExtendedTransactionItem<A>> =
+    ): List<ExtendedTransactionItem<A>> =
         buildList {
+            val actualTypes = types.takeIf { it.isNotEmpty() } ?: TransactionType.entries
             connection.transactOrThrow {
                 // TODO if it is a clearing transaction, then create the full transaction by combining the cleared category items
                 //      with this.
                 prepareStatement(
-                    """
+                    buildString {
+                        append(
+                            """
                     |select t.id as transaction_id,
                     |       t.description as transaction_description,
                     |       t.timestamp_utc as transaction_timestamp,
@@ -413,18 +418,34 @@ open class JdbcTransactionDao(
                     |                and t.budget_id = i.budget_id
                     |where t.budget_id = ?
                     |  and i.account_id = ?
+                    |  and t.type in (?
+            """.trimMargin(),
+                        )
+                        actualTypes
+                            .drop(1)
+                            .forEach {
+                                append(", ?")
+                            }
+                        append(")\n")
+                        append(
+                            """
                     |order by t.timestamp_utc desc, t.id
                     |limit ?
                     |offset ?
             """.trimMargin(),
+                        )
+                    },
                 )
                     .use { selectExtendedTransactionItemsForAccount: PreparedStatement ->
                         selectExtendedTransactionItemsForAccount
                             .apply {
                                 setUuid(1, account.budgetId)
                                 setUuid(2, account.id)
-                                setInt(3, limit)
-                                setInt(4, offset)
+                                actualTypes.forEachIndexed { index, type ->
+                                    setString(index + 3, type.name)
+                                }
+                                setInt(actualTypes.size + 3, limit)
+                                setInt(actualTypes.size + 4, offset)
                             }
                         selectExtendedTransactionItemsForAccount
                             .executeQuery()

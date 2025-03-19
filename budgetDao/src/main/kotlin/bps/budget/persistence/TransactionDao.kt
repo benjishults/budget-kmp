@@ -64,11 +64,13 @@ interface TransactionDao {
      * @param balanceAtEndOfPage must be provided unless [offset] is `0`.
      * If not provided, then the balance from the account will be used.
      * Its value should be the balance of the account at the point when this page of results ended.
+     * @param types if non-empty, only transactions of the given types will be returned.
      */
     fun <A : Account> fetchTransactionItemsInvolvingAccount(
         account: A,
         limit: Int = 30,
         offset: Int = 0,
+        types: List<TransactionType> = emptyList(),
         balanceAtEndOfPage: BigDecimal? =
             require(offset == 0) { "balanceAtEndOfPage must be provided unless offset is 0." }
                 .let { account.balance },
