@@ -6,9 +6,10 @@ import bps.budget.model.DraftAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
-import bps.budget.model.Transaction.Type
+import bps.budget.model.TransactionType
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.TransactionDao.ExtendedTransactionItem
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
@@ -155,7 +156,7 @@ open class JdbcTransactionDao(
         insertTransaction.setUuid(1, transaction.id)
         insertTransaction.setString(2, transaction.description)
         insertTransaction.setInstant(3, transaction.timestamp)
-        insertTransaction.setString(4, transaction.type.name)
+        insertTransaction.setString(4, transaction.transactionType.name)
         insertTransaction.setUuid(5, budgetId)
         return insertTransaction
     }
@@ -301,7 +302,7 @@ open class JdbcTransactionDao(
         clearedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>>,
         billPayTransaction: Transaction,
         budgetId: Uuid,
-        accountDao: AccountDao
+        accountDao: AccountDao,
     ) {
 //        errorStateTracker.catchCommitErrorState {
         // require billPayTransaction is a simple real transfer between a real and a charge account
@@ -450,7 +451,7 @@ open class JdbcTransactionDao(
                                                     transactionId = transactionId,
                                                     transactionDescription = transactionDescription,
                                                     transactionTimestamp = transactionTimestamp,
-                                                    transactionType = Type.valueOf(getString("type")!!),
+                                                    transactionType = TransactionType.valueOf(getString("type")!!),
                                                     accountBalanceAfterItem = runningBalance,
                                                 )
                                             } as TransactionDao.ExtendedTransactionItem<A>,
@@ -563,7 +564,7 @@ open class JdbcTransactionDao(
         Transaction.Builder(
             description = result.getString("transaction_description"),
             timestamp = result.getInstant("transaction_timestamp"),
-            type = Type.valueOf(result.getString("type")),
+            transactionType = TransactionType.valueOf(result.getString("type")),
         )
             .apply {
                 id = transactionId

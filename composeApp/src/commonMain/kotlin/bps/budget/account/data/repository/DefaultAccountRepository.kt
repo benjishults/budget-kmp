@@ -5,10 +5,10 @@ import bps.budget.account.data.network.RemoteAccountDataSource
 import bps.budget.account.domain.Account
 import bps.budget.account.domain.AccountRepository
 import bps.budget.core.domain.DataError
-import bps.budget.core.domain.Result
-import bps.budget.core.domain.map
 import bps.budget.model.AccountType
 import bps.budget.model.AccountsResponse
+import bps.kotlin.Result
+import bps.kotlin.map
 
 class DefaultAccountRepository(
     private val dataSource: RemoteAccountDataSource,

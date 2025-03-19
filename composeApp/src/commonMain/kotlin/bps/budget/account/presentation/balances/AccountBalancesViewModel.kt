@@ -4,10 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import bps.budget.account.domain.Account
 import bps.budget.account.domain.AccountRepository
-import bps.budget.core.domain.onError
-import bps.budget.core.domain.onSuccess
 import bps.budget.core.presentation.toUiText
 import bps.budget.model.AccountType
+import bps.kotlin.onError
+import bps.kotlin.onSuccess
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

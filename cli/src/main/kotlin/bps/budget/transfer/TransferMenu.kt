@@ -1,15 +1,15 @@
 package bps.budget.transfer
 
-import bps.console.io.WithIo
+import bps.budget.UserConfiguration
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.model.Account
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
 import bps.budget.model.Transaction
-import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
+import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.TransactionDao
 import bps.budget.transaction.showRecentRelevantTransactions
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
@@ -17,6 +17,7 @@ import bps.console.inputs.InRangeInclusiveStringValidator
 import bps.console.inputs.SimplePrompt
 import bps.console.inputs.SimplePromptWithDefault
 import bps.console.inputs.getTimestampFromUser
+import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import kotlinx.datetime.Clock
@@ -93,7 +94,7 @@ fun WithIo.transferMenu(
                 val transferTransaction = Transaction.Builder(
                     description = description,
                     timestamp = timestamp,
-                    type = Transaction.Type.transfer,
+                    transactionType = TransactionType.transfer,
                 )
                     .apply {
                         with(transferFromAccount) {

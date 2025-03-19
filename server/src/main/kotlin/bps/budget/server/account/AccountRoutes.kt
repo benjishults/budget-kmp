@@ -10,6 +10,7 @@ import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftAccount
 import bps.budget.model.RealAccount
 import bps.budget.persistence.AccountDao
+import bps.budget.server.core.ifTypeWanted
 import bps.budget.server.model.toResponse
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.response.respond
@@ -150,13 +151,3 @@ private suspend fun RoutingContext.returnAccounts(
         ),
     )
 }
-
-private fun <T : Account> ifTypeWanted(
-    type: AccountType,
-    types: List<AccountType>,
-    producer: () -> List<T>,
-): List<T> =
-    if (types.isEmpty() || type in types)
-        producer()
-    else
-        emptyList()

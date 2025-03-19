@@ -10,7 +10,7 @@ paths:
     summary: Accounts
     parameters:
       - $ref: "#/components/parameters/budgetIdParam"
-      - $ref: "#/components/parameters/typeParam"
+      - $ref: "#/components/parameters/accountTypeParam"
         required: false
         description: type(s) of desired accounts
     get:
@@ -74,15 +74,16 @@ paths:
     parameters:
       - $ref: "#/components/parameters/budgetIdParam"
       - $ref: "#/components/parameters/accountIdParam"
-      - $ref: "#/components/parameters/typeParam"
-        required: true
-        description: type of desired account
     get:
       description: Get the specified account.
       operationId: getAccount
       security:
         - budget_auth:
             - 'r:accounts'
+      parameters:
+        - $ref: "#/components/parameters/accountTypeParam"
+          required: true
+          description: type of desired account
       responses:
         200:
           description: requested account
@@ -180,6 +181,101 @@ paths:
           description: Not Found
         500:
           description: Internal Server Error
+  /budgets/{budgetId}/accounts/{accountId}/transactions:
+    parameters:
+      - $ref: "#/components/parameters/budgetIdParam"
+      - $ref: "#/components/parameters/accountIdParam"
+    get:
+      description: Get transactions on the given account.  Transactions will be sorted by transaction timestamp descending.
+      operationId: getAccountTransactions
+      security:
+        - budget_auth:
+            - 'r:transactions'
+      parameters:
+        - $ref: "#/components/parameters/transactionTypeParam"
+          description: |
+            If missing, all types will be returned.  More than one type is allowed.
+            Provide the parameter multiple times to get multiple types.
+        - name: offset
+          in: query
+          description: defaults to `0`
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          description: defaults to `100`
+          schema:
+            type: integer
+      responses:
+        200:
+          description: requested transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountTransactionsResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        500:
+          description: Internal Server Error
+  /budgets/{budgetId}/transactions/{transactionId}:
+    parameters:
+      - $ref: "#/components/parameters/budgetIdParam"
+      - $ref: "#/components/parameters/transactionIdParam"
+    get:
+      description: Get a transaction.
+      operationId: getTransaction
+      security:
+        - budget_auth:
+            - 'r:transactions'
+      responses:
+        200:
+          description: requested transaction
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        500:
+          description: Internal Server Error
+  /budgets/{budgetId}/transactions:
+    parameters:
+      - $ref: "#/components/parameters/budgetIdParam"
+    get:
+      description: Get transactions.  Transaction will be sorted by timestamp descending.
+      operationId: getTransactions
+      security:
+        - budget_auth:
+            - 'r:transactions'
+      responses:
+        200:
+          description: requested transactions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionsResponse'
+        400:
+          description: Bad Request
+        401:
+          description: Unauthorized
+        403:
+          description: Forbidden
+        404:
+          description: Not Found
+        500:
+          description: Internal Server Error
 
 components:
   parameters:
@@ -197,19 +293,51 @@ components:
       schema:
         format: uuid
         description: account ID
-    typeParam:
+    transactionIdParam:
+      name: transactionId
+      in: path
+      required: true
+      schema:
+        format: uuid
+        description: transaction ID
+    accountTypeParam:
       name: type
       in: query
       schema:
-        format: string
-        description: |
-          Values should be among these:
-            * real
-            * category
-            * charge
-            * draft
+        $ref: '#/components/schemas/accountType'
+    transactionTypeParam:
+      name: type
+      in: query
+      schema:
+        $ref: '#/components/schemas/transactionType'
 
   schemas:
+    accountType:
+      type: string
+      description: |
+        Values should be among these:
+          * real
+          * category
+          * charge
+          * draft
+    transactionType:
+      type: string
+      description: |
+        Values should be among these:
+          * expense
+          * transfer
+          * allowance
+          * income
+          * clearing
+          * initial
+    draftStatus:
+      type: string
+      description: |
+        Values should be among these:
+          * none - not related to a draft or charge
+          * outstanding - outstanding draft or charge
+          * cleared - cleared draft or charge
+          * clearing - clears another draft or charge transaction
     Links:
       type: object
       properties:
@@ -219,6 +347,39 @@ components:
         previous:
           type: string
           description: URI of previous page of results
+    AccountsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountResponse'
+        links:
+          $ref: '#/components/schemas/Links'
+      required:
+        - items
+    TransactionsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransactionResponse'
+        links:
+          $ref: '#/components/schemas/Links'
+      required:
+        - items
+    AccountTransactionsResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountTransactionResponse'
+        links:
+          $ref: '#/components/schemas/Links'
+      required:
+        - items
     AccountResponse:
       type: object
       properties:
@@ -247,17 +408,96 @@ components:
         - description
         - balance
         - budgetId
-    AccountsResponse:
+    TransactionResponse:
       type: object
       properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          schema:
+            $ref: '#/components/schemas/transactionType'
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
         items:
           type: array
+          description: Non-empty list of transaction items.
           items:
-            $ref: '#/components/schemas/AccountResponse'
-        links:
-          $ref: '#/components/schemas/Links'
+            schema:
+              $ref: '#/components/schemas/TransactionItemResponse'
+        clearsId:
+          type: string
+          format: uuid
+          description: Optional id of transaction cleared by this transaction.
+        budgetId:
+          type: string
+          format: uuid
       required:
+        - id
+        - type
+        - timestamp
         - items
+        - budgetId
+    TransactionItemResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        description:
+          type: string
+        amount:
+          type: number
+        draftStatus:
+          schema:
+            $ref: '#/components/schemas/draftStatus'
+        accountId:
+          type: string
+          format: uuid
+        budgetId:
+          type: string
+          format: uuid
+      required:
+        - id
+        - amount
+        - accountId
+        - budgetId
+    AccountTransactionResponse:
+      type: object
+      properties:
+        transactionItemId:
+          type: string
+          format: uuid
+        transactionId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        description:
+          type: string
+        amount:
+          type: number
+        balance:
+          type: number
+        type:
+          type: string
+        accountId:
+          type: string
+          format: uuid
+        budgetId:
+          type: string
+          format: uuid
+      required:
+        - transactionItemId
+        - transactionId
+        - timestamp
+        - amount
+        - accountId
+        - budgetId
     CreateOrReplaceAccountRequest:
       type: object
       properties:

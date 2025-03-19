@@ -2,6 +2,7 @@
 
 package bps.budget.charge
 
+import bps.budget.UserConfiguration
 import bps.budget.budgetQuitItem
 import bps.budget.consistency.commitCreditCardPaymentConsistently
 import bps.budget.model.BudgetData
@@ -9,10 +10,10 @@ import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
+import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
-import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.TransactionDao
 import bps.budget.transaction.ViewTransactionFixture
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
 import bps.budget.transaction.allocateSpendingItemMenu
@@ -167,7 +168,7 @@ private fun WithIo.payCreditCardBill(
                     Transaction.Builder(
                         description = description,
                         timestamp = timestamp,
-                        type = Transaction.Type.clearing,
+                        transactionType = TransactionType.clearing,
                     )
                         .apply {
                             with(selectedRealAccount) {
@@ -364,7 +365,7 @@ private fun WithIo.spendOnACreditCard(
             Transaction.Builder(
                 description = description,
                 timestamp = timestamp,
-                type = Transaction.Type.expense,
+                transactionType = TransactionType.expense,
             )
                 .apply {
                     with(chargeAccount) {

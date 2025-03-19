@@ -19,30 +19,9 @@ data class Transaction private constructor(
     val id: Uuid,
     val description: String,
     val timestamp: Instant,
-    val type: Type,
+    val transactionType: TransactionType,
     val clears: Transaction? = null,
 ) {
-
-    enum class Type {
-        expense,
-        income,
-
-        /**
-         * Starting to track an existing real account for the first time.
-         */
-        initial,
-
-        /**
-         * transfer from General to a category
-         */
-        allowance,
-        transfer,
-
-        /**
-         * transfer from real to charge or draft
-         */
-        clearing,
-    }
 
     lateinit var categoryItems: List<Item<CategoryAccount>>
         private set
@@ -177,7 +156,7 @@ data class Transaction private constructor(
         var description: String? = null,
         var timestamp: Instant? = null,
         var id: Uuid? = null,
-        var type: Type? = null,
+        var transactionType: TransactionType? = null,
         var clears: Transaction? = null,
     ) {
         val categoryItemBuilders: MutableList<ItemBuilder<CategoryAccount>> = mutableListOf()
@@ -189,7 +168,7 @@ data class Transaction private constructor(
             id = this@Builder.id ?: Uuid.random(),
             description = this@Builder.description!!,
             timestamp = this@Builder.timestamp!!,
-            type = this@Builder.type!!,
+            transactionType = this@Builder.transactionType!!,
             clears = this@Builder.clears,
         )
             .apply {
@@ -211,26 +190,3 @@ data class Transaction private constructor(
     }
 }
 
-/**
- * [DraftAccount]s and [ChargeAccount]s have some transaction items that are outstanding and some that are cleared.
- * [RealAccount]s have "clearing" transaction items that clear a check or pay a charge bill.
- */
-enum class DraftStatus {
-    none,
-
-    /**
-     * Means that the item is a cleared draft or charge expense on a category account from a draft or charge account
-     */
-    cleared,
-
-    /**
-     * Means that it is part of a clearing transaction transferring from a real account to a draft or charge account
-     */
-    clearing,
-
-    /**
-     * Means that the item is a draft or charge expense on a category account from a draft or charge account
-     * waiting for a clearing event on a real account
-     */
-    outstanding
-}
