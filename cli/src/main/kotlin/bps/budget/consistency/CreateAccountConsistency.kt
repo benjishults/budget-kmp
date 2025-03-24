@@ -58,7 +58,7 @@ fun WithIo.createRealAccountConsistentlyWithIo(
             ?.let { (real, draft) ->
                 val realAccount = real.toRealAccount()!!
                 budgetData.addRealAccount(realAccount)
-                budgetData.addDraftAccount(draft.toDraftAccount(mapOf(realAccount.id to realAccount))!!)
+                budgetData.addDraftAccount(draft.toDraftAccount { if (it == realAccount.id) realAccount else null }!!)
                 realAccount
             }
     } else {

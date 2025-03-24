@@ -94,7 +94,7 @@ fun WithIo.transferMenu(
                 val transferTransaction = Transaction.Builder(
                     description = description,
                     timestamp = timestamp,
-                    transactionType = TransactionType.transfer,
+                    transactionType = TransactionType.transfer.name,
                 )
                     .apply {
                         with(transferFromAccount) {

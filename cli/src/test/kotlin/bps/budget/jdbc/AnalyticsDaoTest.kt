@@ -16,7 +16,10 @@ import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Timestamp
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class AnalyticsDaoTest : FreeSpec(),
     WithMockClock {
 
@@ -67,9 +70,8 @@ class AnalyticsDaoTest : FreeSpec(),
                     }
                 }
         "test averages" {
-            val foodAccount: CategoryAccount = mockk(relaxed = true)
             dao.averageExpenditure(
-                foodAccount,
+                Uuid.random(),
                 timeZone,
                 // NOTE this doesn't really matter since we're mocking the results
                 AnalyticsOptions(
@@ -79,6 +81,7 @@ class AnalyticsDaoTest : FreeSpec(),
                     // NOTE this is midnight in New York (though it's ignored due to mocking the connection)
                     since = Instant.parse("2023-08-01T04:00:00Z"),
                 ),
+                Uuid.random()
             ) shouldBe (366 * 50 / 12).toBigDecimal()
         }
     }

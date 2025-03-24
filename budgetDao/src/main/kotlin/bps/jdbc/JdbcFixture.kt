@@ -76,7 +76,7 @@ interface JdbcFixture {
          */
         @JvmStatic
         inline fun <T> Connection.transact(
-            onRollback: (Exception) -> T = { throw it },
+            onRollback: (Throwable) -> T = { throw it },
             block: Connection.() -> T,
         ): T =
             try {
@@ -84,7 +84,7 @@ interface JdbcFixture {
                     .also {
                         commit()
                     }
-            } catch (exception: Exception) {
+            } catch (exception: Throwable) {
                 try {
                     rollback()
                     onRollback(exception)

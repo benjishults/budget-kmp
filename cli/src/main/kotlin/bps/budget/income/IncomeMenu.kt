@@ -14,6 +14,7 @@ import bps.budget.model.Transaction
 import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
 import bps.budget.transaction.showRecentRelevantTransactions
@@ -87,7 +88,7 @@ fun WithIo.recordIncomeSelectionMenu(
         baseList = budgetData.realAccounts + budgetData.chargeAccounts,
         labelGenerator = {
             val ave = analyticsDao.averageIncome(
-                this,
+                this.id,
                 budgetData.timeZone,
                 AnalyticsOptions(
 //            excludeFirstActiveUnit = true,
@@ -117,14 +118,8 @@ fun WithIo.recordIncomeSelectionMenu(
             account = realAccount,
             budgetData = budgetData,
             label = "Recent income:",
-        ) { transactionItem ->
-            budgetData.generalAccount in
-                    transactionItem.transaction(
-                        budgetData.id,
-                        budgetData.accountIdToAccountMap,
-                    )
-                        .categoryItems
-                        .map { it.account }
+        ) { transactionItem: AccountTransactionEntity ->
+            transactionItem.transactionType == TransactionType.income.name
         }
         outPrinter.verticalSpace()
         val amount: BigDecimal =
@@ -206,7 +201,7 @@ fun createIncomeTransaction(
 ): Transaction = createTransactionAddingToRealAccountAndGeneral(
     description = description,
     timestamp = timestamp,
-    transactionType = TransactionType.income,
+    transactionType = TransactionType.income.name,
     amount = amount,
     budgetData = budgetData,
     realAccount = realAccount,
@@ -221,7 +216,7 @@ fun createInitialBalanceTransaction(
 ): Transaction = createTransactionAddingToRealAccountAndGeneral(
     description = description,
     timestamp = timestamp,
-    transactionType = TransactionType.initial,
+    transactionType = TransactionType.initial.name,
     amount = amount,
     budgetData = budgetData,
     realAccount = realAccount,
@@ -233,7 +228,7 @@ fun createTransactionAddingToRealAccountAndGeneral(
     amount: BigDecimal,
     budgetData: BudgetData,
     realAccount: RealAccount,
-    transactionType: TransactionType,
+    transactionType: String,
 ) = Transaction.Builder(
     description = description,
     timestamp = timestamp,

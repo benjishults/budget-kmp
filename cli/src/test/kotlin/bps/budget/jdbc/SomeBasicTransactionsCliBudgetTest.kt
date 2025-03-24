@@ -81,7 +81,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                             .Builder(
                                 description = "income into $defaultCheckingAccountName",
                                 timestamp = clock.now(),
-                                transactionType = TransactionType.income,
+                                transactionType = TransactionType.income.name,
                             )
                             .apply {
                                 with(budgetData.generalAccount) {
@@ -106,7 +106,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                             .Builder(
                                 description = "allocate into $defaultFoodAccountName",
                                 timestamp = clock.now(),
-                                transactionType = TransactionType.allowance,
+                                transactionType = TransactionType.allowance.name,
                             )
                             .apply {
                                 with(budgetData.generalAccount) {
@@ -128,7 +128,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                     val writeCheck: Transaction = Transaction.Builder(
                         description = "groceries",
                         timestamp = clock.now(),
-                        transactionType = TransactionType.expense,
+                        transactionType = TransactionType.expense.name,
                     )
                         .apply {
                             with(
@@ -189,10 +189,10 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                 }
                 "check clears" {
                     val amount = BigDecimal("100.00")
-                    val writeCheck: Transaction = Transaction.Builder(
+                    val clearCheck: Transaction = Transaction.Builder(
                         description = "groceries",
                         timestamp = clock.now(),
-                        transactionType = TransactionType.clearing,
+                        transactionType = TransactionType.clearing.name,
                     )
                         .apply {
                             with(
@@ -211,7 +211,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                             }
                         }
                         .build()
-                    commitTransactionConsistently(writeCheck, transactionDao, accountDao, budgetData)
+                    commitTransactionConsistently(clearCheck, transactionDao, accountDao, budgetData)
                 }
                 "check balances after check clears" {
                     checkBalancesAfterCheckClears(budgetData)

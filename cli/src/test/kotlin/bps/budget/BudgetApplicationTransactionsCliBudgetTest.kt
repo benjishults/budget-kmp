@@ -1,7 +1,7 @@
 package bps.budget
 
-import bps.budget.model.AuthenticatedUser
 import bps.budget.jdbc.test.BasicAccountsJdbcCliBudgetTestFixture
+import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.defaultCheckingAccountName
 import bps.budget.model.defaultFoodAccountName
@@ -25,7 +25,9 @@ import kotlin.uuid.Uuid
 class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
     WithMockClock,
     // NOTE for debugging
-    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1500, true) {
+    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
+//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
+
     val budgetConfigurations: BudgetConfigurations = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
 
     val basicAccountsJdbcCliBudgetTestFixture: BasicAccountsJdbcCliBudgetTestFixture =
@@ -811,6 +813,8 @@ Spending recorded
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
+                        "Recent expenditures:\n",
+                        "2024-08-08 19:00:07 |      -1.50 | Pepsi\n",
                         "Enter the AMOUNT spent on 'Food' for 'SuperMarket' [0.01, [298.50]]: ",
                         "Enter DESCRIPTION for 'Food' spend [SuperMarket]: ",
                     ),
@@ -909,6 +913,9 @@ Spending recorded
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
+                        "Recent expenditures:\n",
+                        "2024-08-08 19:00:08 |    -200.00 | SuperMarket\n",
+                        "2024-08-08 19:00:07 |      -1.50 | Pepsi\n",
                         "Enter the AMOUNT spent on 'Food' for 'SuperMarket2' [0.01, [25.00]]: ",
                         "Enter DESCRIPTION for 'Food' spend [SuperMarket2]: ",
                     ),
@@ -1140,7 +1147,7 @@ Check deleted
                     expectedOutputs = listOf(
                         """
                         |2024-08-08 19:00:10
-                        |SuperMarket
+                        |clearing check: 'SuperMarket'
                         |Real             | Amount     | Description
                         |Checking         |    -300.00 | SuperMarket
                         |Draft            | Amount     | Description
@@ -1327,6 +1334,9 @@ New credit card account 'Costco Visa' created
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
+                        "Recent expenditures:\n",
+                        "2024-08-08 19:00:08 |    -200.00 | SuperMarket\n",
+                        "2024-08-08 19:00:07 |      -1.50 | Pepsi\n",
                         "Enter the AMOUNT spent on 'Food' for 'Costco' [0.01, [30.00]]: ",
                         "Enter DESCRIPTION for 'Food' spend [Costco]: ",
                     ),
@@ -1362,6 +1372,8 @@ Itemization prepared
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
+                        "Recent expenditures:\n",
+                        "2024-08-08 19:00:08 |    -100.00 | SuperMarket\n",
                         "Enter the AMOUNT spent on 'Necessities' for 'Costco' [0.01, [10.00]]: ",
                         "Enter DESCRIPTION for 'Necessities' spend [Costco]: ",
                     ),
@@ -1418,6 +1430,7 @@ Spending recorded
                         "Enter selection: ",
                         "Recent expenditures:\n",
                         "2024-08-08 19:00:11 |     -10.00 | Costco\n",
+                        "2024-08-08 19:00:08 |    -100.00 | SuperMarket\n",
                         "Enter the AMOUNT spent on 'Necessities' for 'Target' [0.01, [20.00]]: ",
                         "Enter DESCRIPTION for 'Necessities' spend [Target]: ",
                     ),
@@ -1723,6 +1736,7 @@ Item prepared
                         "Recent expenditures:\n",
                         "2024-08-08 19:00:12 |     -20.00 | Target\n",
                         "2024-08-08 19:00:11 |     -10.00 | Costco\n",
+                        "2024-08-08 19:00:08 |    -100.00 | SuperMarket\n",
                         "Enter the AMOUNT spent on 'Necessities' for 'Brausen's' [0.01, [5.00]]: ",
                         "Enter DESCRIPTION for 'Necessities' spend [Brausen's]: ",
                     ),
@@ -1866,7 +1880,7 @@ Spending recorded
                     expectedOutputs = listOf(
                         """
                         |2024-08-08 19:00:10
-                        |SuperMarket
+                        |clearing check: 'SuperMarket'
                         |Real             | Amount     | Description
                         |Checking         |    -300.00 | SuperMarket
                         |Draft            | Amount     | Description

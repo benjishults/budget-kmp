@@ -1,6 +1,5 @@
 package bps.budget.persistence
 
-import bps.budget.model.AccountEntity
 import bps.budget.model.AccountType
 import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
@@ -9,10 +8,10 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 interface AccountDao {
 
-    data class BalanceToAdd(
-        val accountId: Uuid,
-        val amountToRevert: BigDecimal,
-    )
+    interface AccountCommitableTransactionItem /*: Comparable<TransactionItem<*>>*/ {
+        val amount: BigDecimal
+        val accountId: Uuid
+    }
 
     fun getAccountOrNull(
         accountId: Uuid,
@@ -51,7 +50,7 @@ interface AccountDao {
 //        factory: AccountFactory<T>,
     ): List<AccountEntity> = TODO()
 
-    fun List<BalanceToAdd>.updateBalances(budgetId: Uuid)
+    fun List<AccountCommitableTransactionItem>.updateBalances(budgetId: Uuid)
 
     fun updateAccount(
         id: Uuid,

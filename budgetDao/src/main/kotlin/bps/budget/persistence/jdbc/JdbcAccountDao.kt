@@ -1,10 +1,10 @@
 package bps.budget.persistence.jdbc
 
-import bps.budget.model.AccountEntity
 import bps.budget.model.AccountType
 import bps.budget.model.defaultGeneralAccountDescription
 import bps.budget.model.defaultGeneralAccountName
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountEntity
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
@@ -140,10 +140,6 @@ where acc.budget_id = ?
                     }
             }
 
-    /**
-     * Converts a [ResultSet] into list of [T]s
-     * @param T the [Account] type
-     */
     private fun ResultSet.extractAccounts(
         // TODO should be AccountFactory?
 //        factory: (String, String, Uuid, BigDecimal, Uuid, Uuid?) -> T,
@@ -182,9 +178,11 @@ where aap.account_id = ?
                 }
         }
 
-    override fun List<AccountDao.BalanceToAdd>.updateBalances(budgetId: Uuid) =
+    override fun List<AccountDao.AccountCommitableTransactionItem>.updateBalances(budgetId: Uuid): Unit =
         connection.transactOrThrow {
-            forEach { (accountId: Uuid, amount: BigDecimal) ->
+            forEach { item: AccountDao.AccountCommitableTransactionItem ->
+                val amount: BigDecimal = item.amount
+                val accountId: Uuid = item.accountId
                 prepareStatement(
                     """
                         update accounts
@@ -195,7 +193,9 @@ where aap.account_id = ?
                         preparedStatement.setBigDecimal(1, amount)
                         preparedStatement.setUuid(2, accountId)
                         preparedStatement.setUuid(3, budgetId)
-                        preparedStatement.executeUpdate()
+                        if (preparedStatement.executeUpdate() != 1) {
+                            throw IllegalStateException("Cannot update balances for account_id=$accountId, budget_id=$budgetId")
+                        }
                     }
             }
         }
@@ -230,7 +230,7 @@ where aap.account_id = ?
         description: String,
         type: String,
         balance: BigDecimal,
-        budgetId: Uuid
+        budgetId: Uuid,
     ): AccountEntity? =
         connection.transactOrThrow {
             prepareStatement(

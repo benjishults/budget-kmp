@@ -1,5 +1,6 @@
-package bps.budget.model
+package bps.budget.persistence
 
+import bps.budget.model.AccountData
 import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -10,7 +11,7 @@ class AccountEntity(
     override val name: String,
     override val description: String = "",
     override val balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-    val type: String,
+    override val type: String,
     val budgetId: Uuid,
     val companionId: Uuid? = null,
 ) : AccountData {

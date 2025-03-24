@@ -13,6 +13,7 @@ import bps.budget.model.Transaction
 import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.TransactionDao
 import bps.budget.transaction.ViewTransactionFixture
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
@@ -86,24 +87,24 @@ fun WithIo.creditCardMenu(
                             account = chargeAccount,
                             transactionDao = transactionDao,
                             budgetId = budgetData.id,
-                            accountIdToAccountMap = budgetData.accountIdToAccountMap,
+                            accountIdToAccountMap = { budgetData.getAccountByIdOrNull(it) },
                             timeZone = budgetData.timeZone,
                             limit = userConfig.numberOfItemsInScrollingList,
-                            filter = { it.item.draftStatus === DraftStatus.outstanding },
+                            filter = { it.draftStatus === DraftStatus.outstanding.name },
                             header = { "Unpaid transactions on '${chargeAccount.name}'" },
                             prompt = { "Select transaction to view details: " },
                             outPrinter = outPrinter,
                             extraItems = listOf(), // TODO toggle cleared/outstanding
-                        ) { _, extendedTransactionItem ->
+                        ) { _, extendedTransactionItem: AccountTransactionEntity ->
                             with(ViewTransactionFixture) {
                                 outPrinter.verticalSpace()
                                 outPrinter.showTransactionDetailsAction(
-                                    extendedTransactionItem.transaction(
-                                        budgetData.id,
-                                        budgetData.accountIdToAccountMap,
-                                    ),
+                                    transactionDao.getTransactionOrNull(
+                                        extendedTransactionItem.transactionId,
+                                        extendedTransactionItem.budgetId,
+                                    )!!,
                                     budgetData.timeZone,
-                                )
+                                ) { budgetData.getAccountByIdOrNull(it) }
                             }
                         }
                     },
@@ -168,7 +169,7 @@ private fun WithIo.payCreditCardBill(
                     Transaction.Builder(
                         description = description,
                         timestamp = timestamp,
-                        transactionType = TransactionType.clearing,
+                        transactionType = TransactionType.clearing.name,
                     )
                         .apply {
                             with(selectedRealAccount) {
@@ -218,7 +219,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBill(
     runningTotal = amountOfBill,
     billPayTransaction = billPayTransaction,
     chargeAccount = chargeAccount,
-    selectedItems = emptyList(),
+    selectedChargeItems = emptyList(),
     budgetData = budgetData,
     transactionDao = transactionDao,
     accountDao = accountDao,
@@ -232,7 +233,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
     runningTotal: BigDecimal,
     billPayTransaction: Transaction,
     chargeAccount: ChargeAccount,
-    selectedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>>,
+    selectedChargeItems: List<AccountTransactionEntity>,
     budgetData: BudgetData,
     transactionDao: TransactionDao,
     accountDao: AccountDao,
@@ -243,12 +244,12 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
     account = chargeAccount,
     transactionDao = transactionDao,
     budgetId = budgetData.id,
-    accountIdToAccountMap = budgetData.accountIdToAccountMap,
+    accountIdToAccountMap = { budgetData.getAccountByIdOrNull(it) },
     timeZone = budgetData.timeZone,
     header = {
         "Select all transactions from this '${chargeAccount.name}' bill.  Amount to be covered: $${
             amountOfBill +
-                    selectedItems
+                    selectedChargeItems
                         .fold(BigDecimal.ZERO) { sum, item ->
                             sum + item.amount
                         }
@@ -256,7 +257,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
     },
     prompt = { "Select a transaction covered in this bill: " },
     limit = userConfig.numberOfItemsInScrollingList,
-    filter = { it.item.draftStatus === DraftStatus.outstanding && it !in selectedItems },
+    filter = { it.draftStatus === DraftStatus.outstanding.name && it !in selectedChargeItems },
     outPrinter = outPrinter,
     extraItems = listOf(
         takeAction({ "Record a missing transaction from this '${chargeAccount.name}' bill" }) {
@@ -271,9 +272,9 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
             )
         },
     ),
-) { _: MenuSession, chargeTransactionItem: TransactionDao.ExtendedTransactionItem<ChargeAccount> ->
-    val allSelectedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>> =
-        selectedItems + chargeTransactionItem
+) { _: MenuSession, chargeTransactionItem: AccountTransactionEntity ->
+    val allSelectedChargeItems: List<AccountTransactionEntity> =
+        selectedChargeItems + chargeTransactionItem
     val remainingToBeCovered: BigDecimal = runningTotal + chargeTransactionItem.amount
     when {
         remainingToBeCovered == BigDecimal.ZERO.setScale(2) -> {
@@ -281,7 +282,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
             menuSession.pop()
             commitCreditCardPaymentConsistently(
                 billPayTransaction,
-                allSelectedItems,
+                allSelectedChargeItems.map { it.transactionId },
                 transactionDao,
                 accountDao,
                 budgetData,
@@ -302,7 +303,7 @@ private fun WithIo.selectOrCreateChargeTransactionsForBillHelper(
                     runningTotal = remainingToBeCovered,
                     billPayTransaction = billPayTransaction,
                     chargeAccount = chargeAccount,
-                    selectedItems = allSelectedItems,
+                    selectedChargeItems = allSelectedChargeItems,
                     budgetData = budgetData,
                     transactionDao = transactionDao,
                     userConfig = userConfig,
@@ -365,7 +366,7 @@ private fun WithIo.spendOnACreditCard(
             Transaction.Builder(
                 description = description,
                 timestamp = timestamp,
-                transactionType = TransactionType.expense,
+                transactionType = TransactionType.expense.name,
             )
                 .apply {
                     with(chargeAccount) {

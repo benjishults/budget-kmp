@@ -124,27 +124,37 @@ class JdbcCliBudgetDao(
                                 .getDeactivatedAccounts(AccountType.charge.name, budgetId)
                                 .map { it.toChargeAccount()!! },
                     )
-                val accountIdToAccountMap =
-                    buildMap<Uuid, Account> {
-                        realAccountsHolder
-                            .allAccounts
-                            .forEach { account ->
-                                put(account.id, account)
-                            }
-                    }
+//                val accountIdToAccountMap =
+//                    buildMap<Uuid, Account> {
+//                        realAccountsHolder
+//                            .allAccounts
+//                            .forEach { account ->
+//                                put(account.id, account)
+//                            }
+//                    }
                 val draftAccountsHolder = AccountsHolder(
                     active = accountDao.getActiveAccounts(
                         AccountType.draft.name,
                         budgetId,
                     )
                         .map {
-                            it.toDraftAccount(accountIdToAccountMap)!!
+                            it.toDraftAccount { realId: Uuid ->
+                                realAccountsHolder
+                                    .allAccounts
+                                    .firstOrNull { it.id == realId }
+                            }!!
                         },
                     inactive = accountDao.getDeactivatedAccounts(
                         AccountType.draft.name,
                         budgetId,
                     )
-                        .map { it.toDraftAccount(accountIdToAccountMap)!! },
+                        .map {
+                            it.toDraftAccount { realId: Uuid ->
+                                realAccountsHolder
+                                    .allAccounts
+                                    .firstOrNull { it.id == realId }
+                            }!!
+                        },
                 )
                 BudgetData(
                     budgetId,

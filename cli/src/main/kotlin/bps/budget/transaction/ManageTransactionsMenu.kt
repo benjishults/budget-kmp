@@ -1,19 +1,21 @@
 package bps.budget.transaction
 
-import bps.console.io.WithIo
+import bps.budget.UserConfiguration
 import bps.budget.consistency.deleteTransactionConsistently
 import bps.budget.model.Account
 import bps.budget.model.BudgetData
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
 import bps.budget.ui.formatAsLocalDateTime
 import bps.console.app.MenuSession
+import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.item
 import kotlin.uuid.ExperimentalUuidApi
 
+@Suppress("DefaultLocale")
 @OptIn(ExperimentalUuidApi::class)
 fun WithIo.manageTransactions(
     budgetData: BudgetData,
@@ -42,7 +44,7 @@ fun WithIo.manageTransactions(
                 limit = userConfig.numberOfItemsInScrollingList,
                 transactionDao = transactionDao,
                 budgetId = budgetData.id,
-                accountIdToAccountMap = budgetData.accountIdToAccountMap,
+                accountIdToAccountMap = { budgetData.getAccountByIdOrNull(it) },
                 timeZone = budgetData.timeZone,
                 outPrinter = outPrinter,
                 budgetData = budgetData,
@@ -56,11 +58,11 @@ fun WithIo.manageTransactions(
                                 limit = userConfig.numberOfItemsInScrollingList,
                                 transactionDao = transactionDao,
                                 budgetId = budgetData.id,
-                                accountIdToAccountMap = budgetData.accountIdToAccountMap,
+                                accountIdToAccountMap = { budgetData.getAccountByIdOrNull(it) },
                                 timeZone = budgetData.timeZone,
                                 outPrinter = outPrinter,
                                 budgetData = budgetData,
-                            ) { _: MenuSession, extendedTransactionItem: TransactionDao.ExtendedTransactionItem<Account> ->
+                            ) { _: MenuSession, extendedTransactionItem: AccountTransactionEntity ->
                                 deleteTransactionConsistently(
                                     extendedTransactionItem,
                                     transactionDao,
@@ -77,26 +79,34 @@ fun WithIo.manageTransactions(
 
 const val NUMBER_OF_TRANSACTION_ITEMS_TO_SHOW_BEFORE_PROMPT = 6
 
+@OptIn(ExperimentalUuidApi::class)
 @Suppress("DefaultLocale")
 fun WithIo.showRecentRelevantTransactions(
     transactionDao: TransactionDao,
     account: Account,
     budgetData: BudgetData,
     label: String = "Recent transactions",
-    filter: (TransactionDao.ExtendedTransactionItem<*>) -> Boolean = { true },
+    filter: (AccountTransactionEntity) -> Boolean = { true },
 ) {
     transactionDao
-        .fetchTransactionItemsInvolvingAccount(account, limit = 500)
+        .fetchTransactionItemsInvolvingAccount(
+            accountId = account.id,
+            limit = 500,
+            offset = 0,
+            types = emptyList(),
+            balanceAtStartOfPage = null,
+            budgetId = budgetData.id,
+        )
         .filter(filter)
         .take(NUMBER_OF_TRANSACTION_ITEMS_TO_SHOW_BEFORE_PROMPT)
         .sortedDescending()
         .takeIf { it.isNotEmpty() }
         ?.also { outPrinter("$label\n") }
-        ?.forEach { item: TransactionDao.ExtendedTransactionItem<*> ->
+        ?.forEach { item: AccountTransactionEntity ->
             outPrinter(
                 String.format(
                     "%s | %,10.2f | %s\n",
-                    item.transactionTimestamp
+                    item.timestamp
                         .formatAsLocalDateTime(budgetData.timeZone),
                     item.amount,
                     item.description ?: item.transactionDescription,

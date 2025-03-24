@@ -1,10 +1,16 @@
+@file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.transaction
 
 import bps.budget.model.Account
+import bps.budget.model.AccountData
 import bps.budget.model.BudgetData
-import bps.budget.model.Transaction
-import bps.budget.model.TransactionItem
+import bps.budget.persistence.AccountTransactionEntity
+import bps.budget.persistence.AllocatedItemEntities
 import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.TransactionEntity
+import bps.budget.persistence.TransactionItemEntity
+import bps.budget.persistence.allocateItemsByAccountType
 import bps.budget.ui.formatAsLocalDateTime
 import bps.console.app.MenuSession
 import bps.console.io.DefaultOutPrinter
@@ -13,9 +19,9 @@ import bps.console.menu.MenuItem
 import bps.console.menu.ScrollingSelectionWithContextMenu
 import kotlinx.datetime.TimeZone
 import java.math.BigDecimal
-import kotlin.uuid.Uuid
 import kotlin.math.max
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 private const val TRANSACTIONS_TABLE_HEADER = "    Time Stamp          | Amount     | Balance    | Description"
 
@@ -30,7 +36,7 @@ open class TransactionListMenu<A : Account>(
     private val account: A,
     private val transactionDao: TransactionDao,
     private val budgetId: Uuid,
-    private val accountIdToAccountMap: Map<Uuid, Account>,
+    private val accountIdToAccountMap: (Uuid) -> Account?,
     private val timeZone: TimeZone,
     limit: Int = 30,
     offset: Int = 0,
@@ -43,18 +49,22 @@ open class TransactionListMenu<A : Account>(
     prompt: () -> String = { "Select transaction for details: " },
     val outPrinter: OutPrinter = DefaultOutPrinter,
     extraItems: List<MenuItem> = emptyList(),
-    actOnSelectedItem: (MenuSession, TransactionDao.ExtendedTransactionItem<A>) -> Unit =
-        { _: MenuSession, extendedTransactionItem: TransactionDao.ExtendedTransactionItem<A> ->
+    actOnSelectedItem: (MenuSession, AccountTransactionEntity) -> Unit =
+        { _: MenuSession, extendedTransactionItem: AccountTransactionEntity ->
             // NOTE this is needed so that when this menu is re-displayed, it will be where it started
             contextStack.removeLast()
             with(ViewTransactionFixture) {
                 outPrinter.showTransactionDetailsAction(
-                    extendedTransactionItem.transaction(budgetId, accountIdToAccountMap),
+                    transactionDao.getTransactionOrNull(
+                        extendedTransactionItem.transactionId,
+                        extendedTransactionItem.budgetId,
+                    )!!,
                     timeZone,
+                    accountIdToAccountMap,
                 )
             }
         },
-) : ScrollingSelectionWithContextMenu<TransactionDao.ExtendedTransactionItem<A>, BigDecimal>(
+) : ScrollingSelectionWithContextMenu<AccountTransactionEntity, BigDecimal>(
     header = {
         """
             |${header()}
@@ -69,20 +79,22 @@ open class TransactionListMenu<A : Account>(
     labelGenerator = {
         String.format(
             "%s | %,10.2f | %,10.2f | %s",
-            transactionTimestamp
+            timestamp
                 .formatAsLocalDateTime(timeZone),
             amount,
-            accountBalanceAfterItem,
-            description ?: transactionDescription,
+            balance,
+            description ?: transactionDao.getTransactionOrNull(transactionId, budgetId)!!.description,
         )
     },
     itemListGenerator = { selectedLimit: Int, selectedOffset: Int ->
         with(transactionDao) {
             fetchTransactionItemsInvolvingAccount(
-                account = account,
+                accountId = account.id,
                 limit = selectedLimit,
                 offset = selectedOffset,
-                balanceAtEndOfPage = contextStack.lastOrNull() ?: account.balance,
+                balanceAtStartOfPage = contextStack.lastOrNull() ?: account.balance,
+                types = emptyList(),
+                budgetId = budgetId,
             )
                 .sortedWith { o1, o2 -> -o1.compareTo(o2) }
         }
@@ -98,10 +110,10 @@ open class TransactionListMenu<A : Account>(
     /**
      * Add the current context to the stack immediately when the list is generated.
      */
-    override fun List<TransactionDao.ExtendedTransactionItem<A>>.produceCurrentContext(): BigDecimal =
+    override fun List<AccountTransactionEntity>.produceCurrentContext(): BigDecimal =
         lastOrNull()
             ?.run {
-                accountBalanceAfterItem!! - amount
+                balance!! - amount
             }
             ?: account.balance
 
@@ -149,9 +161,15 @@ open class TransactionListMenu<A : Account>(
 
 object ViewTransactionFixture {
 
-    fun OutPrinter.showTransactionDetailsAction(transaction: Transaction, timeZone: TimeZone) {
+    fun OutPrinter.showTransactionDetailsAction(
+        transaction: TransactionEntity,
+        timeZone: TimeZone,
+        accountIdToAccountMap: (Uuid) -> AccountData?,
+    ) {
         invoke(
             buildString {
+                val allocatedItems: AllocatedItemEntities =
+                    transaction.allocateItemsByAccountType(accountIdToAccountMap)
                 append(
                     transaction
                         .timestamp
@@ -160,33 +178,42 @@ object ViewTransactionFixture {
                 append("\n")
                 append(transaction.description)
                 append("\n")
-                appendItems("Category", transaction.categoryItems)
-                appendItems("Real", transaction.realItems)
-                appendItems("Credit Card", transaction.chargeItems)
-                appendItems("Draft", transaction.draftItems)
+                appendItems("Category", allocatedItems.category, accountIdToAccountMap)
+                appendItems("Real", allocatedItems.real, accountIdToAccountMap)
+                appendItems("Credit Card", allocatedItems.charge, accountIdToAccountMap)
+                appendItems("Draft", allocatedItems.draft, accountIdToAccountMap)
             },
         )
     }
 
+    @Suppress("DefaultLocale")
     fun StringBuilder.appendItems(
         accountColumnLabel: String,
-        items: List<TransactionItem<*>>,
+        items: List<TransactionItemEntity>,
+        accountIdToAccountMap: (Uuid) -> AccountData?,
     ) {
         if (items.isNotEmpty()) {
             append(String.format("%-16s | Amount     | Description\n", accountColumnLabel))
             items
-                .sortedWith { item1, item2 ->
-                    when (item1) {
-                        is Transaction.Item<*> -> item1.compareTo(item2 as Transaction.Item<*>)
-                        is TransactionDao.ExtendedTransactionItem<*> -> item1.compareTo(item2 as TransactionDao.ExtendedTransactionItem<*>)
-                        else -> throw IllegalArgumentException()
-                    }
+                // NOTE just need a consistent sort for tests
+                .sortedWith { item1: TransactionItemEntity, item2: TransactionItemEntity ->
+                    accountIdToAccountMap(item1.accountId)!!
+                        .name
+                        .compareTo(
+                            accountIdToAccountMap(item2.accountId)!!
+                                .name,
+                        )
+//                    when (item1) {
+//                        is Transaction.Item<*> -> item1.compareTo(item2 as Transaction.Item<*>)
+//                        is TransactionDao.ExtendedTransactionItem<*> -> item1.compareTo(item2 as TransactionDao.ExtendedTransactionItem<*>)
+//                        else -> throw IllegalArgumentException()
+//                    }
                 }
-                .forEach { transactionItem: TransactionItem<*> ->
+                .forEach { transactionItem: TransactionItemEntity ->
                     append(
                         String.format(
                             "%-16s | %10.2f |%s",
-                            transactionItem.account.name,
+                            accountIdToAccountMap(transactionItem.accountId)!!.name,
                             transactionItem.amount,
                             transactionItem
                                 .description

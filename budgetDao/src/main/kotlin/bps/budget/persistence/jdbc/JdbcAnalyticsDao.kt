@@ -1,8 +1,6 @@
 package bps.budget.persistence.jdbc
 
 import bps.budget.analytics.AnalyticsOptions
-import bps.budget.model.CategoryAccount
-import bps.budget.model.RealAccount
 import bps.budget.persistence.AnalyticsDao
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
@@ -228,7 +226,7 @@ class JdbcAnalyticsDao(
         }
 
     override fun averageIncome(
-        realAccount: RealAccount,
+        realAccountId: Uuid,
         timeZone: TimeZone,
         options: AnalyticsOptions,
         budgetId: Uuid,
@@ -254,7 +252,7 @@ class JdbcAnalyticsDao(
 //                |limit 100
             )
                 .use { statement: PreparedStatement ->
-                    statement.setUuid(1, realAccount.id)
+                    statement.setUuid(1, realAccountId)
                     statement.setInstant(2, options.since)
                     statement.setUuid(
                         setEndTimeStampMaybe(options, statement, 3, this@JdbcAnalyticsDao.clock.now(), timeZone),
@@ -335,9 +333,10 @@ class JdbcAnalyticsDao(
     // TODO make a single function that returns various analytics to avoid multiple trips to the DB.
     //      I imagine each of these analytics functions will be pulling the same data.
     override fun averageExpenditure(
-        categoryAccount: CategoryAccount,
+        categoryAccountId: Uuid,
         timeZone: TimeZone,
         options: AnalyticsOptions,
+        budgetId: Uuid,
     ): BigDecimal? =
         connection.transactOrThrow {
             val expenditures = MonthlyItemSeries()
@@ -360,11 +359,11 @@ class JdbcAnalyticsDao(
 //                |limit 100
             )
                 .use { statement: PreparedStatement ->
-                    statement.setUuid(1, categoryAccount.id)
+                    statement.setUuid(1, categoryAccountId)
                     statement.setInstant(2, options.since)
                     statement.setUuid(
                         setEndTimeStampMaybe(options, statement, 3, this@JdbcAnalyticsDao.clock.now(), timeZone),
-                        categoryAccount.budgetId,
+                        budgetId,
                     )
 
                     statement.executeQuery()

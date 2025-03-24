@@ -11,4 +11,5 @@ interface AccountData {
     val id: Uuid
     val description: String
     val balance: BigDecimal
+    val type: String
 }

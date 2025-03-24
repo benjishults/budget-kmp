@@ -12,6 +12,7 @@ import bps.budget.model.Transaction
 import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.TransactionDao
 import bps.budget.transaction.showRecentRelevantTransactions
@@ -86,7 +87,8 @@ fun WithIo.makeAllowancesSelectionMenu(
         baseList = budgetData.categoryAccounts - budgetData.generalAccount,
         labelGenerator = {
             val ave = analyticsDao.averageExpenditure(
-                this, budgetData.timeZone,
+                this.id,
+                budgetData.timeZone,
                 AnalyticsOptions(
 //            excludeFirstActiveUnit = true,
 //            excludeMaxAndMin = false,
@@ -102,6 +104,7 @@ fun WithIo.makeAllowancesSelectionMenu(
                             .dayOfMonth < 20,
                     since = budgetData.analyticsStart,
                 ),
+                budgetId
             )
             val max = analyticsDao.maxExpenditure()
             val min = analyticsDao.minExpenditure()
@@ -114,11 +117,11 @@ fun WithIo.makeAllowancesSelectionMenu(
             account = selectedCategoryAccount,
             budgetData = budgetData,
             label = "Recent allowances:",
-        ) { transactionItem: TransactionDao.ExtendedTransactionItem<*> ->
+        ) { transactionItem: AccountTransactionEntity ->
             transactionItem.transactionType in listOf(
-                TransactionType.allowance,
-                TransactionType.expense,
-                TransactionType.transfer,
+                TransactionType.allowance.name,
+                TransactionType.expense.name,
+                TransactionType.transfer.name,
             )
         }
 
@@ -156,7 +159,7 @@ fun WithIo.makeAllowancesSelectionMenu(
             val allocate = Transaction.Builder(
                 description = description,
                 timestamp = timestamp,
-                transactionType = TransactionType.allowance,
+                transactionType = TransactionType.allowance.name,
             )
                 .apply {
                     with(budgetData.generalAccount) {

@@ -2,26 +2,22 @@
 
 package bps.budget.model
 
+import bps.budget.persistence.AccountDao.AccountCommitableTransactionItem
+import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.TransactionData
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-interface TransactionItem<out A : Account> /*: Comparable<TransactionItem<*>>*/ {
-    val amount: BigDecimal
-    val description: String?
-    val account: A
-    val timestamp: Instant
-}
-
 @ConsistentCopyVisibility
 data class Transaction private constructor(
-    val id: Uuid,
-    val description: String,
-    val timestamp: Instant,
-    val transactionType: TransactionType,
+    override val id: Uuid,
+    override val description: String,
+    override val timestamp: Instant,
+    override val transactionType: String,
     val clears: Transaction? = null,
-) {
+) : TransactionData {
 
     lateinit var categoryItems: List<Item<CategoryAccount>>
         private set
@@ -32,7 +28,16 @@ data class Transaction private constructor(
     lateinit var draftItems: List<Item<DraftAccount>>
         private set
 
-    fun allItems(): Collection<Item<*>> = categoryItems + realItems + chargeItems + draftItems
+    fun allItems(): List<Item<*>> = categoryItems + realItems + chargeItems + draftItems
+
+    override fun compareTo(other: TransactionData): Int =
+        this.timestamp.compareTo(other.timestamp)
+            .let {
+                when (it) {
+                    0 -> this.id.toString().compareTo(other.id.toString())
+                    else -> it
+                }
+            }
 
     private fun validate(): Boolean {
         val categoryAndDraftSum: BigDecimal =
@@ -67,14 +72,24 @@ data class Transaction private constructor(
     inner class Item<out A : Account>(
         val id: Uuid,
         override val amount: BigDecimal,
-        override val description: String? = null,
-        override val account: A,
+        val description: String? = null,
+        val account: A,
         val draftStatus: DraftStatus = DraftStatus.none,
-    ) : Comparable<Item<*>>, TransactionItem<A> {
+    ) : Comparable<Item<*>>, AccountCommitableTransactionItem {
 
         val transaction = this@Transaction
 
-        override val timestamp: Instant = transaction.timestamp
+        val timestamp: Instant = transaction.timestamp
+        override val accountId: Uuid = account.id
+
+        fun toTransactionDaoItem(): TransactionDao.TransactionItem =
+            TransactionDao.TransactionItem(
+                amount = amount,
+                description = description,
+                accountId = account.id,
+                accountType = account.type,
+                draftStatus = draftStatus.name,
+            )
 
         override fun compareTo(other: Item<*>): Int =
             transaction.timestamp
@@ -156,7 +171,7 @@ data class Transaction private constructor(
         var description: String? = null,
         var timestamp: Instant? = null,
         var id: Uuid? = null,
-        var transactionType: TransactionType? = null,
+        var transactionType: String? = null,
         var clears: Transaction? = null,
     ) {
         val categoryItemBuilders: MutableList<ItemBuilder<CategoryAccount>> = mutableListOf()
