@@ -1,14 +1,18 @@
 package bps.budget.persistence.jdbc
 
-import bps.budget.model.Account
-import bps.budget.model.ChargeAccount
-import bps.budget.model.DraftAccount
+import bps.budget.model.AccountData
+import bps.budget.model.AccountType
 import bps.budget.model.DraftStatus
-import bps.budget.model.RealAccount
-import bps.budget.model.Transaction
-import bps.budget.model.Transaction.Type
+import bps.budget.model.TransactionType
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountEntity
+import bps.budget.persistence.AccountTransactionEntity
+import bps.budget.persistence.AllocatedItemEntities
 import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.TransactionData
+import bps.budget.persistence.TransactionEntity
+import bps.budget.persistence.TransactionItemEntity
+import bps.budget.persistence.allocateItemsByAccountType
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
@@ -20,153 +24,319 @@ import java.sql.ResultSet
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@Suppress("SqlSourceToSinkFlow")
 @OptIn(ExperimentalUuidApi::class)
 open class JdbcTransactionDao(
 //    val errorStateTracker: JdbcDao.ErrorStateTracker,
     val jdbcConnectionProvider: JdbcConnectionProvider,
-) : TransactionDao, JdbcFixture, AutoCloseable {
+) : TransactionDao(), JdbcFixture, AutoCloseable {
 
     private val connection: Connection = jdbcConnectionProvider.connection
 
+    // TODO I would like these entity classes to be constructible only by DAO classes.
+    //      Options:
+    //      1. make these interfaces with private implementations and have the DAO classes ensure that those passed in
+    //         are of the right type
+    //      2. I can't get anything else to work...
+    private class JdbcTransactionEntity(
+        override val id: Uuid,
+        override val description: String,
+        override val timestamp: Instant,
+        override val transactionType: String,
+        override val clearedById: Uuid? = null,
+        override val items: List<TransactionItemEntity>,
+        override val budgetId: Uuid,
+    ) : TransactionEntity {
+
+        override fun compareTo(other: TransactionData): Int =
+            this.timestamp.compareTo(other.timestamp)
+                .let {
+                    when (it) {
+                        0 -> this.id.toString().compareTo(other.id.toString())
+                        else -> it
+                    }
+                }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is TransactionEntity) return false
+
+            if (id != other.id) return false
+            if (budgetId != other.budgetId) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = id.hashCode()
+            result = 31 * result + budgetId.hashCode()
+            return result
+        }
+
+        override fun toString(): String {
+            return "TransactionEntity(id=$id, description='$description', timestamp=$timestamp, transactionType=$transactionType, clearedById=$clearedById, items=$items, budgetId=$budgetId)"
+        }
+
+    }
+
+    private class JdbcTransactionItemEntity(
+        override val id: Uuid,
+        override val amount: BigDecimal,
+        override val description: String?,
+        override val accountId: Uuid,
+        override val accountType: String,
+        override val draftStatus: String,
+        override val transactionId: Uuid,
+    ) : TransactionItemEntity {
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is TransactionItemEntity) return false
+
+            if (id != other.id) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            return id.hashCode()
+        }
+
+        override fun toString(): String {
+            return "TransactionItemEntity(id=$id, amount=$amount, description=$description, accountId=$accountId, transactionId=$transactionId)" // , timestamp=$timestamp)"
+        }
+
+    }
+
+    private class JdbcAccountTransactionEntity(
+        override val id: Uuid,
+        override val transactionId: Uuid,
+        override val amount: BigDecimal,
+        override val balance: BigDecimal?,
+        override val transactionType: String,
+        override val description: String?,
+        override val transactionDescription: String?,
+        override val accountId: Uuid,
+        override val timestamp: Instant,
+        override val draftStatus: String,
+        override val budgetId: Uuid,
+    ) : Comparable<AccountTransactionEntity>, AccountTransactionEntity {
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is AccountTransactionEntity) return false
+
+            if (id != other.id) return false
+            if (budgetId != other.budgetId) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = id.hashCode()
+            result = 31 * result + budgetId.hashCode()
+            return result
+        }
+
+        override fun toString(): String {
+            return "AccountTransactionEntity(id=$id, " +
+                    "transactionId=$transactionId, " +
+                    "amount=$amount, " +
+                    "balanceAfterItem=$balance, " +
+                    "type=$transactionType, " +
+                    "description=$description, " +
+                    "accountId=$accountId, " +
+                    "timestamp=$timestamp, " +
+                    "budgetId=$budgetId)"
+        }
+
+        override fun compareTo(other: AccountTransactionEntity): Int =
+            this.timestamp.compareTo(other.timestamp)
+                .let {
+                    when (it) {
+                        0 -> this.transactionId.toString().compareTo(other.transactionId.toString())
+                        else -> it
+                    }
+                }
+
+    }
+
     /**
-     * 1. Sets the [Transaction.Item.draftStatus] to [DraftStatus.cleared] for each [draftTransactionItems]
-     * 2. Sets the "cleared-by" relation in the DB.
-     * 3. Commits the new [clearingTransaction]
+     * 1. Sets the draft status to `cleared` for draft item in [clearedDraftTransactionId]
+     * 2. Sets the "cleared-by" relation in the DB between the new transaction and the [clearedDraftTransactionId]
+     * 3. Commits a new transaction with the given [itemsForClearingTransaction]
      * 4. Updates account balances
-     * @throws IllegalArgumentException if either the [draftTransactionItems] or the [clearingTransaction] is not what
+     * @param clearedDraftTransactionId must refer to a transaction with a single draft item and a single category item.
+     * @return the new [TransactionEntity]
+     * @throws IllegalArgumentException if either the [clearedDraftTransactionId] or the [itemsForClearingTransaction] is not what
      * we expect
+     * @throws IllegalStateException if account ID of [clearedDraftTransactionId]'s draft item does not exist in [accountDao]
      */
-    override fun clearCheck(
-        draftTransactionItems: List<Transaction.Item<DraftAccount>>,
-        clearingTransaction: Transaction,
+    override fun createClearCheckTransaction(
+        clearedDraftTransactionId: Uuid,
+        description: String,
+        timestamp: Instant,
+        itemsForClearingTransaction: List<ClearingTransactionItem>,
         budgetId: Uuid,
         accountDao: AccountDao,
-    ) {
-//        errorStateTracker.catchCommitErrorState {
-        // require clearTransaction is a simple draft transaction(s) clearing transaction
-        // with a single real item
-        require(clearingTransaction.draftItems.isNotEmpty())
-        require(clearingTransaction.categoryItems.isEmpty())
-        require(clearingTransaction.chargeItems.isEmpty())
-        require(clearingTransaction.realItems.size == 1)
-        val realTransactionItem: Transaction.Item<RealAccount> = clearingTransaction.realItems.first()
-        val realAccount: RealAccount = realTransactionItem.account
-        // the clearing transaction's draft item is on the drafts account related to that real account
-        require(
-            clearingTransaction
-                .draftItems
-                .first()
-                .account
-                .realCompanion == realAccount,
-        )
-        require(draftTransactionItems.isNotEmpty())
-        // each transaction item is on the correct account
-        // and the transactions they are part of were check-writing transactions
-        require(
-            draftTransactionItems
-                .all {
-                    it
-                        .account
-                        .realCompanion == realAccount &&
-                            with(it.transaction) {
-                                realItems.isEmpty() &&
-                                        chargeItems.isEmpty() &&
-                                        draftItems.size == 1
-                            }
-                },
-        )
-        // each transaction item comes from a different transaction
-        require(
-            draftTransactionItems
-                .mapTo(mutableSetOf()) { it.transaction }
-                .size ==
-                    draftTransactionItems.size,
-        )
-        // the draft transactions items' amount sum is the amount being taken out of the real account
-        require(
-            draftTransactionItems
-                .fold(BigDecimal.ZERO.setScale(2)) { sum, transactionItem ->
-                    sum + transactionItem.amount
-                } ==
-                    -realTransactionItem.amount,
-        )
+    ): TransactionEntity? {
         connection.transactOrThrow {
-            draftTransactionItems
-                .forEach { draftTransactionItem ->
-                    prepareStatement(
-                        """
+            val idToAccountMap: (Uuid) -> AccountEntity? = { accountDao.getAccountOrNull(it, budgetId) }
+            // require clearTransaction is a simple draft transaction(s) clearing transaction
+            // with a single real item
+            require(itemsForClearingTransaction.isNotEmpty())
+            require(itemsForClearingTransaction.firstOrNull { it.accountType == AccountType.category.name || it.accountType == AccountType.charge.name } === null)
+            val realClearingItemList: List<ClearingTransactionItem> =
+                itemsForClearingTransaction.filter { it.accountType == AccountType.real.name }
+            require(realClearingItemList.size == 1)
+            val realTransactionItem: ClearingTransactionItem = realClearingItemList.first()
+            val realAccountId: Uuid = realTransactionItem.accountId
+            // the clearing transaction's draft item is on the drafts account related to that real account
+            val clearedDraftTransaction: TransactionEntity =
+                getTransactionOrNull(clearedDraftTransactionId, budgetId)
+                    ?: throw IllegalArgumentException("clearedDraftTransactionId=$clearedDraftTransactionId not found")
+            val allocatedClearedItems = clearedDraftTransaction.allocateItemsByAccountType(idToAccountMap)
+            require(allocatedClearedItems.draft.size == 1)
+            val clearedDraft =
+                allocatedClearedItems
+                    .draft
+                    .first()
+            // the items that we're clearing were on the same account that the new transaction is on
+            // and they were outstanding
+            require(
+                idToAccountMap(clearedDraft.accountId)
+                    ?.companionId == realAccountId,
+            )
+            require(
+                allocatedClearedItems.real.isEmpty() &&
+                        allocatedClearedItems.other.isEmpty() &&
+                        allocatedClearedItems.charge.isEmpty() &&
+                        allocatedClearedItems.category.isNotEmpty(),
+            )
+            // the cleared draft transactions items' amount sum is the amount being taken out of the real account
+            require(
+                allocatedClearedItems
+                    .draft
+                    .fold(BigDecimal.ZERO.setScale(2)) { sum, transactionItem ->
+                        sum + transactionItem.amount
+                    } ==
+                        -realTransactionItem.amount,
+            )
+            prepareStatement(
+                """
                             |update transaction_items ti
                             |set draft_status = 'cleared'
                             |where ti.budget_id = ?
                             |and ti.id = ?
                             |and ti.draft_status = 'outstanding'
                         """.trimMargin(),
-                    )
-                        .use { statement ->
-                            statement.setUuid(1, budgetId)
-                            statement.setUuid(2, draftTransactionItem.id)
-                            if (statement.executeUpdate() != 1)
-                                throw IllegalStateException("Check being cleared not found in DB")
-                        }
-                    prepareStatement(
-                        """
+            )
+                .use { statement ->
+                    statement.setUuid(1, budgetId)
+                    statement.setUuid(2, clearedDraft.id)
+                    if (statement.executeUpdate() != 1)
+                        throw IllegalStateException("Check being cleared not found in DB")
+                }
+            val newTransactionId = insertTransaction(
+                description = description,
+                timestamp = timestamp,
+                transactionType = TransactionType.clearing.name,
+                budgetId = budgetId,
+            )!!
+            prepareStatement(
+                """
                             |update transactions t
                             |set cleared_by_transaction_id = ?
                             |where t.id = ?
                             |and t.budget_id = ?
                         """.trimMargin(),
-                    )
-                        .use { statement ->
-                            statement.setUuid(1, clearingTransaction.id)
-                            statement.setUuid(2, draftTransactionItem.transaction.id)
-                            statement.setUuid(3, budgetId)
-                            statement.executeUpdate()
-                        }
+            )
+                .use { statement ->
+                    statement.setUuid(1, newTransactionId)
+                    statement.setUuid(2, clearedDraftTransaction.id)
+                    statement.setUuid(3, budgetId)
+                    statement.executeUpdate()
                 }
-            insertTransactionPreparedStatement(clearingTransaction, budgetId)
-                .use { insertTransaction: PreparedStatement ->
-                    insertTransaction.executeUpdate()
-                }
-            with(accountDao) {
-                val (statement, balancesToAdd) = insertTransactionItemsPreparedStatement(
-                    clearingTransaction,
+            val balancesToAdd: List<BalanceToAdd> =
+                insertTransactionItems(
+                    newTransactionId,
+                    itemsForClearingTransaction
+                        .map {
+                            TransactionItem(
+                                amount = it.amount,
+                                description = it.description,
+                                accountId = it.accountId,
+                                accountType = it.accountType,
+                                draftStatus = it.draftStatus,
+                            )
+                        },
                     budgetId,
                 )
-                statement
-                    .use { insertTransactionItem: PreparedStatement ->
-                        insertTransactionItem.executeUpdate()
+                    ?.also {
+                        with(accountDao) {
+                            it.updateBalances(budgetId)
+                        }
                     }
-                balancesToAdd.updateBalances(budgetId)
-            }
-//            }
+                    ?: throw IllegalStateException("Check failed")
+            return JdbcTransactionEntity(
+                id = newTransactionId,
+                description = description,
+                timestamp = timestamp,
+                transactionType = TransactionType.clearing.name,
+                clearedById = null,
+                items = itemsForClearingTransaction.mapIndexed { index, item ->
+                    JdbcTransactionItemEntity(
+                        id = balancesToAdd[index].transactionItemId,
+                        amount = item.amount,
+                        description = item.description,
+                        accountId = item.accountId,
+                        accountType = item.accountType,
+                        draftStatus = item.draftStatus,
+                        transactionId = newTransactionId,
+                    )
+                },
+                budgetId = budgetId,
+            )
         }
     }
 
-    private fun Connection.insertTransactionPreparedStatement(
-        transaction: Transaction,
+    /**
+     * @return a [Pair] of the new transaction ID and the prepared statement to insert it
+     */
+    private fun Connection.insertTransaction(
+        description: String,
+        timestamp: Instant,
+        transactionType: String,
         budgetId: Uuid,
-    ): PreparedStatement {
-        val insertTransaction: PreparedStatement = prepareStatement(
-            """
-                insert into transactions (id, description, timestamp_utc, type, budget_id) VALUES
-                (?, ?, ?, ?, ?)
+    ): Uuid? {
+        Uuid.random()
+            .let { transactionId: Uuid ->
+                prepareStatement(
+                    """
+                insert into transactions (id, description, timestamp_utc, type, budget_id)
+                VALUES (?, ?, ?, ?, ?)
             """.trimIndent(),
-        )
-        insertTransaction.setUuid(1, transaction.id)
-        insertTransaction.setString(2, transaction.description)
-        insertTransaction.setInstant(3, transaction.timestamp)
-        insertTransaction.setString(4, transaction.type.name)
-        insertTransaction.setUuid(5, budgetId)
-        return insertTransaction
+                )
+                    .use { insertTransaction: PreparedStatement ->
+                        insertTransaction.setUuid(1, transactionId)
+                        insertTransaction.setString(2, description)
+                        insertTransaction.setInstant(3, timestamp)
+                        insertTransaction.setString(4, transactionType)
+                        insertTransaction.setUuid(5, budgetId)
+                        return if (insertTransaction.use { it.executeUpdate() == 1 })
+                            transactionId
+                        else
+                            null
+                    }
+            }
     }
 
-    private fun Connection.insertTransactionItemsPreparedStatement(
-        transaction: Transaction,
+    private fun Connection.insertTransactionItems(
+        transactionId: Uuid,
+        items: List<TransactionItem>,
         budgetId: Uuid,
-    ): Pair<PreparedStatement, List<AccountDao.BalanceToAdd>> {
-        val items = transaction.allItems()
+    ): List<BalanceToAdd>? {
         val transactionItemCounter = items.size
-        transaction.categoryItems.size + transaction.realItems.size + transaction.draftItems.size + transaction.chargeItems.size
         val insertSql = buildString {
             var counter = transactionItemCounter
             append("insert into transaction_items (id, transaction_id, description, amount, draft_status, budget_id, account_id) values ")
@@ -178,65 +348,90 @@ open class JdbcTransactionDao(
             }
         }
         var parameterIndex = 1
-        val transactionItemInsert = prepareStatement(insertSql)
-        val balancesToAdd: List<AccountDao.BalanceToAdd> = buildList {
-            transaction
-                .allItems()
-                .forEach { transactionItem: Transaction.Item<*> ->
-                    parameterIndex += setStandardProperties(
-                        transactionItemInsert,
-                        parameterIndex,
-                        transaction,
-                        transactionItem,
-                        budgetId,
-                    )
-                    transactionItemInsert.setUuid(parameterIndex++, transactionItem.account.id)
-                    add(AccountDao.BalanceToAdd(transactionItem.account.id, transactionItem.amount))
+        prepareStatement(insertSql)
+            .use { transactionItemInsert: PreparedStatement ->
+                val balancesToAdd: List<BalanceToAdd> = buildList {
+                    items
+                        .forEach { transactionItem: TransactionItem ->
+                            val transactionItemId = Uuid.random()
+                            parameterIndex += setStandardProperties(
+                                transactionItemId,
+                                transactionItemInsert,
+                                parameterIndex,
+                                transactionId,
+                                transactionItem,
+                                budgetId,
+                            )
+                            transactionItemInsert.setUuid(parameterIndex++, transactionItem.accountId)
+                            add(BalanceToAdd(transactionItem.accountId, transactionItemId, transactionItem.amount))
+                        }
                 }
-        }
-        return transactionItemInsert to balancesToAdd
+                return if (transactionItemInsert.executeUpdate() == items.size)
+                    balancesToAdd
+                else
+                    null
+            }
     }
 
-    /**
-     * Inserts the transaction records and updates the account balances in the DB.
-     */
-    override fun commit(
-        transaction: Transaction,
+    // TODO consider combining the various transaction commit functions into one
+    override fun createTransactionOrNull(
+        description: String,
+        timestamp: Instant,
+        transactionType: String,
+        items: List<TransactionItem>,
+//        clearsId: Uuid?,
+        saveBalances: Boolean,
         budgetId: Uuid,
         accountDao: AccountDao,
-        saveBalances: Boolean,
-    ) =
-//        errorStateTracker.catchCommitErrorState {
+    ): TransactionEntity? =
         connection.transactOrThrow {
-            insertTransactionPreparedStatement(transaction, budgetId)
-                .use { insertTransaction: PreparedStatement ->
-                    insertTransaction.executeUpdate()
+            insertTransaction(
+                timestamp = timestamp,
+                description = description,
+                transactionType = transactionType,
+                budgetId = budgetId,
+            )
+                ?.let { transactionId: Uuid ->
+                    // FIXME roll back if an insert fails after this
+                    insertTransactionItems(
+                        transactionId,
+                        items,
+                        budgetId,
+                    )
+                        ?.let { balancesToAdd: List<BalanceToAdd> ->
+                            if (saveBalances)
+                                with(accountDao) {
+                                    balancesToAdd.updateBalances(budgetId)
+                                }
+                            val transactionItemEntities =
+                                balancesToAdd
+                                    .mapIndexed { index, balanceToAdd ->
+                                        val item = items[index]
+                                        JdbcTransactionItemEntity(
+                                            id = balanceToAdd.transactionItemId,
+                                            amount = item.amount,
+                                            description = item.description,
+                                            accountId = item.accountId,
+                                            accountType = item.accountType,
+                                            draftStatus = item.draftStatus,
+                                            transactionId = transactionId,
+                                        )
+                                    }
+                            JdbcTransactionEntity(
+                                id = transactionId,
+                                description = description,
+                                timestamp = timestamp,
+                                transactionType = transactionType,
+                                items = transactionItemEntities,
+                                budgetId = budgetId,
+                            )
+                        }
+//            }
                 }
-            with(accountDao) {
-                val (statement, balancesToAdd) = insertTransactionItemsPreparedStatement(
-                    transaction,
-                    budgetId,
-                )
-                statement
-                    .use { insertTransactionItem: PreparedStatement ->
-                        insertTransactionItem.executeUpdate()
-                    }
-                if (saveBalances) balancesToAdd.updateBalances(budgetId)
-            }
 //            }
         }
 
-    /**
-     * Deletes the given transaction and all its items from the DB and updates account balances appropriately.
-     * @throws IllegalStateException if the given transaction has already been cleared.
-     * @throws IllegalArgumentException if the transaction doesn't exist.
-     * @return the list of [BalanceToAdd]s that should be applied to correct balances on accounts.
-     */
-    override fun deleteTransaction(
-        transactionId: Uuid,
-        budgetId: Uuid,
-        accountIdToAccountMap: Map<Uuid, Account>,
-    ): List<AccountDao.BalanceToAdd> {
+    override fun deleteTransaction(transactionId: Uuid, budgetId: Uuid): List<BalanceToAdd> {
         connection.transactOrThrow {
             prepareStatement("""select * from transactions where id = ? and budget_id = ?""")
                 .use { statement ->
@@ -257,7 +452,7 @@ open class JdbcTransactionDao(
                 prepareStatement(
                     """
                     |delete from transaction_items where transaction_id = ? and budget_id = ?
-                    |returning account_id, amount
+                    |returning account_id, id, amount
                 """.trimMargin(),
                 )
                     .use { statement ->
@@ -267,8 +462,9 @@ open class JdbcTransactionDao(
                             .use { resultSet ->
                                 while (resultSet.next()) {
                                     add(
-                                        AccountDao.BalanceToAdd(
+                                        BalanceToAdd(
                                             resultSet.getUuid("account_id")!!,
+                                            resultSet.getUuid("id")!!,
                                             -resultSet.getCurrencyAmount("amount"),
                                         ),
                                     )
@@ -289,49 +485,74 @@ open class JdbcTransactionDao(
     }
 
     /**
-     * 1. Sets the [Transaction.Item.draftStatus] to [DraftStatus.cleared] for each [clearedItems]
+     * 1. Sets the [TransactionItem.draftStatus] to [DraftStatus.cleared] for each [chargeTransactionsBeingCleared]
      * 2. Sets the "cleared-by" relation in the DB.
-     * 3. Commits the new [billPayTransaction]
+     * 3. Commits the new [items]
      * 4. Updates account balances
-     * @throws IllegalArgumentException if either the [clearedItems] or the [billPayTransaction] is not what
+     * @throws IllegalArgumentException if either the [chargeTransactionsBeingCleared] or the [items] is not what
      * we expect
      */
 // TODO allow checks to pay credit card bills
-    override fun commitCreditCardPayment(
-        clearedItems: List<TransactionDao.ExtendedTransactionItem<ChargeAccount>>,
-        billPayTransaction: Transaction,
+// TODO abstract code between this and the check clearing one.
+    override fun createCreditCardPaymentTransaction(
+        chargeTransactionsBeingCleared: List<Uuid>,
+        description: String,
+        timestamp: Instant,
+        items: List<TransactionItem>,
         budgetId: Uuid,
-        accountDao: AccountDao
-    ) {
-//        errorStateTracker.catchCommitErrorState {
-        // require billPayTransaction is a simple real transfer between a real and a charge account
-        require(billPayTransaction.draftItems.isEmpty())
-        require(billPayTransaction.categoryItems.isEmpty())
-        require(billPayTransaction.chargeItems.size == 1)
-        require(billPayTransaction.realItems.size == 1)
-        val billPayChargeTransactionItem: Transaction.Item<ChargeAccount> =
-            billPayTransaction.chargeItems.first()
-        val chargeAccount: ChargeAccount =
-            billPayChargeTransactionItem.account
-        // require clearedItems to be what we expect
-        require(clearedItems.isNotEmpty())
-        // all cleared items must be on the same charge account that's getting the transfer
-        require(
-            clearedItems.all {
-                it.account == chargeAccount
-            },
-        )
-        // the amount of the clearedItems must be the same as the amount being transferred
-        require(
-            clearedItems
-                .fold(BigDecimal.ZERO.setScale(2)) { sum, transactionItem: TransactionDao.ExtendedTransactionItem<ChargeAccount> ->
-                    sum + transactionItem.amount
-                } ==
-                    -billPayChargeTransactionItem.amount,
-        )
+        // NOTE needed for:
+        //      1. getting the account type of each item's account
+        //      2. getting the account type of each chargeTransactionsBeingCleared's account
+        //      Thus, if we added accountType to the TransactionItemEntity, we wouldn't need this map
+//        idToAccountMap: (Uuid) -> AccountData?,
+        accountDao: AccountDao,
+    ): TransactionEntity? {
         connection.transactOrThrow {
-            clearedItems
-                .forEach { chargeTransactionItem: TransactionDao.ExtendedTransactionItem<ChargeAccount> ->
+            val idToAccountMap: (Uuid) -> AccountEntity? = { accountDao.getAccountOrNull(it, budgetId) }
+            val allocatedClearingItems = items.allocateItemsByAccountType(idToAccountMap)
+            // require billPayTransaction is a simple real transfer between a real and a charge account
+            require(allocatedClearingItems.draft.isEmpty())
+            require(allocatedClearingItems.category.isEmpty())
+            require(allocatedClearingItems.charge.size == 1)
+            require(allocatedClearingItems.real.size == 1)
+            val billPayChargeTransactionItem: TransactionItem =
+                allocatedClearingItems.charge.first()
+            val chargeAccountId: Uuid =
+                billPayChargeTransactionItem.accountId
+            // require clearedItems to be what we expect
+            require(chargeTransactionsBeingCleared.isNotEmpty())
+            // all cleared items must be on the same charge account that's getting the transfer
+            val chargeTransactionEntitiesBeingCleared: List<TransactionEntity> =
+                chargeTransactionsBeingCleared
+                    .map {
+                        getTransactionOrNull(it, budgetId)
+                            ?: throw IllegalArgumentException("No transaction found with id $it")
+                    }
+            val allocatedChargeTransactionsBeingCleared: List<AllocatedItemEntities> =
+                chargeTransactionEntitiesBeingCleared
+                    .map { it.allocateItemsByAccountType(idToAccountMap) }
+            require(
+                allocatedChargeTransactionsBeingCleared.all {
+                    it.charge.size == 1 &&
+                            it.charge.first().accountId == chargeAccountId
+                },
+            )
+            // the amount of the clearedItems must be the same as the amount being transferred
+            require(
+                allocatedChargeTransactionsBeingCleared
+                    .fold(BigDecimal.ZERO.setScale(2)) { sum: BigDecimal, allocated: AllocatedItemEntities ->
+                        sum + allocated.charge.first().amount
+                    } ==
+                        -billPayChargeTransactionItem.amount,
+            )
+            val newTransactionId: Uuid = insertTransaction(
+                description = description,
+                timestamp = timestamp,
+                transactionType = TransactionType.clearing.name,
+                budgetId = budgetId,
+            )!!
+            allocatedChargeTransactionsBeingCleared
+                .forEachIndexed { index: Int, allocatedChargeTransactionBeingCleared: AllocatedItemEntities ->
                     prepareStatement(
                         """
                             |update transaction_items ti
@@ -343,7 +564,7 @@ open class JdbcTransactionDao(
                     )
                         .use { statement ->
                             statement.setUuid(1, budgetId)
-                            statement.setUuid(2, chargeTransactionItem.item.id)
+                            statement.setUuid(2, allocatedChargeTransactionBeingCleared.charge.first().id)
                             if (statement.executeUpdate() != 1)
                                 throw IllegalStateException("Charge being cleared not found in DB")
                         }
@@ -356,48 +577,88 @@ open class JdbcTransactionDao(
                         """.trimMargin(),
                     )
                         .use { statement ->
-                            statement.setUuid(1, billPayTransaction.id)
-                            statement.setUuid(2, chargeTransactionItem.transactionId)
+                            statement.setUuid(1, newTransactionId)
+                            statement.setUuid(2, chargeTransactionsBeingCleared[index])
                             statement.setUuid(3, budgetId)
                             statement.executeUpdate()
                         }
                 }
-            insertTransactionPreparedStatement(billPayTransaction, budgetId)
-                .use { insertTransaction: PreparedStatement ->
-                    insertTransaction.executeUpdate()
-                }
             with(accountDao) {
-                val (statement, balancesToAdd) =
-                    insertTransactionItemsPreparedStatement(
-                        billPayTransaction,
-                        budgetId,
-                    )
-                statement
-                    .use { insertTransactionItem: PreparedStatement ->
-                        insertTransactionItem.executeUpdate()
-                    }
+                val balancesToAdd =
+                    insertTransactionItems(
+                        transactionId = newTransactionId,
+                        items = items,
+                        budgetId = budgetId,
+                    )!!
                 balancesToAdd.updateBalances(budgetId)
+                return JdbcTransactionEntity(
+                    id = newTransactionId,
+                    description = description,
+                    timestamp = timestamp,
+                    transactionType = TransactionType.clearing.name,
+                    clearedById = null,
+                    items = items.mapIndexed { index, item ->
+                        JdbcTransactionItemEntity(
+                            id = balancesToAdd[index].transactionItemId,
+                            amount = item.amount,
+                            description = item.description,
+                            accountId = item.accountId,
+                            accountType = item.accountType,
+                            draftStatus = item.draftStatus,
+                            transactionId = newTransactionId,
+                        )
+                    },
+                    budgetId = budgetId,
+                )
             }
         }
     }
 
+    private fun List<TransactionItem>.allocateItemsByAccountType(idToAccount: (Uuid) -> AccountData?): AllocatedItem {
+        val real = mutableListOf<TransactionItem>()
+        val charge = mutableListOf<TransactionItem>()
+        val draft = mutableListOf<TransactionItem>()
+        val other = mutableListOf<TransactionItem>()
+        val category = mutableListOf<TransactionItem>()
+        forEach { item: TransactionItem ->
+            when (idToAccount(item.accountId)!!.type) {
+                AccountType.category.name -> category.add(item)
+                AccountType.real.name -> real.add(item)
+                AccountType.draft.name -> draft.add(item)
+                AccountType.charge.name -> charge.add(item)
+                else -> other.add(item)
+            }
+        }
+        return object : AllocatedItem {
+            override val real: List<TransactionItem> = real
+            override val charge: List<TransactionItem> = charge
+            override val draft: List<TransactionItem> = draft
+            override val category: List<TransactionItem> = category
+            override val other: List<TransactionItem> = other
+        }
+    }
+
     /**
-     * @param balanceAtEndOfPage is the balance of the account after the latest transaction on the page being requested.
-     * If `null`, then [ExtendedTransactionItem.accountBalanceAfterItem] will be `null` for each [ExtendedTransactionItem] returned.
+     * @param balanceAtStartOfPage is the balance of the account after the latest transaction on the page being requested.
+     * If `null`, then [AccountTransactionEntity.balance] will be `null` for each [AccountTransactionEntity] returned.
      */
-    @Suppress("UNCHECKED_CAST")
-    override fun <A : Account> fetchTransactionItemsInvolvingAccount(
-        account: A,
+    override fun fetchTransactionItemsInvolvingAccount(
+        accountId: Uuid,
         limit: Int,
         offset: Int,
-        balanceAtEndOfPage: BigDecimal?,
-    ): List<TransactionDao.ExtendedTransactionItem<A>> =
+        types: List<String>,
+        balanceAtStartOfPage: BigDecimal?,
+        budgetId: Uuid,
+    ): List<AccountTransactionEntity> =
         buildList {
+            val actualTypes: List<String> = types.takeIf { it.isNotEmpty() } ?: TransactionType.entries.map { it.name }
             connection.transactOrThrow {
                 // TODO if it is a clearing transaction, then create the full transaction by combining the cleared category items
                 //      with this.
                 prepareStatement(
-                    """
+                    buildString {
+                        append(
+                            """
                     |select t.id as transaction_id,
                     |       t.description as transaction_description,
                     |       t.timestamp_utc as transaction_timestamp,
@@ -412,48 +673,63 @@ open class JdbcTransactionDao(
                     |                and t.budget_id = i.budget_id
                     |where t.budget_id = ?
                     |  and i.account_id = ?
+                    |  and t.type in (?
+            """.trimMargin(),
+                        )
+                        actualTypes
+                            .drop(1)
+                            .forEach {
+                                append(", ?")
+                            }
+                        append(")\n")
+                        append(
+                            """
                     |order by t.timestamp_utc desc, t.id
                     |limit ?
                     |offset ?
             """.trimMargin(),
+                        )
+                    },
                 )
                     .use { selectExtendedTransactionItemsForAccount: PreparedStatement ->
                         selectExtendedTransactionItemsForAccount
                             .apply {
-                                setUuid(1, account.budgetId)
-                                setUuid(2, account.id)
-                                setInt(3, limit)
-                                setInt(4, offset)
+                                setUuid(1, budgetId)
+                                setUuid(2, accountId)
+                                actualTypes.forEachIndexed { index, type ->
+                                    setString(index + 3, type)
+                                }
+                                setInt(actualTypes.size + 3, limit)
+                                setInt(actualTypes.size + 4, offset)
                             }
                         selectExtendedTransactionItemsForAccount
                             .executeQuery()
                             .use { result: ResultSet ->
                                 with(result) {
-                                    var runningBalance: BigDecimal? = balanceAtEndOfPage
-
+                                    var runningBalance: BigDecimal? = balanceAtStartOfPage
                                     while (next()) {
                                         val transactionId: Uuid = getUuid("transaction_id")!!
-                                        val transactionDescription: String = getString("transaction_description")!!
                                         val transactionTimestamp: Instant = getInstant("transaction_timestamp")
                                         val id: Uuid = getUuid("item_id")!!
                                         val amount: BigDecimal = getCurrencyAmount("amount")
                                         val description: String? = getString("description")
+                                        val transactionDescription: String = getString("transaction_description")!!
                                         val draftStatus: DraftStatus =
                                             DraftStatus.valueOf(getString("draft_status"))
                                         this@buildList.add(
-                                            with(account) {
-                                                extendedTransactionItemFactory(
-                                                    id = id,
-                                                    amount = amount,
-                                                    description = description,
-                                                    draftStatus = draftStatus,
-                                                    transactionId = transactionId,
-                                                    transactionDescription = transactionDescription,
-                                                    transactionTimestamp = transactionTimestamp,
-                                                    transactionType = Type.valueOf(getString("type")!!),
-                                                    accountBalanceAfterItem = runningBalance,
-                                                )
-                                            } as TransactionDao.ExtendedTransactionItem<A>,
+                                            JdbcAccountTransactionEntity(
+                                                id = id,
+                                                amount = amount,
+                                                description = description,
+                                                draftStatus = draftStatus.name,
+                                                transactionId = transactionId,
+                                                transactionDescription = transactionDescription,
+                                                transactionType = TransactionType.valueOf(getString("type")!!).name,
+                                                balance = runningBalance,
+                                                accountId = accountId,
+                                                timestamp = transactionTimestamp,
+                                                budgetId = budgetId,
+                                            ),
                                         )
                                         if (runningBalance !== null)
                                             runningBalance -= amount
@@ -507,8 +783,7 @@ open class JdbcTransactionDao(
     override fun getTransactionOrNull(
         transactionId: Uuid,
         budgetId: Uuid,
-        accountIdToAccountMap: Map<Uuid, Account>,
-    ): Transaction? =
+    ): TransactionEntity? =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -516,6 +791,7 @@ open class JdbcTransactionDao(
                     |       t.timestamp_utc as transaction_timestamp,
                     |       t.cleared_by_transaction_id,
                     |       t.type,
+                    |       a.type as account_type,
                     |       i.account_id,
                     |       i.id,
                     |       i.amount,
@@ -525,11 +801,18 @@ open class JdbcTransactionDao(
                     |         join transaction_items i
                     |              on i.transaction_id = t.id
                     |                  and t.budget_id = i.budget_id
+                    |         join accounts a
+                    |               on i.account_id = a.id
+                    |                  and t.budget_id = i.budget_id
                     |where t.budget_id = ?
                     |  and t.id = ?
                 """.trimMargin(),
             )
                 .use { selectTransactionAndItems: PreparedStatement ->
+                    var description: String? = null
+                    var timestamp: Instant? = null
+                    var transactionType: String? = null
+                    var clearedById: Uuid? = null
                     selectTransactionAndItems
                         .apply {
                             setUuid(1, budgetId)
@@ -537,102 +820,73 @@ open class JdbcTransactionDao(
                         }
                         .executeQuery()
                         .use { result: ResultSet ->
-                            if (result.next()) {
-                                val transactionBuilder =
-                                    initializeTransactionBuilderWithFirstItem(
-                                        result,
-                                        transactionId,
-                                        accountIdToAccountMap,
+                            val itemList = buildList {
+                                if (result.next()) {
+                                    description = result.getString("transaction_description")
+                                    timestamp = result.getInstant("transaction_timestamp")
+                                    transactionType = TransactionType.valueOf(result.getString("type")).name
+                                    clearedById = result.getUuid("cleared_by_transaction_id")
+
+                                    add(
+                                        JdbcTransactionItemEntity(
+                                            id = result.getUuid("id")!!,
+                                            amount = result.getCurrencyAmount("amount"),
+                                            description = result.getString("description"),
+                                            accountId = result.getUuid("account_id")!!,
+                                            accountType = result.getString("account_type"),
+                                            draftStatus = result.getString("draft_status"),
+                                            transactionId = transactionId,
+                                        ),
                                     )
-                                while (result.next()) {
-                                    // for each transaction item...
-                                    transactionBuilder.populateItem(result, accountIdToAccountMap)
                                 }
-                                transactionBuilder.build()
-                            } else
-                                null
+                                while (result.next()) {
+                                    add(
+                                        JdbcTransactionItemEntity(
+                                            id = result.getUuid("id")!!,
+                                            amount = result.getCurrencyAmount("amount"),
+                                            description = result.getString("description"),
+                                            accountId = result.getUuid("account_id")!!,
+                                            accountType = result.getString("account_type"),
+                                            draftStatus = result.getString("draft_status"),
+                                            transactionId = transactionId,
+                                        ),
+                                    )
+                                }
+                            }
+                            return itemList
+                                .takeIf { it.isNotEmpty() }
+                                ?.let { items: List<JdbcTransactionItemEntity> ->
+                                    JdbcTransactionEntity(
+                                        id = transactionId,
+                                        description = description!!,
+                                        timestamp = timestamp!!,
+                                        transactionType = transactionType!!,
+                                        clearedById = clearedById,
+                                        items = items,
+                                        budgetId = budgetId,
+                                    )
+                                }
                         }
                 }
         }
-
-    private fun initializeTransactionBuilderWithFirstItem(
-        result: ResultSet,
-        transactionId: Uuid,
-        accountIdToAccountMap: Map<Uuid, Account>,
-    ): Transaction.Builder =
-        Transaction.Builder(
-            description = result.getString("transaction_description"),
-            timestamp = result.getInstant("transaction_timestamp"),
-            type = Type.valueOf(result.getString("type")),
-        )
-            .apply {
-                id = transactionId
-                populateItem(result, accountIdToAccountMap)
-            }
-
-    private fun Transaction.Builder.populateItem(
-        result: ResultSet,
-        accountIdToAccountMap: Map<Uuid, Account>,
-    ) {
-        with(accountIdToAccountMap[result.getUuid("account_id")!!]!!) {
-            addItemBuilderTo(
-                result.getCurrencyAmount("amount"),
-                result.getString("description"),
-                DraftStatus.valueOf(result.getString("draft_status")),
-                result.getUuid("id")!!,
-            )
-        }
-    }
-
-//    private fun Connection.insertTransactionItemsPreparedStatement(
-//        transaction: Transaction,
-//        budgetId: Uuid,
-//    ): PreparedStatement {
-//        val transactionItemCounter =
-//            transaction.categoryItems.size + transaction.realItems.size + transaction.draftItems.size + transaction.chargeItems.size
-//        val insertSql = buildString {
-//            var counter = transactionItemCounter
-//            append("insert into transaction_items (id, transaction_id, description, amount, draft_status, budget_id, account_id) values ")
-//            if (counter-- > 0) {
-//                append("(?, ?, ?, ?, ?, ?, ?)")
-//                while (counter-- > 0) {
-//                    append(", (?, ?, ?, ?, ?, ?, ?)")
-//                }
-//            }
-//        }
-//        var parameterIndex = 1
-//        val transactionItemInsert = prepareStatement(insertSql)
-//        transaction
-//            .allItems()
-//            .forEach { transactionItem: Transaction.Item<*> ->
-//                parameterIndex += setStandardProperties(
-//                    transactionItemInsert,
-//                    parameterIndex,
-//                    transaction,
-//                    transactionItem,
-//                    budgetId,
-//                )
-//                transactionItemInsert.setUuid(parameterIndex++, transactionItem.account.id)
-//            }
-//        return transactionItemInsert
-//    }
 
     /**
      * Sets a set of standard parameter starting at [parameterIndex]
      * @return the number of parameters set.
      */
     private fun setStandardProperties(
+        transactionItemId: Uuid,
         transactionItemInsert: PreparedStatement,
         parameterIndex: Int,
-        transaction: Transaction,
-        transactionItem: Transaction.Item<*>,
+        transactionId: Uuid,
+        transactionItem: TransactionItem,
         budgetId: Uuid,
     ): Int {
-        transactionItemInsert.setUuid(parameterIndex, transactionItem.id)
-        transactionItemInsert.setUuid(parameterIndex + 1, transaction.id)
+        transactionItemInsert.setUuid(parameterIndex, transactionItemId)
+        transactionItemInsert.setUuid(parameterIndex + 1, transactionId)
         transactionItemInsert.setString(parameterIndex + 2, transactionItem.description)
         transactionItemInsert.setBigDecimal(parameterIndex + 3, transactionItem.amount)
-        transactionItemInsert.setString(parameterIndex + 4, transactionItem.draftStatus.name)
+        transactionItemInsert.setString(parameterIndex + 4, transactionItem.draftStatus)
         transactionItemInsert.setUuid(parameterIndex + 5, budgetId)
         return 6
     }
@@ -640,208 +894,5 @@ open class JdbcTransactionDao(
     override fun close() {
         jdbcConnectionProvider.close()
     }
-
-//    private fun Connection.insertTransactionPreparedStatement(
-//        transaction: Transaction,
-//        budgetId: Uuid,
-//    ): PreparedStatement {
-//        val insertTransaction: PreparedStatement = prepareStatement(
-//            """
-//                insert into transactions (id, description, timestamp_utc, budget_id) VALUES
-//                (?, ?, ?, ?)
-//            """.trimIndent(),
-//        )
-//        insertTransaction.setUuid(1, transaction.id)
-//        insertTransaction.setString(2, transaction.description)
-//        insertTransaction.setTimestamp(3, transaction.timestamp)
-//        insertTransaction.setUuid(4, budgetId)
-//        return insertTransaction
-//    }
-
-    // TODO https://github.com/benjishults/budget/issues/14
-//    /**
-//     * if
-//     * 1. [account] is real
-//     * 2. there is a single other item in the transaction
-//     * 3. that item has status 'clearing'
-//     * then
-//     * 1. pull the category items from the transactions cleared by this transaction
-//     * 2. replace the 'clearing' item with those items
-//     */
-//    @Deprecated("This doesn't really work")
-//    override fun fetchTransactionsInvolvingAccount(
-//        account: Account,
-//        data: BudgetData,
-//        limit: Int,
-//        offset: Int,
-//    ): List<Transaction> =
-//        connection.transactOrThrow {
-//            // TODO if it is a clearing transaction, then create the full transaction by combining the cleared category items
-//            //      with this.
-//            // FIXME this limit offset stuff won't work the way I want... especially when offset > 0.
-//            prepareStatement(
-//                """
-//                    |select t.timestamp_utc as timestamp_utc,
-//                    |       t.id as transaction_id,
-//                    |       t.description as description,
-//                    |       i.amount      as item_amount,
-//                    |       i.description as item_description,
-//                    |       i.category_account_id,
-//                    |       i.draft_account_id,
-//                    |       i.real_account_id,
-//                    |       i.charge_account_id,
-//                    |       i.draft_status
-//                    |from transactions t
-//                    |  join transaction_items i on i.transaction_id = t.id
-//                    |where t.budget_id = ?
-//                    |  and t.id in (select tr.id
-//                    |               from transactions tr
-//                    |                 join transaction_items ti
-//                    |                   on tr.id = ti.transaction_id
-//                    |               where ti.${
-//                    when (account) {
-//                        is CategoryAccount -> "category_account_id"
-//                        is ChargeAccount -> "charge_account_id"
-//                        is RealAccount -> "real_account_id"
-//                        is DraftAccount -> "draft_account_id"
-//                        else -> throw Error("Unknown account type ${account::class}")
-//                    }
-//                } = ?
-//                    |               order by tr.timestamp_utc desc, tr.id
-//                    |               limit ?
-//                    |               offset ?)
-//            """.trimMargin(),
-//            )
-//                .use { selectTransactionAndItemsForAccount: PreparedStatement ->
-//                    selectTransactionAndItemsForAccount
-//                        .apply {
-//                            setUuid(1, data.id)
-//                            setUuid(2, account.id)
-//                            setInt(3, limit)
-//                            setInt(4, offset)
-//                        }
-//                    // TODO boy, this code is a mess.  looks like I was focussed on getting something to work and
-//                    //      didn't clean it up after
-//                    selectTransactionAndItemsForAccount
-//                        .executeQuery()
-//                        .use { result: ResultSet ->
-//                            val returnValue: MutableList<Transaction> = mutableListOf()
-//                            // NOTE this will be a running transaction and will switch to the next when one is done
-//                            var runningTransactionId: Uuid? = null
-//                            var transactionBuilder: Transaction.Builder? = null
-//                            while (result.next()) {
-//                                // for each transaction item...
-//                                result.getUuid("transaction_id")!!
-//                                    .let { uuid: Uuid ->
-//                                        if (uuid != runningTransactionId) {
-//                                            conditionallyAddCompleteTransactionToList(
-//                                                runningTransactionId,
-//                                                returnValue,
-//                                                transactionBuilder,
-//                                            )
-//                                            runningTransactionId = uuid
-//                                            transactionBuilder = initializeTransactionBuilder(result, uuid)
-//                                        }
-//                                    }
-//                                val draftStatus: DraftStatus =
-//                                    DraftStatus.valueOf(result.getString("draft_status"))
-//                                if (draftStatus == DraftStatus.clearing) {
-//                                    prepareStatement(
-//                                        """
-//                                            |select t.*,
-//                                            |       i.amount      as item_amount,
-//                                            |       i.description as item_description,
-//                                            |       i.category_account_id
-//                                            |from transactions t
-//                                            |         join transaction_items i on i.transaction_id = t.id
-//                                            |where t.id in (select id
-//                                            |               from transactions
-//                                            |               where cleared_by_transaction_id = ?)
-//                                            |  and i.category_account_id is not null
-//                                        """.trimMargin(),
-//                                    )
-//                                        .use { preparedStatement: PreparedStatement ->
-//                                            preparedStatement.setUuid(1, runningTransactionId!!)
-//                                            preparedStatement.executeQuery()
-//                                                .use { result: ResultSet ->
-//                                                    while (result.next()) {
-//                                                        val itemAmount = result.getCurrencyAmount("item_amount")
-//                                                        val itemDescription: String? =
-//                                                            result.getString("item_description")
-//                                                        transactionBuilder!!
-//                                                            .categoryItemBuilders
-//                                                            .maybeAddItemBuilder(
-//                                                                result,
-//                                                                itemAmount,
-//                                                                itemDescription,
-//                                                                data,
-//                                                                "category",
-//                                                                DraftStatus.none,
-//                                                            ) { account: CategoryAccount ->
-//                                                                this.categoryAccount = account
-//                                                            }
-//                                                    }
-//                                                }
-//                                        }
-//                                } else {
-//                                    val itemAmount = result.getCurrencyAmount("item_amount")
-//                                    val itemDescription: String? = result.getString("item_description")
-//                                    transactionBuilder!!
-//                                        .categoryItemBuilders
-//                                        .maybeAddItemBuilder(
-//                                            result,
-//                                            itemAmount,
-//                                            itemDescription,
-//                                            data,
-//                                            "category",
-//                                            draftStatus,
-//                                        ) { account: CategoryAccount ->
-//                                            this.categoryAccount = account
-//                                        }
-//                                    transactionBuilder!!
-//                                        .realItemBuilders.maybeAddItemBuilder(
-//                                            result,
-//                                            itemAmount,
-//                                            itemDescription,
-//                                            data,
-//                                            "real",
-//                                            draftStatus,
-//                                        ) { account: RealAccount ->
-//                                            realAccount = account
-//                                        }
-//                                    transactionBuilder!!
-//                                        .chargeItemBuilders.maybeAddItemBuilder(
-//                                            result,
-//                                            itemAmount,
-//                                            itemDescription,
-//                                            data,
-//                                            "charge",
-//                                            draftStatus,
-//                                        ) { account: ChargeAccount ->
-//                                            chargeAccount = account
-//                                        }
-//                                    transactionBuilder!!
-//                                        .draftItemBuilders
-//                                        .maybeAddItemBuilder(
-//                                            result,
-//                                            itemAmount,
-//                                            itemDescription,
-//                                            data,
-//                                            "draft",
-//                                            draftStatus,
-//                                        ) { account: DraftAccount ->
-//                                            draftAccount = account
-//                                        }
-//                                }
-//                            }
-//                            conditionallyAddCompleteTransactionToList(
-//                                runningTransactionId,
-//                                returnValue,
-//                                transactionBuilder,
-//                            )
-//                            returnValue.toList()
-//                        }
-//                }
-//        }
 
 }

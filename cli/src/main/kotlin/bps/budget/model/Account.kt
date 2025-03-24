@@ -1,16 +1,13 @@
 @file:OptIn(ExperimentalUuidApi::class)
+
 package bps.budget.model
 
-import bps.budget.model.Transaction.Type
-import bps.budget.persistence.TransactionDao
-import kotlinx.datetime.Instant
+import bps.budget.persistence.AccountEntity
 import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 // TODO consider creating all these accounts on first run
-const val defaultGeneralAccountName = "General"
-const val defaultGeneralAccountDescription = "Income is automatically deposited here and allowances are made from here"
 const val defaultWalletAccountName = "Wallet"
 const val defaultWalletAccountDescription = "Cash on hand"
 const val defaultCheckingAccountName = "Checking"
@@ -43,16 +40,20 @@ const val defaultTravelAccountDescription = "Travel expenses for vacation"
 const val defaultWorkAccountName = "Work"
 const val defaultWorkAccountDescription = "Work-related expenses (possibly to be reimbursed)"
 
-/**
- * See src/test/kotlin/bps/kotlin/GenericFunctionTest.kt for a discussion of how I want to improve this
- */
+// TODO See GenericFunctionTest.kt for a discussion of how I want to improve the generic typing here
+//      However, since I'm not using those polymorphic builders anymore, this may not be a thing anymore.
+// TODO I should probably have these account classes cache the transaction items on each account?  ... or just cache
+//      transactions as they're pulled and have a map of transactionId -> transaction like what I'm doing for accounts.
+//      ... but I would need to keep that cache well-pruned and up-to-date...  or both  ...
+//      Yeah, keep a map of transactionId -> transaction and each account caches [AccountTransactionEntity]s
+//      https://github.com/benjishults/budget-kmp/issues/58
 abstract class Account(
     // TODO why are these vars?
     override var name: String,
     override var description: String = "",
     override val id: Uuid = Uuid.random(),
     balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-    open val type: String,
+    override val type: String,
     val budgetId: Uuid,
 ) : AccountData {
 
@@ -74,21 +75,21 @@ abstract class Account(
     ): Transaction.ItemBuilder<*> =
         TODO()
 
-    open fun TransactionDao.extendedTransactionItemFactory(
-        id: Uuid,
-        amount: BigDecimal,
-        description: String?,
-        draftStatus: DraftStatus,
-        transactionId: Uuid,
-        transactionDescription: String,
-        transactionTimestamp: Instant,
-        transactionType: Type,
-        accountBalanceAfterItem: BigDecimal?,
-    ): TransactionDao.ExtendedTransactionItem<*> =
-        TODO()
+//    open fun TransactionDao.extendedTransactionItemFactory(
+//        id: Uuid,
+//        amount: BigDecimal,
+//        description: String?,
+//        draftStatus: DraftStatus,
+//        transactionId: Uuid,
+//        transactionDescription: String,
+//        transactionTimestamp: Instant,
+//        transactionType: TransactionType,
+//        accountBalanceAfterItem: BigDecimal?,
+//    ): TransactionDao.ExtendedTransactionItem<*> =
+//        TODO()
 
-    fun commit(item: Transaction.Item<*>) {
-        balance += item.amount
+    fun addAmount(amount: BigDecimal) {
+        balance += amount
     }
 
     override fun toString(): String {
@@ -169,32 +170,32 @@ class CategoryAccount(
             draftStatus = draftStatus,
         )
 
-    override fun TransactionDao.extendedTransactionItemFactory(
-        id: Uuid,
-        amount: BigDecimal,
-        description: String?,
-        draftStatus: DraftStatus,
-        transactionId: Uuid,
-        transactionDescription: String,
-        transactionTimestamp: Instant,
-        transactionType: Type,
-        accountBalanceAfterItem: BigDecimal?,
-    ): TransactionDao.ExtendedTransactionItem<CategoryAccount> =
-        TransactionDao.ExtendedTransactionItem(
-            item = itemBuilderFactory(
-                id = id,
-                amount = amount,
-                description = description,
-                draftStatus = draftStatus,
-            ),
-            transactionId = transactionId,
-            transactionDescription = transactionDescription,
-            transactionTimestamp = transactionTimestamp,
-            transactionType = transactionType,
-            transactionDao = this,
-            budgetId = this@CategoryAccount.budgetId,
-            accountBalanceAfterItem = accountBalanceAfterItem,
-        )
+//    override fun TransactionDao.extendedTransactionItemFactory(
+//        id: Uuid,
+//        amount: BigDecimal,
+//        description: String?,
+//        draftStatus: DraftStatus,
+//        transactionId: Uuid,
+//        transactionDescription: String,
+//        transactionTimestamp: Instant,
+//        transactionType: TransactionType,
+//        accountBalanceAfterItem: BigDecimal?,
+//    ): TransactionDao.ExtendedTransactionItem<CategoryAccount> =
+//        TransactionDao.ExtendedTransactionItem(
+//            item = itemBuilderFactory(
+//                id = id,
+//                amount = amount,
+//                description = description,
+//                draftStatus = draftStatus,
+//            ),
+//            transactionId = transactionId,
+//            transactionDescription = transactionDescription,
+//            transactionTimestamp = transactionTimestamp,
+//            transactionType = transactionType,
+//            transactionDao = this,
+//            budgetId = this@CategoryAccount.budgetId,
+//            accountBalanceAfterItem = accountBalanceAfterItem,
+//        )
 
     companion object : AccountFactory<CategoryAccount> {
         override fun invoke(
@@ -213,6 +214,17 @@ class CategoryAccount(
 
 }
 
+fun AccountEntity.toCategoryAccount(): CategoryAccount? =
+    if (type == AccountType.category.name) {
+        CategoryAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+        )
+    } else null
+
 open class RealAccount(
     name: String,
     description: String = "",
@@ -230,32 +242,32 @@ open class RealAccount(
         realItemBuilders.add(itemBuilderFactory(id, amount, description, draftStatus))
     }
 
-    override fun TransactionDao.extendedTransactionItemFactory(
-        id: Uuid,
-        amount: BigDecimal,
-        description: String?,
-        draftStatus: DraftStatus,
-        transactionId: Uuid,
-        transactionDescription: String,
-        transactionTimestamp: Instant,
-        transactionType: Type,
-        accountBalanceAfterItem: BigDecimal?,
-    ): TransactionDao.ExtendedTransactionItem<RealAccount> =
-        TransactionDao.ExtendedTransactionItem(
-            item = itemBuilderFactory(
-                id = id,
-                amount = amount,
-                description = description,
-                draftStatus = draftStatus,
-            ),
-            transactionId = transactionId,
-            transactionDescription = transactionDescription,
-            transactionTimestamp = transactionTimestamp,
-            transactionType = transactionType,
-            transactionDao = this,
-            budgetId = this@RealAccount.budgetId,
-            accountBalanceAfterItem = accountBalanceAfterItem,
-        )
+//    override fun TransactionDao.extendedTransactionItemFactory(
+//        id: Uuid,
+//        amount: BigDecimal,
+//        description: String?,
+//        draftStatus: DraftStatus,
+//        transactionId: Uuid,
+//        transactionDescription: String,
+//        transactionTimestamp: Instant,
+//        transactionType: TransactionType,
+//        accountBalanceAfterItem: BigDecimal?,
+//    ): TransactionDao.ExtendedTransactionItem<RealAccount> =
+//        TransactionDao.ExtendedTransactionItem(
+//            item = itemBuilderFactory(
+//                id = id,
+//                amount = amount,
+//                description = description,
+//                draftStatus = draftStatus,
+//            ),
+//            transactionId = transactionId,
+//            transactionDescription = transactionDescription,
+//            transactionTimestamp = transactionTimestamp,
+//            transactionType = transactionType,
+//            transactionDao = this,
+//            budgetId = this@RealAccount.budgetId,
+//            accountBalanceAfterItem = accountBalanceAfterItem,
+//        )
 
     override fun itemBuilderFactory(
         id: Uuid,
@@ -287,6 +299,18 @@ open class RealAccount(
     }
 }
 
+fun AccountEntity.toRealAccount(): RealAccount? =
+    if (type == AccountType.real.name) {
+        RealAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+        )
+    } else
+        null
+
 /**
  * A separate [DraftAccount] is useful for quickly determining the outstanding balance.  One only has to look at the
  * balance on this account to compute the draft balance of the companion real account.
@@ -309,32 +333,32 @@ class DraftAccount(
         draftItemBuilders.add(itemBuilderFactory(id, amount, description, draftStatus))
     }
 
-    override fun TransactionDao.extendedTransactionItemFactory(
-        id: Uuid,
-        amount: BigDecimal,
-        description: String?,
-        draftStatus: DraftStatus,
-        transactionId: Uuid,
-        transactionDescription: String,
-        transactionTimestamp: Instant,
-        transactionType: Type,
-        accountBalanceAfterItem: BigDecimal?,
-    ): TransactionDao.ExtendedTransactionItem<DraftAccount> =
-        TransactionDao.ExtendedTransactionItem(
-            item = itemBuilderFactory(
-                id = id,
-                amount = amount,
-                description = description,
-                draftStatus = draftStatus,
-            ),
-            transactionId = transactionId,
-            transactionDescription = transactionDescription,
-            transactionTimestamp = transactionTimestamp,
-            transactionType = transactionType,
-            transactionDao = this,
-            budgetId = this@DraftAccount.budgetId,
-            accountBalanceAfterItem = accountBalanceAfterItem,
-        )
+//    override fun TransactionDao.extendedTransactionItemFactory(
+//        id: Uuid,
+//        amount: BigDecimal,
+//        description: String?,
+//        draftStatus: DraftStatus,
+//        transactionId: Uuid,
+//        transactionDescription: String,
+//        transactionTimestamp: Instant,
+//        transactionType: TransactionType,
+//        accountBalanceAfterItem: BigDecimal?,
+//    ): TransactionDao.ExtendedTransactionItem<DraftAccount> =
+//        TransactionDao.ExtendedTransactionItem(
+//            item = itemBuilderFactory(
+//                id = id,
+//                amount = amount,
+//                description = description,
+//                draftStatus = draftStatus,
+//            ),
+//            transactionId = transactionId,
+//            transactionDescription = transactionDescription,
+//            transactionTimestamp = transactionTimestamp,
+//            transactionType = transactionType,
+//            transactionDao = this,
+//            budgetId = this@DraftAccount.budgetId,
+//            accountBalanceAfterItem = accountBalanceAfterItem,
+//        )
 
     override fun itemBuilderFactory(
         id: Uuid,
@@ -377,6 +401,19 @@ class DraftAccount(
 
 }
 
+fun AccountEntity.toDraftAccount(accountIdToAccountMap: (Uuid) -> Account?): DraftAccount? =
+    if (type == AccountType.draft.name) {
+        DraftAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+            realCompanion = accountIdToAccountMap(companionId!!)!! as RealAccount,
+        )
+    } else
+        null
+
 class ChargeAccount(
     name: String,
     description: String = "",
@@ -410,32 +447,32 @@ class ChargeAccount(
             draftStatus = draftStatus,
         )
 
-    override fun TransactionDao.extendedTransactionItemFactory(
-        id: Uuid,
-        amount: BigDecimal,
-        description: String?,
-        draftStatus: DraftStatus,
-        transactionId: Uuid,
-        transactionDescription: String,
-        transactionTimestamp: Instant,
-        transactionType: Type,
-        accountBalanceAfterItem: BigDecimal?,
-    ): TransactionDao.ExtendedTransactionItem<ChargeAccount> =
-        TransactionDao.ExtendedTransactionItem(
-            item = itemBuilderFactory(
-                id = id,
-                amount = amount,
-                description = description,
-                draftStatus = draftStatus,
-            ),
-            transactionId = transactionId,
-            transactionDescription = transactionDescription,
-            transactionTimestamp = transactionTimestamp,
-            transactionType = transactionType,
-            transactionDao = this,
-            budgetId = this@ChargeAccount.budgetId,
-            accountBalanceAfterItem = accountBalanceAfterItem,
-        )
+//    override fun TransactionDao.extendedTransactionItemFactory(
+//        id: Uuid,
+//        amount: BigDecimal,
+//        description: String?,
+//        draftStatus: DraftStatus,
+//        transactionId: Uuid,
+//        transactionDescription: String,
+//        transactionTimestamp: Instant,
+//        transactionType: TransactionType,
+//        accountBalanceAfterItem: BigDecimal?,
+//    ): TransactionDao.ExtendedTransactionItem<ChargeAccount> =
+//        TransactionDao.ExtendedTransactionItem(
+//            item = itemBuilderFactory(
+//                id = id,
+//                amount = amount,
+//                description = description,
+//                draftStatus = draftStatus,
+//            ),
+//            transactionId = transactionId,
+//            transactionDescription = transactionDescription,
+//            transactionTimestamp = transactionTimestamp,
+//            transactionType = transactionType,
+//            transactionDao = this,
+//            budgetId = this@ChargeAccount.budgetId,
+//            accountBalanceAfterItem = accountBalanceAfterItem,
+//        )
 
     companion object : AccountFactory<ChargeAccount> {
         override fun invoke(
@@ -453,3 +490,15 @@ class ChargeAccount(
     }
 
 }
+
+fun AccountEntity.toChargeAccount(): ChargeAccount? =
+    if (type == AccountType.charge.name) {
+        ChargeAccount(
+            name = name,
+            description = description,
+            id = id,
+            balance = balance,
+            budgetId = budgetId,
+        )
+    } else
+        null

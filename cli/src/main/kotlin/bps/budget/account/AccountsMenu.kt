@@ -143,7 +143,13 @@ fun WithIo.editAccountDetails(
                 account.description = candidateDescription
             }
         }
-        if (!accountDao.updateAccount(account)) {
+        if (!accountDao.updateAccount(
+                id = account.id,
+                name = account.name,
+                description = account.description,
+                budgetId = account.budgetId,
+            )
+        ) {
             outPrinter.important("Unable to save changes... account not found.")
         } else {
             outPrinter.important("Editing done")
@@ -430,6 +436,6 @@ fun <T : Account> deactivateAccountMenu(
         labelGenerator = { String.format("%,10.2f | %-15s | %s", balance, name, description) },
     ) { _: MenuSession, account: T ->
         budgetData.deactivateAccount(account)
-        accountDao.deactivateAccount(account)
+        accountDao.deactivateAccount(account.id)
         outPrinter.important("Deactivated account '${account.name}'")
     }

@@ -2,21 +2,22 @@
 
 package bps.budget.transaction
 
-import bps.console.io.WithIo
+import bps.budget.UserConfiguration
 import bps.budget.consistency.commitTransactionConsistently
-import bps.budget.model.min
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
 import bps.budget.model.RealAccount
 import bps.budget.model.Transaction
-import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
+import bps.budget.model.TransactionType
+import bps.budget.model.min
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.TransactionDao
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.InRangeInclusiveStringValidator
 import bps.console.inputs.SimplePromptWithDefault
+import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import java.math.BigDecimal
@@ -67,13 +68,7 @@ fun WithIo.chooseRealAccountsThenCategories(
             budgetData = budgetData,
             label = "Recent expenditures:",
         ) { transactionItem ->
-            budgetData.generalAccount !in
-                    transactionItem.transaction(
-                        budgetData.id,
-                        budgetData.accountIdToAccountMap,
-                    )
-                        .categoryItems
-                        .map { it.account }
+            transactionItem.transactionType == TransactionType.expense.name
         }
         val max = min(
             runningTotal,
@@ -206,19 +201,7 @@ fun WithIo.allocateSpendingItemMenu(
             budgetData = budgetData,
             label = "Recent expenditures:",
         ) { transactionItem ->
-            val transaction = transactionItem
-                .transaction(
-                    budgetId = budgetData.id,
-                    accountIdToAccountMap = budgetData.accountIdToAccountMap,
-                )
-            ((transactionBuilder.realItemBuilders +
-                    transactionBuilder.chargeItemBuilders)
-                .map { it.account }
-                .toSet() intersect
-                    (transaction.realItems + transaction.chargeItems)
-                        .map { it.account }
-                        .toSet())
-                .isNotEmpty()
+            transactionItem.transactionType == TransactionType.expense.name
         }
 
         val max = min(

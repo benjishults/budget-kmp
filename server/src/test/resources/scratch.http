@@ -4,25 +4,31 @@ GET http://0.0.0.0:8085/
 ###
 
 GET http://0.0.0.0:8085/content/sample.html
+
 ###
 
 GET http://0.0.0.0:8085/test
+
 ###
 
 GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts
 Accept: application/json
+
 ###
 
 GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real
 Accept: application/json
+
 ###
 
 GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=category
 Accept: application/json
+
 ###
 
 GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real&type=category
 Accept: application/json
+
 ###
 
 GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real,category
@@ -30,5 +36,16 @@ Accept: application/json
 
 ###
 
-GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts/ff0d2b4e-064b-40b6-86a3-bb1f3e4a7025?type=category
+GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts/ff0d2b4e-064b-40b6-86a3-bb1f3e4a7025?
 Accept: application/json
+
+###
+
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts/ff0d2b4e-064b-40b6-86a3-bb1f3e4a7025/transactions
+
+###
+
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/transactions/57000ace-20b1-4f2d-aea1-c963f0e1f714
+
+###
+

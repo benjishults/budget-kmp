@@ -2,9 +2,9 @@ package bps.budget.account.data.network
 
 import bps.budget.core.data.safeCall
 import bps.budget.core.domain.DataError
-import bps.budget.core.domain.Result
 import bps.budget.model.AccountType
 import bps.budget.model.AccountsResponse
+import bps.kotlin.Result
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter

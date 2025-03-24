@@ -5,9 +5,11 @@ import bps.budget.model.AccountType
 import bps.budget.model.AccountsHolder
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
-import bps.budget.model.ChargeAccount
 import bps.budget.model.DraftAccount
-import bps.budget.model.RealAccount
+import bps.budget.model.toCategoryAccount
+import bps.budget.model.toChargeAccount
+import bps.budget.model.toDraftAccount
+import bps.budget.model.toRealAccount
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.DataConfigurationException
 import bps.jdbc.JdbcConnectionProvider
@@ -80,16 +82,18 @@ class JdbcCliBudgetDao(
                 // TODO pull out duplicate code in these next three sections
                 val categoryAccountsHolder =
                     AccountsHolder(
-                        active = accountDao.getActiveAccounts(
-                            type = AccountType.category.name,
-                            budgetId = budgetId,
-                            factory = CategoryAccount,
-                        ),
-                        inactive = accountDao.getDeactivatedAccounts(
-                            type = AccountType.category.name,
-                            budgetId = budgetId,
-                            factory = CategoryAccount,
-                        ),
+                        active = accountDao
+                            .getActiveAccounts(
+                                type = AccountType.category.name,
+                                budgetId = budgetId,
+                            )
+                            .map { it.toCategoryAccount()!! },
+                        inactive = accountDao
+                            .getDeactivatedAccounts(
+                                type = AccountType.category.name,
+                                budgetId = budgetId,
+                            )
+                            .map { it.toCategoryAccount()!! },
                     )
                 val generalAccount: CategoryAccount =
                     categoryAccountsHolder
@@ -97,39 +101,60 @@ class JdbcCliBudgetDao(
                         .find { it.id == generalAccountId }!!
                 val realAccountsHolder =
                     AccountsHolder(
-                        active = accountDao.getActiveAccounts(
-                            type = AccountType.real.name,
-                            budgetId = budgetId,
-                            factory = RealAccount,
-                        ),
-                        inactive = accountDao.getDeactivatedAccounts(AccountType.real.name, budgetId, RealAccount),
+                        active = accountDao
+                            .getActiveAccounts(
+                                type = AccountType.real.name,
+                                budgetId = budgetId,
+                            )
+                            .map { it.toRealAccount()!! },
+                        inactive = accountDao
+                            .getDeactivatedAccounts(AccountType.real.name, budgetId)
+                            .map { it.toRealAccount()!! },
                     )
                 val chargeAccountsHolder =
                     AccountsHolder(
-                        active = accountDao.getActiveAccounts(
-                            type = AccountType.charge.name,
-                            budgetId = budgetId,
-                            factory = ChargeAccount,
-                        ),
-                        inactive = accountDao.getDeactivatedAccounts(AccountType.charge.name, budgetId, ChargeAccount),
+                        active = accountDao
+                            .getActiveAccounts(
+                                type = AccountType.charge.name,
+                                budgetId = budgetId,
+                            )
+                            .map { it.toChargeAccount()!! },
+                        inactive =
+                            accountDao
+                                .getDeactivatedAccounts(AccountType.charge.name, budgetId)
+                                .map { it.toChargeAccount()!! },
                     )
+//                val accountIdToAccountMap =
+//                    buildMap<Uuid, Account> {
+//                        realAccountsHolder
+//                            .allAccounts
+//                            .forEach { account ->
+//                                put(account.id, account)
+//                            }
+//                    }
                 val draftAccountsHolder = AccountsHolder(
                     active = accountDao.getActiveAccounts(
-                        AccountType.draft.name, budgetId,
-                        DraftAccount { companionId ->
-                            realAccountsHolder
-                                .active
-                                .find { it.id == companionId }!!
+                        AccountType.draft.name,
+                        budgetId,
+                    )
+                        .map {
+                            it.toDraftAccount { realId: Uuid ->
+                                realAccountsHolder
+                                    .allAccounts
+                                    .firstOrNull { it.id == realId }
+                            }!!
                         },
-                    ),
                     inactive = accountDao.getDeactivatedAccounts(
-                        AccountType.draft.name, budgetId,
-                        DraftAccount { companionId ->
-                            realAccountsHolder
-                                .inactive
-                                .find { it.id == companionId }!!
+                        AccountType.draft.name,
+                        budgetId,
+                    )
+                        .map {
+                            it.toDraftAccount { realId: Uuid ->
+                                realAccountsHolder
+                                    .allAccounts
+                                    .firstOrNull { it.id == realId }
+                            }!!
                         },
-                    ),
                 )
                 BudgetData(
                     budgetId,

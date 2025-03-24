@@ -2,18 +2,19 @@
 
 package bps.budget.checking
 
+import bps.budget.UserConfiguration
 import bps.budget.budgetQuitItem
-import bps.console.io.WithIo
 import bps.budget.consistency.clearCheckConsistently
 import bps.budget.consistency.deleteTransactionConsistently
 import bps.budget.model.BudgetData
 import bps.budget.model.DraftAccount
 import bps.budget.model.DraftStatus
 import bps.budget.model.Transaction
+import bps.budget.model.TransactionType
 import bps.budget.model.toCurrencyAmountOrNull
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.TransactionDao
-import bps.budget.UserConfiguration
 import bps.budget.transaction.ViewTransactionsWithoutBalancesMenu
 import bps.budget.transaction.allocateSpendingItemMenu
 import bps.budget.transaction.showRecentRelevantTransactions
@@ -22,6 +23,7 @@ import bps.console.app.TryAgainAtMostRecentMenuException
 import bps.console.inputs.InRangeInclusiveStringValidator
 import bps.console.inputs.SimplePrompt
 import bps.console.inputs.getTimestampFromUser
+import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.ScrollingSelectionMenu
 import bps.console.menu.backItem
@@ -57,7 +59,7 @@ fun WithIo.checksMenu(
                             budgetData,
                             clock,
                             menuSession,
-                            userConfig
+                            userConfig,
                         )
                     },
                 )
@@ -97,17 +99,17 @@ fun WithIo.deleteCheckOnAccount(
     budgetData: BudgetData,
     userConfig: UserConfiguration,
 ) = ViewTransactionsWithoutBalancesMenu(
-    filter = { transaction -> transaction.item.draftStatus === DraftStatus.outstanding },
+    filter = { transaction -> transaction.draftStatus === DraftStatus.outstanding.name },
     header = { "Select the check to DELETE on '${draftAccount.name}'" },
     prompt = { "Select the check to DELETE: " },
     account = draftAccount,
     transactionDao = transactionDao,
     budgetId = budgetData.id,
-    accountIdToAccountMap = budgetData.accountIdToAccountMap,
+    accountIdToAccountMap = { budgetData.getAccountByIdOrNull(it) },
     timeZone = budgetData.timeZone,
     limit = userConfig.numberOfItemsInScrollingList,
     outPrinter = outPrinter,
-) { _, draftTransactionItem: TransactionDao.ExtendedTransactionItem<DraftAccount> ->
+) { _, draftTransactionItem: AccountTransactionEntity ->
     outPrinter.verticalSpace()
     deleteTransactionConsistently(
         transactionItem = draftTransactionItem,
@@ -127,18 +129,19 @@ fun WithIo.recordCheckClearedOnAccount(
     userConfig: UserConfiguration,
     clock: Clock,
 ) = ViewTransactionsWithoutBalancesMenu(
-    filter = { transaction -> transaction.item.draftStatus === DraftStatus.outstanding },
+    filter = { transaction: AccountTransactionEntity -> transaction.draftStatus === DraftStatus.outstanding.name },
     header = { "Select the check that CLEARED on '${draftAccount.name}'" },
     prompt = { "Select the check that CLEARED: " },
     account = draftAccount,
     transactionDao = transactionDao,
     budgetId = budgetData.id,
-    accountIdToAccountMap = budgetData.accountIdToAccountMap,
+    accountIdToAccountMap = { budgetData.getAccountByIdOrNull(it) },
     timeZone = budgetData.timeZone,
     limit = userConfig.numberOfItemsInScrollingList,
     outPrinter = outPrinter,
-) { _, draftTransactionItem: TransactionDao.ExtendedTransactionItem<DraftAccount> ->
+) { _, draftTransactionItem: AccountTransactionEntity ->
     outPrinter.verticalSpace()
+    // TODO specify a description for the clearing transaction?
     val timestamp: Instant =
         getTimestampFromUser(
             queryForNow = "Did the check clear just now [Y]? ",
@@ -147,7 +150,14 @@ fun WithIo.recordCheckClearedOnAccount(
         )
             ?.toInstant(budgetData.timeZone)
             ?: throw TryAgainAtMostRecentMenuException("No timestamp entered.")
-    clearCheckConsistently(draftTransactionItem, timestamp, draftAccount, transactionDao, accountDao, budgetData)
+    clearCheckConsistently(
+        draftBeingClearedTransactionItem = draftTransactionItem,
+        draftAccountRealCompanionId = draftAccount.realCompanion.id,
+        timestamp = timestamp,
+        transactionDao = transactionDao,
+        accountDao = accountDao,
+        budgetData = budgetData,
+    )
     outPrinter.important("Cleared check recorded")
 }
 
@@ -207,7 +217,7 @@ fun WithIo.writeCheckOnAccount(
             Transaction.Builder(
                 description = description,
                 timestamp = timestamp,
-                type = Transaction.Type.expense,
+                transactionType = TransactionType.expense.name,
             )
                 .apply {
                     with(draftAccount) {

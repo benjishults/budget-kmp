@@ -2,47 +2,22 @@
 
 package bps.budget.model
 
+import bps.budget.persistence.AccountDao.AccountCommitableTransactionItem
+import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.TransactionData
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-interface TransactionItem<out A : Account> /*: Comparable<TransactionItem<*>>*/ {
-    val amount: BigDecimal
-    val description: String?
-    val account: A
-    val timestamp: Instant
-}
-
 @ConsistentCopyVisibility
 data class Transaction private constructor(
-    val id: Uuid,
-    val description: String,
-    val timestamp: Instant,
-    val type: Type,
+    override val id: Uuid,
+    override val description: String,
+    override val timestamp: Instant,
+    override val transactionType: String,
     val clears: Transaction? = null,
-) {
-
-    enum class Type {
-        expense,
-        income,
-
-        /**
-         * Starting to track an existing real account for the first time.
-         */
-        initial,
-
-        /**
-         * transfer from General to a category
-         */
-        allowance,
-        transfer,
-
-        /**
-         * transfer from real to charge or draft
-         */
-        clearing,
-    }
+) : TransactionData {
 
     lateinit var categoryItems: List<Item<CategoryAccount>>
         private set
@@ -53,7 +28,16 @@ data class Transaction private constructor(
     lateinit var draftItems: List<Item<DraftAccount>>
         private set
 
-    fun allItems(): Collection<Item<*>> = categoryItems + realItems + chargeItems + draftItems
+    fun allItems(): List<Item<*>> = categoryItems + realItems + chargeItems + draftItems
+
+    override fun compareTo(other: TransactionData): Int =
+        this.timestamp.compareTo(other.timestamp)
+            .let {
+                when (it) {
+                    0 -> this.id.toString().compareTo(other.id.toString())
+                    else -> it
+                }
+            }
 
     private fun validate(): Boolean {
         val categoryAndDraftSum: BigDecimal =
@@ -88,14 +72,24 @@ data class Transaction private constructor(
     inner class Item<out A : Account>(
         val id: Uuid,
         override val amount: BigDecimal,
-        override val description: String? = null,
-        override val account: A,
+        val description: String? = null,
+        val account: A,
         val draftStatus: DraftStatus = DraftStatus.none,
-    ) : Comparable<Item<*>>, TransactionItem<A> {
+    ) : Comparable<Item<*>>, AccountCommitableTransactionItem {
 
         val transaction = this@Transaction
 
-        override val timestamp: Instant = transaction.timestamp
+        val timestamp: Instant = transaction.timestamp
+        override val accountId: Uuid = account.id
+
+        fun toTransactionDaoItem(): TransactionDao.TransactionItem =
+            TransactionDao.TransactionItem(
+                amount = amount,
+                description = description,
+                accountId = account.id,
+                accountType = account.type,
+                draftStatus = draftStatus.name,
+            )
 
         override fun compareTo(other: Item<*>): Int =
             transaction.timestamp
@@ -177,7 +171,7 @@ data class Transaction private constructor(
         var description: String? = null,
         var timestamp: Instant? = null,
         var id: Uuid? = null,
-        var type: Type? = null,
+        var transactionType: String? = null,
         var clears: Transaction? = null,
     ) {
         val categoryItemBuilders: MutableList<ItemBuilder<CategoryAccount>> = mutableListOf()
@@ -189,7 +183,7 @@ data class Transaction private constructor(
             id = this@Builder.id ?: Uuid.random(),
             description = this@Builder.description!!,
             timestamp = this@Builder.timestamp!!,
-            type = this@Builder.type!!,
+            transactionType = this@Builder.transactionType!!,
             clears = this@Builder.clears,
         )
             .apply {
@@ -211,26 +205,3 @@ data class Transaction private constructor(
     }
 }
 
-/**
- * [DraftAccount]s and [ChargeAccount]s have some transaction items that are outstanding and some that are cleared.
- * [RealAccount]s have "clearing" transaction items that clear a check or pay a charge bill.
- */
-enum class DraftStatus {
-    none,
-
-    /**
-     * Means that the item is a cleared draft or charge expense on a category account from a draft or charge account
-     */
-    cleared,
-
-    /**
-     * Means that it is part of a clearing transaction transferring from a real account to a draft or charge account
-     */
-    clearing,
-
-    /**
-     * Means that the item is a draft or charge expense on a category account from a draft or charge account
-     * waiting for a clearing event on a real account
-     */
-    outstanding
-}

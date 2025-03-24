@@ -31,12 +31,6 @@ class AccountsResponse(
     val links: Links? = null,
 )
 
-@Serializable
-class Links(
-    val next: String? = null,
-    val previous: String? = null,
-)
-
 /**
  * Used for POST and PUT requests.
  */

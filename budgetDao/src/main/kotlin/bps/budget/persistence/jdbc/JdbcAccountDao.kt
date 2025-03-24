@@ -1,15 +1,10 @@
 package bps.budget.persistence.jdbc
 
-import bps.budget.model.Account
-import bps.budget.model.AccountFactory
 import bps.budget.model.AccountType
-import bps.budget.model.CategoryAccount
-import bps.budget.model.ChargeAccount
-import bps.budget.model.DraftAccount
-import bps.budget.model.RealAccount
 import bps.budget.model.defaultGeneralAccountDescription
 import bps.budget.model.defaultGeneralAccountName
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountEntity
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
@@ -27,31 +22,31 @@ open class JdbcAccountDao(
 
     private val connection = jdbcConnectionProvider.connection
 
-    override fun getDraftAccountOrNull(accountId: Uuid, budgetId: Uuid): DraftAccount? =
+    override fun getAllAccountNamesForBudget(budgetId: Uuid): List<String> =
         connection.transactOrThrow {
-            internalGetAccountOrNull<DraftAccount>(
-                accountId,
-                budgetId,
-                DraftAccount { companionId ->
-                    internalGetAccountOrNull(companionId, budgetId, RealAccount)!!
-                },
-            )
+            buildList {
+                AccountType.entries.forEach { type ->
+                    addAll(
+                        getActiveAccountsInternal(type.name, budgetId)
+                            .map { it.name },
+                    )
+                    addAll(
+                        getDeactivatedAccountsInternal(type.name, budgetId)
+                            .map { it.name },
+                    )
+                }
+            }
         }
 
-    override fun <T : Account> getAccountOrNull(
-        accountId: Uuid,
-        budgetId: Uuid,
-        accountFactory: AccountFactory<T>,
-    ): T? =
+    override fun getAccountOrNull(accountId: Uuid, budgetId: Uuid): AccountEntity? =
         connection.transactOrThrow {
-            internalGetAccountOrNull(accountId, budgetId, accountFactory)
+            internalGetAccountOrNull(accountId, budgetId)
         }
 
-    private fun <T : Account> Connection.internalGetAccountOrNull(
+    private fun Connection.internalGetAccountOrNull(
         accountId: Uuid,
         budgetId: Uuid,
-        accountFactory: AccountFactory<T>,
-    ): T? =
+    ): AccountEntity? =
         prepareStatement(
             """
                 |select name, type, description, balance, companion_account_id
@@ -66,31 +61,33 @@ open class JdbcAccountDao(
                 statement.executeQuery()
                     .use { result ->
                         if (result.next()) {
-                            val type: AccountType = AccountType.valueOf(result.getString("type")!!)
-                            if (type === accountFactory.type) {
-                                val companionId = result.getUuid("companion_account_id")
-                                val name = result.getString("name")!!
-                                val description = result.getString("description")!!
-                                val balance = result.getCurrencyAmount("balance")
-                                accountFactory(name, description, accountId, balance, budgetId, companionId)
-                            } else {
-                                // TODO log account with ID but unexpected type found
-                                null
-                            }
+                            val companionId: Uuid? = result.getUuid("companion_account_id")
+                            val name = result.getString("name")!!
+                            val description = result.getString("description")!!
+                            val balance = result.getCurrencyAmount("balance")
+                            AccountEntity(
+                                name = name,
+                                description = description,
+                                id = accountId,
+                                balance = balance,
+                                budgetId = budgetId,
+                                companionId = companionId,
+                                type = result.getString("type")!!,
+                            )
                         } else {
                             null
                         }
                     }
             }
 
-    override fun <T : Account> getDeactivatedAccounts(
-        type: String,
-        budgetId: Uuid,
-        factory: AccountFactory<T>,
-    ): List<T> =
+    override fun getDeactivatedAccounts(type: String, budgetId: Uuid): List<AccountEntity> =
         connection.transactOrThrow {
-            prepareStatement(
-                """
+            getDeactivatedAccountsInternal(type, budgetId)
+        }
+
+    private fun Connection.getDeactivatedAccountsInternal(type: String, budgetId: Uuid): List<AccountEntity> =
+        prepareStatement(
+            """
     select acc.*
     from accounts acc
     where acc.type = ?
@@ -104,24 +101,24 @@ open class JdbcAccountDao(
                  and aap.start_date_utc < now()
             )
 """.trimIndent(),
-            )
-                .use { getDeactivatedAccountsStatement ->
-                    getDeactivatedAccountsStatement.setString(1, type)
-                    getDeactivatedAccountsStatement.setUuid(2, budgetId)
-                    getDeactivatedAccountsStatement
-                        .executeQuery()
-                        .use { resultSet: ResultSet ->
-                            resultSet.extractAccounts(factory, budgetId)
-                        }
-                }
+        )
+            .use { getDeactivatedAccountsStatement ->
+                getDeactivatedAccountsStatement.setString(1, type)
+                getDeactivatedAccountsStatement.setUuid(2, budgetId)
+                getDeactivatedAccountsStatement
+                    .executeQuery()
+                    .use { resultSet: ResultSet ->
+                        resultSet.extractAccounts(budgetId)
+                    }
+            }
+
+    override fun getActiveAccounts(type: String, budgetId: Uuid): List<AccountEntity> =
+        connection.transactOrThrow {
+            getActiveAccountsInternal(type, budgetId)
         }
 
-    override fun <T : Account> getActiveAccounts(
-        type: String,
-        budgetId: Uuid,
-        factory: AccountFactory<T>,
-    ): List<T> =
-        connection.prepareStatement(
+    private fun Connection.getActiveAccountsInternal(type: String, budgetId: Uuid): List<AccountEntity> =
+        prepareStatement(
             """
 select acc.*
 from accounts acc
@@ -139,36 +136,32 @@ where acc.budget_id = ?
                 getAccounts.setString(2, type)
                 getAccounts.executeQuery()
                     .use { result ->
-                        result.extractAccounts(factory, budgetId)
+                        result.extractAccounts(budgetId)
                     }
             }
 
-
-    /**
-     * Converts a [ResultSet] into list of [T]s
-     * @param T the [Account] type
-     */
-    private fun <T : Account> ResultSet.extractAccounts(
+    private fun ResultSet.extractAccounts(
         // TODO should be AccountFactory?
-        factory: (String, String, Uuid, BigDecimal, Uuid, Uuid?) -> T,
+//        factory: (String, String, Uuid, BigDecimal, Uuid, Uuid?) -> T,
         budgetId: Uuid,
-    ): List<T> =
+    ): List<AccountEntity> =
         buildList {
             while (next()) {
                 add(
-                    factory(
-                        getString("name"),
-                        getString("description"),
-                        getUuid("id")!!,
-                        getCurrencyAmount("balance"),
-                        budgetId,
-                        getUuid("companion_account_id"),
+                    AccountEntity(
+                        name = getString("name"),
+                        description = getString("description"),
+                        id = getUuid("id")!!,
+                        balance = getCurrencyAmount("balance"),
+                        budgetId = budgetId,
+                        companionId = getUuid("companion_account_id"),
+                        type = getString("type"),
                     ),
                 )
             }
         }
 
-    override fun deactivateAccount(account: Account) {
+    override fun deactivateAccount(accountId: Uuid): Boolean =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -180,29 +173,39 @@ where aap.account_id = ?
                 """.trimIndent(),
             )
                 .use { deactivateActivityPeriod: PreparedStatement ->
-                    deactivateActivityPeriod.setUuid(1, account.id)
-                    deactivateActivityPeriod.executeUpdate()
+                    deactivateActivityPeriod.setUuid(1, accountId)
+                    deactivateActivityPeriod.executeUpdate() == 1
                 }
         }
-    }
 
-    override fun List<AccountDao.BalanceToAdd>.updateBalances(budgetId: Uuid) =
-        forEach { (accountId: Uuid, amount: BigDecimal) ->
-            connection.prepareStatement(
-                """
+    override fun List<AccountDao.AccountCommitableTransactionItem>.updateBalances(budgetId: Uuid): Unit =
+        connection.transactOrThrow {
+            forEach { item: AccountDao.AccountCommitableTransactionItem ->
+                val amount: BigDecimal = item.amount
+                val accountId: Uuid = item.accountId
+                prepareStatement(
+                    """
                         update accounts
                         set balance = balance + ?
                         where id = ? and budget_id = ?""".trimIndent(),
-            )
-                .use { preparedStatement: PreparedStatement ->
-                    preparedStatement.setBigDecimal(1, amount)
-                    preparedStatement.setUuid(2, accountId)
-                    preparedStatement.setUuid(3, budgetId)
-                    preparedStatement.executeUpdate()
-                }
+                )
+                    .use { preparedStatement: PreparedStatement ->
+                        preparedStatement.setBigDecimal(1, amount)
+                        preparedStatement.setUuid(2, accountId)
+                        preparedStatement.setUuid(3, budgetId)
+                        if (preparedStatement.executeUpdate() != 1) {
+                            throw IllegalStateException("Cannot update balances for account_id=$accountId, budget_id=$budgetId")
+                        }
+                    }
+            }
         }
 
-    override fun updateAccount(account: Account): Boolean =
+    override fun updateAccount(
+        id: Uuid,
+        name: String,
+        description: String,
+        budgetId: Uuid,
+    ): Boolean =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -214,15 +217,21 @@ where aap.account_id = ?
             """.trimIndent(),
             )
                 .use { preparedStatement: PreparedStatement ->
-                    preparedStatement.setString(1, account.name)
-                    preparedStatement.setString(2, account.description)
-                    preparedStatement.setUuid(3, account.id)
-                    preparedStatement.setUuid(4, account.budgetId)
+                    preparedStatement.setString(1, name)
+                    preparedStatement.setString(2, description)
+                    preparedStatement.setUuid(3, id)
+                    preparedStatement.setUuid(4, budgetId)
                     preparedStatement.executeUpdate() == 1
                 }
         }
 
-    override fun createCategoryAccountOrNull(name: String, description: String, budgetId: Uuid): CategoryAccount? =
+    override fun createAccountOrNull(
+        name: String,
+        description: String,
+        type: String,
+        balance: BigDecimal,
+        budgetId: Uuid,
+    ): AccountEntity? =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -234,15 +243,16 @@ where aap.account_id = ?
                     val id = preparedStatement.setAccountParametersAndReturnId(
                         name,
                         description,
-                        AccountType.category,
+                        type,
                         budgetId,
                     )
                     if (preparedStatement.executeUpdate() == 1) {
-                        CategoryAccount(
+                        AccountEntity(
                             name = name,
                             description = description,
                             id = id,
-                            balance = BigDecimal.ZERO.setScale(2),
+                            balance = balance,
+                            type = type,
                             budgetId = budgetId,
                         )
                     } else
@@ -251,7 +261,7 @@ where aap.account_id = ?
                 ?.also { insertAccountActivePeriod(it, budgetId) }
         }
 
-    private fun Connection.insertAccountActivePeriod(account: Account, budgetId: Uuid) =
+    private fun Connection.insertAccountActivePeriod(account: AccountEntity, budgetId: Uuid): Boolean =
         prepareStatement(
             """
                             insert into account_active_periods (id, account_id, budget_id)
@@ -264,10 +274,14 @@ where aap.account_id = ?
                 createActivePeriod.setUuid(2, account.id)
                 createActivePeriod.setUuid(3, budgetId)
                 // NOTE due to the uniqueness constraints on this table, this will be idempotent
-                createActivePeriod.executeUpdate()
+                createActivePeriod.executeUpdate() == 1
             }
 
-    override fun createGeneralAccountWithIdOrNull(id: Uuid, balance: BigDecimal, budgetId: Uuid): CategoryAccount? =
+    override fun createGeneralAccountWithIdOrNull(
+        id: Uuid,
+        balance: BigDecimal,
+        budgetId: Uuid,
+    ): AccountEntity? =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -283,11 +297,12 @@ where aap.account_id = ?
                     preparedStatement.setUuid(5, budgetId)
                     preparedStatement.setUuid(6, id)
                     if (preparedStatement.executeUpdate() == 1) {
-                        CategoryAccount(
+                        AccountEntity(
                             name = defaultGeneralAccountName,
                             description = defaultGeneralAccountDescription,
                             id = id,
                             balance = balance,
+                            type = AccountType.category.name,
                             budgetId = budgetId,
                         )
                     } else
@@ -296,22 +311,12 @@ where aap.account_id = ?
                 ?.also { insertAccountActivePeriod(it, budgetId) }
         }
 
-    override fun createRealAccountOrNull(
-        name: String,
-        description: String,
-        budgetId: Uuid,
-        balance: BigDecimal,
-    ): RealAccount? =
-        connection.transactOrThrow {
-            createRealAccountInTransaction(name, description, budgetId, balance)
-        }
-
     private fun Connection.createRealAccountInTransaction(
         name: String,
         description: String,
         budgetId: Uuid,
         balance: BigDecimal,
-    ): RealAccount? =
+    ): AccountEntity? =
         prepareStatement(
             """
                     insert into accounts (name, description, balance, type, budget_id, id)
@@ -322,15 +327,16 @@ where aap.account_id = ?
                 val id = preparedStatement.setAccountParametersAndReturnId(
                     name,
                     description,
-                    AccountType.real,
+                    AccountType.real.name,
                     budgetId,
                     balance,
                 )
                 if (preparedStatement.executeUpdate() == 1) {
-                    RealAccount(
+                    AccountEntity(
                         name = name,
                         description = description,
                         id = id,
+                        type = AccountType.real.name,
                         balance = balance,
                         budgetId = budgetId,
                     )
@@ -344,10 +350,10 @@ where aap.account_id = ?
         description: String,
         budgetId: Uuid,
         balance: BigDecimal,
-    ): Pair<RealAccount, DraftAccount>? =
+    ): Pair<AccountEntity, AccountEntity>? =
         connection.transactOrThrow {
             createRealAccountInTransaction(name, description, budgetId, balance)
-                ?.let { realCompanion: RealAccount ->
+                ?.let { realCompanion: AccountEntity ->
                     prepareStatement(
                         """
                             insert into accounts (name, description, balance, type, budget_id, id, companion_account_id)
@@ -358,18 +364,19 @@ where aap.account_id = ?
                             val id = createDraftAccountStatement.setAccountParametersAndReturnId(
                                 name,
                                 description,
-                                AccountType.draft,
+                                AccountType.draft.name,
                                 budgetId,
                             )
                             createDraftAccountStatement.setUuid(7, realCompanion.id)
                             if (createDraftAccountStatement.executeUpdate() == 1) {
-                                realCompanion to DraftAccount(
+                                realCompanion to AccountEntity(
                                     name = name,
                                     description = description,
                                     id = id,
                                     balance = BigDecimal.ZERO.setScale(2),
+                                    type = AccountType.draft.name,
                                     budgetId = budgetId,
-                                    realCompanion = realCompanion,
+                                    companionId = realCompanion.id,
                                 )
                             } else
                                 null
@@ -378,43 +385,10 @@ where aap.account_id = ?
                 }
         }
 
-    override fun createChargeAccountOrNull(
-        name: String,
-        description: String,
-        budgetId: Uuid,
-    ): ChargeAccount? =
-        connection.transactOrThrow {
-            prepareStatement(
-                """
-                insert into accounts (name, description, balance, type, budget_id, id)
-                values (?, ?, ?, ?, ?, ?)
-            """.trimIndent(),
-            )
-                .use { preparedStatement: PreparedStatement ->
-                    val id = preparedStatement.setAccountParametersAndReturnId(
-                        name,
-                        description,
-                        AccountType.charge,
-                        budgetId,
-                    )
-                    if (preparedStatement.executeUpdate() == 1) {
-                        ChargeAccount(
-                            name = name,
-                            description = description,
-                            id = id,
-                            balance = BigDecimal.ZERO.setScale(2),
-                            budgetId = budgetId,
-                        )
-                    } else
-                        null
-                }
-                ?.also { insertAccountActivePeriod(it, budgetId) }
-        }
-
     private fun PreparedStatement.setAccountParametersAndReturnId(
         name: String,
         description: String,
-        type: AccountType,
+        type: String,
         budgetId: Uuid,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
     ): Uuid =
@@ -423,7 +397,7 @@ where aap.account_id = ?
                 setString(1, name)
                 setString(2, description)
                 setBigDecimal(3, balance)
-                setString(4, type.name)
+                setString(4, type)
                 setUuid(5, budgetId)
                 setUuid(6, it)
             }

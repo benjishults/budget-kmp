@@ -1,10 +1,13 @@
 package bps.budget.server
 
+import bps.budget.persistence.AccountDao
+import bps.budget.persistence.TransactionDao
 import bps.budget.persistence.jdbc.JdbcAccountDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
 import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.budget.persistence.jdbc.JdbcUserBudgetDao
 import bps.budget.server.account.accountRoutes
+import bps.budget.server.transaction.transactionRoutes
 import bps.config.convertToPath
 import bps.jdbc.JdbcConnectionProvider
 import io.ktor.serialization.kotlinx.json.json
@@ -48,25 +51,31 @@ fun main() {
         host = "0.0.0.0",
     ) {
         install(ContentNegotiation) {
-            json(Json {
-                prettyPrint = true
-                ignoreUnknownKeys = true
+            json(
+                Json {
+                    prettyPrint = true
+                    ignoreUnknownKeys = true
 //                serializersModule = SerializersModule {
 //                    contextual(BigDecimal::class, BigDecimalNumericSerializer)
 //                    contextual(Instant::class, InstantAsIsoSerializer)
 //                    contextual(UUID::class, UUIDSerializer)
 //                }
-            })
+                },
+            )
         }
-        module(accountDao)
+        module(accountDao, transactionDao)
     }
         .start(wait = true)
 }
 
-fun Application.module(accountDao: JdbcAccountDao) =
+fun Application.module(
+    accountDao: AccountDao,
+    transactionDao: TransactionDao,
+) =
     routing {
         staticResources("/content", "static")
         accountRoutes(accountDao)
+        transactionRoutes(transactionDao)
         get("/test") {
             call.respondText("succeeded")
         }

@@ -1,7 +1,7 @@
 package bps.budget.core.data
 
 import bps.budget.core.domain.DataError
-import bps.budget.core.domain.Result
+import bps.kotlin.Result
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.network.sockets.SocketTimeoutException

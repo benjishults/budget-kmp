@@ -1,7 +1,8 @@
 package bps.budget.model
 
 import bps.budget.persistence.AccountDao
-import bps.budget.persistence.TransactionDao
+import bps.budget.persistence.AccountDao.AccountCommitableTransactionItem
+import bps.budget.persistence.AccountEntity
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -9,7 +10,7 @@ import java.math.BigDecimal
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-data class AccountsHolder<out T : Account>(
+data class AccountsHolder<out T : AccountData>(
     val active: List<T> = emptyList(),
     val inactive: List<T> = emptyList(),
 ) {
@@ -17,12 +18,13 @@ data class AccountsHolder<out T : Account>(
     val allAccounts: List<T> = active + inactive
 
     companion object {
-        fun <T : Account> empty() = AccountsHolder<T>()
+        fun <T : AccountData> empty(): AccountsHolder<T> =
+            AccountsHolder<T>()
     }
 }
 
 /**
- * Currently not thread safe to add or delete accounts.  So, just be sure to use only a "main" thread.
+ * Currently not thread safe to add or delete accounts.  So, just be sure to use only the "main" thread.
  */
 @OptIn(ExperimentalUuidApi::class)
 class BudgetData(
@@ -62,18 +64,15 @@ class BudgetData(
                 it.id
             }
 
-    val accountIdToAccountMap: Map<Uuid, Account>
-        get() = byId
-
     @Suppress("UNCHECKED_CAST")
     fun <T : Account> getAccountByIdOrNull(id: Uuid): T? =
         byId[id] as T?
 
-    fun commit(transaction: Transaction) {
-        transaction.allItems()
-            .forEach { item: Transaction.Item<*> ->
-                getAccountByIdOrNull<Account>(item.account.id)!!
-                    .commit(item)
+    fun commit(commitableTransactionItems: List<AccountCommitableTransactionItem>) {
+        commitableTransactionItems
+            .forEach { item: AccountCommitableTransactionItem ->
+                getAccountByIdOrNull<Account>(item.accountId)!!
+                    .addAmount(item.amount)
             }
     }
 
@@ -143,49 +142,19 @@ class BudgetData(
         }
     }
 
-    /**
-     * NOTE: this allows you to delete a transaction that has already been cleared.  Callers should avoid making this
-     *   mistake.
-     *
-     * This reverses the balance changes would have resulted from the application of this [transaction].  In other
-     * words, this commits the [bps.budget.model.Transaction.Item.negate] of each of the [transaction]'s [bps.budget.model.Transaction.allItems].
-     */
-    fun undoTransaction(transaction: Transaction) {
-        // if this transaction has already cleared?  error out.
-        transaction
-            .allItems()
-            .map(Transaction.Item<*>::negate)
-            .forEach { negatedTransactionItem ->
-                negatedTransactionItem.account.commit(negatedTransactionItem)
-            }
-    }
-
-    /**
-     * NOTE: this allows you to delete a transaction that has already been cleared.  Callers should avoid making this
-     *   mistake.
-     *
-     * This reverses the balance changes would have resulted from the application of the transaction associated
-     * to this [transactionItem].  In other
-     * words, this commits the [bps.budget.model.Transaction.Item.negate] of each of the [transactionItem]'s [bps.budget.model.Transaction.allItems].
-     */
-    fun undoTransactionForItem(transactionItem: TransactionDao.ExtendedTransactionItem<*>) {
-        undoTransaction(transactionItem.transaction(id, accountIdToAccountMap))
-    }
-
     companion object {
 
         @JvmStatic
         fun persistWithBasicAccounts(
             budgetName: String,
             timeZone: TimeZone = TimeZone.Companion.currentSystemDefault(),
-
             checkingBalance: BigDecimal = BigDecimal.ZERO.setScale(2),
             walletBalance: BigDecimal = BigDecimal.ZERO.setScale(2),
             generalAccountId: Uuid = Uuid.random(),
             budgetId: Uuid = Uuid.random(),
             accountDao: AccountDao,
         ): BudgetData {
-            val (checkingAccount, draftAccount) =
+            val (checkingAccount: AccountEntity, draftAccount: AccountEntity) =
                 accountDao.createRealAndDraftAccountOrNull(
                     name = defaultCheckingAccountName,
                     description = defaultCheckingAccountDescription,
@@ -199,98 +168,111 @@ class BudgetData(
                     budgetId = budgetId,
                 )!!
             val wallet =
-                accountDao.createRealAccountOrNull(
+                accountDao.createAccountOrNull(
                     name = defaultWalletAccountName,
                     description = defaultWalletAccountDescription,
                     balance = walletBalance,
+                    type = AccountType.real.name,
                     budgetId = budgetId,
                 )!!
+            val generalCategoryAccount = generalAccount.toCategoryAccount()!!
+            val realWalletAccount = wallet.toRealAccount()!!
+            val realCheckingAccount = checkingAccount.toRealAccount()!!
             return BudgetData(
                 id = budgetId,
                 name = budgetName,
                 timeZone = timeZone,
                 analyticsStart = Clock.System.now(),
-                generalAccount = generalAccount,
+                generalAccount = generalCategoryAccount,
                 categoryAccounts =
                     AccountsHolder(
                         listOf(
-                            generalAccount,
+                            generalCategoryAccount,
                             accountDao.createCategoryAccountOrNull(
-                                defaultCosmeticsAccountName,
-                                defaultCosmeticsAccountDescription,
+                                name = defaultCosmeticsAccountName,
+                                description = defaultCosmeticsAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultEducationAccountName,
                                 defaultEducationAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultEntertainmentAccountName,
                                 defaultEntertainmentAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultFoodAccountName,
                                 defaultFoodAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultHobbyAccountName,
                                 defaultHobbyAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultHomeAccountName,
                                 defaultHomeAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultHousingAccountName,
                                 defaultHousingAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultMedicalAccountName,
                                 defaultMedicalAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultNecessitiesAccountName,
                                 defaultNecessitiesAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultNetworkAccountName,
                                 defaultNetworkAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultTransportationAccountName,
                                 defaultTransportationAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultTravelAccountName,
                                 defaultTravelAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                             accountDao.createCategoryAccountOrNull(
                                 defaultWorkAccountName,
                                 defaultWorkAccountDescription,
                                 budgetId = budgetId,
-                            )!!,
+                            )!!.toCategoryAccount()!!,
                         ),
                     ),
                 realAccounts =
                     AccountsHolder(
                         listOf(
-                            wallet,
-                            checkingAccount,
+                            realWalletAccount,
+                            realCheckingAccount,
                         ),
                     ),
                 draftAccounts =
-                    AccountsHolder(listOf(draftAccount)),
+                    AccountsHolder(
+                        listOf(
+                            draftAccount.toDraftAccount {
+                                if (it == realCheckingAccount.id)
+                                    realCheckingAccount
+                                else
+                                    null
+                            }!!,
+                        ),
+                    ),
             )
         }
 

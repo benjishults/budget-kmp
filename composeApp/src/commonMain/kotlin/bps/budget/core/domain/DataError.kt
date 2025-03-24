@@ -1,5 +1,7 @@
 package bps.budget.core.domain
 
+import bps.kotlin.Error
+
 sealed interface DataError : Error {
     enum class Remote : DataError {
         REQUEST_TIMEOUT,

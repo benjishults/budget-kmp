@@ -1,16 +1,14 @@
 package bps.budget.ui
 
+import bps.budget.UserConfiguration
+import bps.budget.model.AccountsHolder
 import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
-import bps.budget.InitializingBudgetDao
-import bps.budget.persistence.UserBudgetDao
-import bps.budget.UserConfiguration
-import bps.budget.model.AccountsHolder
+import bps.budget.model.toCategoryAccount
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.UserBudgetDao
 import bps.console.app.QuitException
-import bps.console.inputs.EmailStringValidator
-import bps.console.inputs.SimplePrompt
 import bps.console.inputs.SimplePromptWithDefault
 import bps.console.inputs.StringValidator
 import bps.console.io.DefaultInputReader
@@ -96,7 +94,11 @@ class ConsoleUiFacade(
                     )
                 }
         } else {
-            accountDao.createGeneralAccountWithIdOrNull(generalAccountId, budgetId = Uuid.random())!!
+            accountDao.createGeneralAccountWithIdOrNull(
+                generalAccountId,
+                budgetId = Uuid.random(),
+            )!!
+                .toCategoryAccount()!!
                 .let { generalAccount: CategoryAccount ->
                     BudgetData(
                         id = budgetId,
