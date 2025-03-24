@@ -2,17 +2,13 @@
 
 package bps.budget.server.transaction
 
-import bps.budget.model.AccountType
-import bps.budget.model.AccountsResponse
-import bps.budget.model.CategoryAccount
-import bps.budget.model.ChargeAccount
-import bps.budget.model.DraftAccount
-import bps.budget.model.RealAccount
+import bps.budget.model.AccountTransactionsResponse
 import bps.budget.model.TransactionType
+import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.TransactionDao
 import bps.budget.server.core.RequestError
 import bps.budget.server.core.extractQueryParamEnumValuesOrNull
-import bps.budget.server.core.ifTypeWanted
 import bps.budget.server.model.toResponse
 import bps.kotlin.onError
 import bps.kotlin.onSuccess
@@ -59,7 +55,7 @@ fun Routing.transactionRoutes(transactionDao: TransactionDao) {
                                 accountId = Uuid.parse(accountId),
                                 budgetId = Uuid.parse(budgetId),
                                 transactionDao = transactionDao,
-                                types = types,
+                                types = types.map { it.name },
                             )
                     } catch (e: NumberFormatException) {
                         if (coroutineContext.isActive) {
@@ -95,51 +91,24 @@ fun Routing.transactionRoutes(transactionDao: TransactionDao) {
     }
 }
 
-private fun RoutingContext.returnAccountTransactions(
+private suspend fun RoutingContext.returnAccountTransactions(
     accountId: Uuid,
     budgetId: Uuid,
     transactionDao: TransactionDao,
-    types: List<TransactionType> = emptyList(),
+    types: List<String> = emptyList(),
 ) {
-    val realAccounts: List<RealAccount> =
+    val items: List<AccountTransactionEntity> =
         transactionDao.fetchTransactionItemsInvolvingAccount(
-            account = TODO(),
-            limit = TODO(),
-            offset = TODO(),
-            types = TODO(),
-            balanceAtEndOfPage = TODO()
+            accountId = accountId,
+            limit = 100,
+            offset = 0,
+            types = types,
+            balanceAtStartOfPage = null,
+            budgetId = budgetId,
         )
-        ifTypeWanted(AccountType.real, types) {
-            accountDao.getActiveAccounts(AccountType.real.name, budgetId, RealAccount)
-        }
-    val categoryAccounts: List<CategoryAccount> =
-        ifTypeWanted(AccountType.category, types) {
-            accountDao.getActiveAccounts(AccountType.category.name, budgetId, CategoryAccount)
-        }
-    val draftAccounts: List<DraftAccount> =
-        ifTypeWanted(AccountType.draft, types) {
-            accountDao.getActiveAccounts(
-                AccountType.draft.name,
-                budgetId,
-                DraftAccount { companionId ->
-                    (realAccounts
-                        .takeIf { it.isNotEmpty() }
-                        ?: accountDao.getActiveAccounts(AccountType.real.name, budgetId, RealAccount))
-                        .find { it.id == companionId }!!
-                },
-            )
-        }
-    val chargeAccounts: List<ChargeAccount> =
-        ifTypeWanted(AccountType.charge, types) {
-            accountDao.getActiveAccounts(AccountType.charge.name, budgetId, ChargeAccount)
-        }
     call.respond(
-        AccountsResponse(
-            items =
-                realAccounts.map { it.toResponse() } +
-                        categoryAccounts.map { it.toResponse() } +
-                        chargeAccounts.map { it.toResponse() } +
-                        draftAccounts.map { it.toResponse() },
+        AccountTransactionsResponse(
+            items = items.map { it.toResponse() },
         ),
     )
 }

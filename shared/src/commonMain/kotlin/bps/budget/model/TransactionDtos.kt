@@ -34,7 +34,7 @@ class TransactionItemResponse(
     val id: Uuid,
     val description: String? = null,
     val amount: DecimalWithCents,
-    val draftStatus: DraftStatus,
+    val draftStatus: String,
     val accountId: Uuid,
     val budgetId: Uuid,
 )
@@ -53,7 +53,7 @@ class AccountTransactionResponse(
     val description: String? = null,
     val amount: DecimalWithCents,
     val balance: DecimalWithCents? = null,
-    val type: TransactionType? = null,
+    val type: String? = null,
     val accountId: Uuid,
     val budgetId: Uuid,
 )

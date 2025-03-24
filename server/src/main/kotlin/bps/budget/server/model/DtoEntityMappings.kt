@@ -2,16 +2,28 @@
 
 package bps.budget.server.model
 
-import bps.budget.model.Account
 import bps.budget.model.AccountResponse
+import bps.budget.model.AccountTransactionResponse
 import bps.budget.model.AccountType
-import bps.budget.model.DraftAccount
+import bps.budget.persistence.AccountEntity
+import bps.budget.persistence.AccountTransactionEntity
 import bps.kotlin.DecimalWithCents
+import bps.kotlin.buildDecimalWithCents
 import kotlin.uuid.ExperimentalUuidApi
 
-fun Account.toResponse(): AccountResponse =
-    when (this) {
-        is DraftAccount ->
+fun AccountEntity.toResponse(): AccountResponse =
+    when (this.type) {
+        AccountType.draft.name ->
+            AccountResponse(
+                name = name,
+                id = id,
+                type = AccountType.valueOf(type),
+                balance = DecimalWithCents(balance.toPlainString()),
+                description = description,
+                budgetId = budgetId,
+                companionId = companionId,
+            )
+        else ->
             AccountResponse(
                 name,
                 id,
@@ -19,8 +31,18 @@ fun Account.toResponse(): AccountResponse =
                 DecimalWithCents(balance.toPlainString()),
                 description,
                 budgetId,
-                realCompanion.id,
             )
-        else ->
-            AccountResponse(name, id, AccountType.valueOf(type), DecimalWithCents(balance.toPlainString()), description, budgetId)
     }
+
+fun AccountTransactionEntity.toResponse(): AccountTransactionResponse =
+    AccountTransactionResponse(
+        transactionItemId = id,
+        transactionId = transactionId,
+        timestamp = timestamp,
+        description = description ?: transactionDescription,
+        amount = buildDecimalWithCents(amount.toPlainString()),
+        balance = balance?.let { buildDecimalWithCents(it.toPlainString()) },
+        type = transactionType,
+        accountId = accountId,
+        budgetId = budgetId,
+    )

@@ -80,10 +80,6 @@ paths:
       security:
         - budget_auth:
             - 'r:accounts'
-      parameters:
-        - $ref: "#/components/parameters/accountTypeParam"
-          required: true
-          description: type of desired account
       responses:
         200:
           description: requested account

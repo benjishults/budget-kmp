@@ -1,6 +1,7 @@
 package bps.budget.server
 
 import bps.budget.persistence.jdbc.JdbcAccountDao
+import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.jdbc.toJdbcConnectionProvider
 import io.kotest.assertions.asClue
 import io.kotest.core.spec.style.FreeSpec
@@ -24,11 +25,12 @@ class TestTest : FreeSpec() {
 //        )
         val jdbcConnectionProvider = budgetServerConfigurations.jdbc.toJdbcConnectionProvider()
         val accountDao = JdbcAccountDao(jdbcConnectionProvider)
+        val transactionDao = JdbcTransactionDao(jdbcConnectionProvider)
         val budgetId: Uuid = Uuid.parse("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
         val userId = Uuid.parse("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         testApplication {
             application {
-                module(accountDao)
+                module(accountDao, transactionDao)
             }
             client.get("/budgets/$budgetId/accounts") {
                 header("Content-Type", "application/json")
