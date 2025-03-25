@@ -62,10 +62,6 @@ fun commitCreditCardPaymentConsistently(
             },
         budgetId = budgetData.id,
         accountDao = accountDao,
-//        allSelectedChargeItems,
-//        transaction,
-//        budgetData.id,
-//        accountDao,
     )
 }
 

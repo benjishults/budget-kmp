@@ -50,7 +50,7 @@ fun WithIo.createRealAccountConsistentlyWithIo(
 ): RealAccount? =
     if (isDraft) {
         accountDao
-            .createRealAndDraftAccountOrNull(
+            .createRealAndDraftAccount(
                 name,
                 description,
                 budgetId = budgetData.id,

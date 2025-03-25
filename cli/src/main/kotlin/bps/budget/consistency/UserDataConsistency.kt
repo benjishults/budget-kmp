@@ -20,15 +20,14 @@ fun updateTimeZoneConsistently(
     budgetId: Uuid,
     userBudgetDao: UserBudgetDao,
     budgetData: BudgetData,
-): Int =
+): Unit =
     userBudgetDao.updateTimeZone(
         timeZoneId = newTimeZone.id,
         userId = userId,
         budgetId = budgetId,
     )
         .also {
-            if (it >= 1)
-                budgetData.timeZone = newTimeZone
+            budgetData.timeZone = newTimeZone
         }
 
 /**

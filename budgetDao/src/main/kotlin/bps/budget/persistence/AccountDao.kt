@@ -39,7 +39,7 @@ interface AccountDao {
     /**
      * The default implementation throws [NotImplementedError]
      */
-    fun deactivateAccount(accountId: Uuid): Boolean = TODO()
+    fun deactivateAccount(accountId: Uuid): Unit = TODO()
 
     /**
      * The default implementation throws [NotImplementedError]
@@ -97,7 +97,7 @@ interface AccountDao {
         budgetId: Uuid,
     ): AccountEntity?
 
-    fun createRealAndDraftAccountOrNull(
+    fun createRealAndDraftAccount(
         name: String,
         description: String,
         budgetId: Uuid,

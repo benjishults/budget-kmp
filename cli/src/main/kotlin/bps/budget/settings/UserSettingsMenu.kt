@@ -13,7 +13,6 @@ import bps.console.inputs.getTimestampFromUser
 import bps.console.io.WithIo
 import bps.console.menu.Menu
 import bps.console.menu.backItem
-import bps.console.menu.quitItem
 import bps.console.menu.takeAction
 import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDateTime
@@ -95,14 +94,14 @@ fun WithIo.changeTimeZone(
     ) { TimeZone.of(it) }
         .getResult()
         ?.let { newTimeZone: TimeZone ->
-            if (updateTimeZoneConsistently(
+            try {
+                updateTimeZoneConsistently(
                     newTimeZone = newTimeZone,
                     userId = userId,
                     budgetId = budgetId,
                     userBudgetDao = userBudgetDao,
                     budgetData = budgetData,
-                ) == 1
-            ) {
+                )
                 outPrinter.important("Time-Zone set to $newTimeZone")
                 updateAnalyticsStartConsistently(
                     newAnalyticsStart =
@@ -115,8 +114,8 @@ fun WithIo.changeTimeZone(
                     userBudgetDao = userBudgetDao,
                     budgetData = budgetData,
                 )
-            } else {
-                outPrinter.important("Failed to change time-zone.  Problem with the database.")
+            } catch (ex: Exception) {
+                outPrinter.important("Failed to change time-zone.  Problem with the database: ${ex.message}")
             }
         }
 }

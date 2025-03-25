@@ -61,7 +61,7 @@ interface JdbcFixture {
 
     companion object : JdbcFixture {
         /**
-         * commits after running [block].  Throws exception on rollback.
+         * Commits after running [block].  Throws and rolls back if [block] or [Connection.commit] throw.
          */
         @JvmStatic
         inline fun <T> Connection.transactOrThrow(
@@ -70,9 +70,10 @@ interface JdbcFixture {
             transact({ throw it }, block)
 
         /**
-         * commits after running [block].
-         * @returns the value of executing [onRollback] if the transaction was rolled back otherwise the result of [block]
-         * @param onRollback defaults to throwing the exception but could do something like returning `null`.
+         * Commits after running [block].  On any [Throwable], rolls back and returns the result of [onRollback].
+         * @returns the result of [block] on success or the value of executing [onRollback] if anything is thrown.
+         * @param onRollback defaults to throwing the [Throwable].  Called only if a [Throwable] is thrown from [block]
+         * or from the subsequent call to [Connection.commit].
          */
         @JvmStatic
         inline fun <T> Connection.transact(
@@ -84,12 +85,12 @@ interface JdbcFixture {
                     .also {
                         commit()
                     }
-            } catch (exception: Throwable) {
+            } catch (throwable: Throwable) {
                 try {
                     rollback()
-                    onRollback(exception)
+                    onRollback(throwable)
                 } catch (rollbackException: Exception) {
-                    rollbackException.addSuppressed(exception)
+                    rollbackException.addSuppressed(throwable)
                     throw rollbackException
                 }
             }

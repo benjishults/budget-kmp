@@ -20,12 +20,21 @@ abstract class TransactionDao {
      * Used when doing creates
      */
     data class TransactionItem(
-        val amount: BigDecimal,
-        val description: String? = null,
-        val accountId: Uuid,
-        val accountType: String,
-        val draftStatus: String = DraftStatus.none.name,
-    )
+        override val amount: BigDecimal,
+        override val description: String? = null,
+        override val accountId: Uuid,
+        override val accountType: String,
+        override val draftStatus: String = DraftStatus.none.name,
+    ) : AccountCommitableTransactionItem, TransactionItemData
+
+    interface TransactionItemData {
+        val amount: BigDecimal
+        val description: String?
+        val accountId: Uuid
+        val accountType: String
+        val draftStatus: String
+
+    }
 
     interface AllocatedItem {
         val real: List<TransactionItem>
@@ -40,12 +49,12 @@ abstract class TransactionDao {
      */
     data class ClearingTransactionItem(
         override val amount: BigDecimal,
-        val description: String? = null,
+        override val description: String? = null,
         override val accountId: Uuid,
-        val accountType: String,
+        override val accountType: String,
 //        val accountsCompanionId: Uuid?,
-        val draftStatus: String,
-    ): AccountCommitableTransactionItem
+        override val draftStatus: String,
+    ) : AccountCommitableTransactionItem, TransactionItemData
 
     // TODO consider combining the various transaction commit functions into one
     abstract fun createTransactionOrNull(

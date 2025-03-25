@@ -36,26 +36,26 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
     ) {
         beforeSpec {
             initializeDb()
-//            try {
-            deleteAccounts(budgetId, jdbcConnectionProvider.connection)
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
-//            try {
-            userBudgetDao.deleteBudget(budgetId)
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
-//            try {
-            userBudgetDao.deleteUser(authenticatedUser.id)
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
-//            try {
-            userBudgetDao.deleteUserByLogin(authenticatedUser.login)
-//            } catch (e: Exception) {
-//                e.printStackTrace()
-//            }
+            try {
+                deleteAccounts(budgetId, jdbcConnectionProvider.connection)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            try {
+                userBudgetDao.deleteBudget(budgetId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            try {
+                userBudgetDao.deleteUser(authenticatedUser.id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+            try {
+                userBudgetDao.deleteUserByLogin(authenticatedUser.login)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
             upsertBasicAccounts(
                 budgetName,
                 timeZone = timeZone,
@@ -90,7 +90,11 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
         budgetId: Uuid,
         clock: Clock,
     ) {
-        userBudgetDao.createUser(authenticatedUser.login, "a", authenticatedUser.id)
+        try {
+            userBudgetDao.createUser(authenticatedUser.login, "a", authenticatedUser.id)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
         userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
         userBudgetDao.grantAccess(
             budgetName = budgetName,
@@ -176,89 +180,89 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
             budgetId: Uuid = Uuid.random(),
             accountDao: AccountDao,
         ) {
-            accountDao.createRealAndDraftAccountOrNull(
+            accountDao.createRealAndDraftAccount(
                 name = defaultCheckingAccountName,
                 description = defaultCheckingAccountDescription,
                 balance = checkingBalance,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createGeneralAccountWithIdOrNull(
                 id = generalAccountId,
                 balance = checkingBalance + walletBalance,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createAccountOrNull(
                 name = defaultWalletAccountName,
                 description = defaultWalletAccountDescription,
                 balance = walletBalance,
                 type = AccountType.real.name,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 name = defaultCosmeticsAccountName,
                 description = defaultCosmeticsAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultEducationAccountName,
                 defaultEducationAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultEntertainmentAccountName,
                 defaultEntertainmentAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultFoodAccountName,
                 defaultFoodAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultHobbyAccountName,
                 defaultHobbyAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultHomeAccountName,
                 defaultHomeAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultHousingAccountName,
                 defaultHousingAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultMedicalAccountName,
                 defaultMedicalAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultNecessitiesAccountName,
                 defaultNecessitiesAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultNetworkAccountName,
                 defaultNetworkAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultTransportationAccountName,
                 defaultTransportationAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultTravelAccountName,
                 defaultTravelAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
             accountDao.createCategoryAccountOrNull(
                 defaultWorkAccountName,
                 defaultWorkAccountDescription,
                 budgetId = budgetId,
-            )!!
+            )
         }
     }
 

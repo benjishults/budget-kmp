@@ -15,6 +15,7 @@ import bps.budget.persistence.DataConfigurationException
 import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transact
+import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import java.sql.Connection
@@ -44,13 +45,14 @@ class JdbcCliBudgetDao(
      * @throws DataConfigurationException if data isn't found.
      */
     override fun load(budgetId: Uuid, userId: Uuid, accountDao: AccountDao): BudgetData =
-        try {
-            connection.transact(
-                onRollback = { ex ->
-                    throw DataConfigurationException(ex.message, ex)
-                },
-            ) {
-                val (generalAccountId: Uuid, timeZone: TimeZone, analyticsStart: Instant, budgetName: String) =
+        connection.transactOrThrow {
+            try {
+                val (
+                    generalAccountId: Uuid,
+                    timeZone: TimeZone,
+                    analyticsStart: Instant,
+                    budgetName: String,
+                ) =
                     prepareStatement(
                         """
                             select b.general_account_id, ba.time_zone, ba.budget_name, ba.analytics_start
@@ -124,14 +126,6 @@ class JdbcCliBudgetDao(
                                 .getDeactivatedAccounts(AccountType.charge.name, budgetId)
                                 .map { it.toChargeAccount()!! },
                     )
-//                val accountIdToAccountMap =
-//                    buildMap<Uuid, Account> {
-//                        realAccountsHolder
-//                            .allAccounts
-//                            .forEach { account ->
-//                                put(account.id, account)
-//                            }
-//                    }
                 val draftAccountsHolder = AccountsHolder(
                     active = accountDao.getActiveAccounts(
                         AccountType.draft.name,
@@ -167,12 +161,12 @@ class JdbcCliBudgetDao(
                     chargeAccountsHolder,
                     draftAccountsHolder,
                 )
+            } catch (ex: Exception) {
+                if (ex is DataConfigurationException) {
+                    throw ex
+                } else
+                    throw DataConfigurationException(ex)
             }
-        } catch (ex: Exception) {
-            if (ex is DataConfigurationException) {
-                throw ex
-            } else
-                throw DataConfigurationException(ex)
         }
 
     /**

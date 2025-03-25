@@ -26,7 +26,7 @@ import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class JdbcAnalyticsDao(
-    val  jdbcConnectionProvider: JdbcConnectionProvider,
+    val jdbcConnectionProvider: JdbcConnectionProvider,
     override val clock: Clock = Clock.System,
 ) : AnalyticsDao, JdbcFixture, AutoCloseable {
 
@@ -177,10 +177,11 @@ class JdbcAnalyticsDao(
         options: AnalyticsOptions,
         budgetId: Uuid,
     ): BigDecimal? =
-        connection.transactOrThrow {
-            val incomes = MonthlyItemSeries()
-            prepareStatement(
-                """
+        MonthlyItemSeries()
+            .let { incomes: MonthlyItemSeries ->
+                connection.transactOrThrow {
+                    prepareStatement(
+                        """
                 |select t.timestamp_utc, i.amount
                 |from transaction_items i
                 |join transactions t
@@ -197,33 +198,40 @@ class JdbcAnalyticsDao(
                 |  and i.budget_id = ?
                 |order by t.timestamp_utc asc
             """.trimMargin(),
-                // TODO page this if we run into DB latency
+                        // TODO page this if we run into DB latency
 //                |offset ?
 //                |limit 100
-            )
-                .use { statement: PreparedStatement ->
-                    statement.setInstant(1, options.since)
-                    statement.setUuid(
-                        setEndTimeStampMaybe(options, statement, 2, this@JdbcAnalyticsDao.clock.now(), timeZone),
-                        budgetId,
                     )
-                    statement.executeQuery()
-                        .use { resultSet: ResultSet ->
-                            while (resultSet.next()) {
-                                incomes.add(
-                                    Item(
-                                        resultSet.getBigDecimal("amount"),
-                                        resultSet.getInstantOrNull()!!
-                                            // FIXME do these really need to be LocalDateTimes?
-                                            //       if not, we may avoid some problems my leaving them as Instants
-                                            .toLocalDateTime(timeZone),
-                                    ),
-                                )
-                            }
+                        .use { statement: PreparedStatement ->
+                            statement.setInstant(1, options.since)
+                            statement.setUuid(
+                                setEndTimeStampMaybe(
+                                    options,
+                                    statement,
+                                    2,
+                                    this@JdbcAnalyticsDao.clock.now(),
+                                    timeZone,
+                                ),
+                                budgetId,
+                            )
+                            statement.executeQuery()
+                                .use { resultSet: ResultSet ->
+                                    while (resultSet.next()) {
+                                        incomes.add(
+                                            Item(
+                                                resultSet.getBigDecimal("amount"),
+                                                resultSet.getInstantOrNull()!!
+                                                    // FIXME do these really need to be LocalDateTimes?
+                                                    //       if not, we may avoid some problems my leaving them as Instants
+                                                    .toLocalDateTime(timeZone),
+                                            ),
+                                        )
+                                    }
+                                }
                         }
                 }
-            incomes.average(options)
-        }
+                incomes.average(options)
+            }
 
     override fun averageIncome(
         realAccountId: Uuid,
