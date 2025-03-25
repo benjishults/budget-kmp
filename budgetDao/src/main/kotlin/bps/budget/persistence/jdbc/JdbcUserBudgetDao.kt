@@ -66,7 +66,6 @@ class JdbcUserBudgetDao(
 
     override fun createUser(login: String, password: String, userId: Uuid): Uuid =
         userId.also {
-//            errorStateTracker.catchCommitErrorState {
             connection.transactOrThrow {
                 prepareStatement("insert into users (login, id) values (?, ?)")
                     .use { statement ->
@@ -75,7 +74,6 @@ class JdbcUserBudgetDao(
                         statement.executeUpdate()
                     }
             }
-//            }
         }
 
     override fun grantAccess(
@@ -104,7 +102,7 @@ class JdbcUserBudgetDao(
         }
     }
 
-    override fun updateTimeZone(timeZoneId: String, userId: Uuid, budgetId: Uuid): Int =
+    override fun updateTimeZone(timeZoneId: String, userId: Uuid, budgetId: Uuid) : Unit=
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -118,7 +116,8 @@ class JdbcUserBudgetDao(
                     updateTimeZoneStatement.setString(1, timeZoneId)
                     updateTimeZoneStatement.setUuid(2, userId)
                     updateTimeZoneStatement.setUuid(3, budgetId)
-                    updateTimeZoneStatement.executeUpdate()
+                    if (updateTimeZoneStatement.executeUpdate() != 1)
+                        throw IllegalArgumentException("budget access not found userId=$userId, budgetId=$budgetId")
                 }
         }
 
@@ -158,20 +157,20 @@ class JdbcUserBudgetDao(
         }
 
     override fun deleteUser(userId: Uuid) {
-//        errorStateTracker.catchCommitErrorState {
         connection.transactOrThrow {
             prepareStatement("delete from budget_access where user_id = ?")
                 .use { statement: PreparedStatement ->
                     statement.setUuid(1, userId)
-                    statement.executeUpdate()
+                    if (statement.executeUpdate() != 1)
+                        throw IllegalStateException("Failed to delete user userId=$userId")
                 }
             prepareStatement("delete from users where id = ?")
                 .use { statement: PreparedStatement ->
                     statement.setUuid(1, userId)
-                    statement.executeUpdate()
+                    if (statement.executeUpdate() != 1)
+                        throw IllegalStateException("Failed to delete user userId=$userId")
                 }
         }
-//        }
     }
 
 
@@ -183,16 +182,17 @@ class JdbcUserBudgetDao(
                     prepareStatement("delete from budget_access where user_id = ?")
                         .use { statement: PreparedStatement ->
                             statement.setUuid(1, userId)
-                            statement.executeUpdate()
+                            if (statement.executeUpdate() != 1)
+                                throw IllegalStateException("User not found: userId=$userId, login=$login")
                         }
                     prepareStatement("delete from users where login = ?")
                         .use { statement: PreparedStatement ->
                             statement.setString(1, login)
-                            statement.executeUpdate()
+                            if (statement.executeUpdate() != 1)
+                                throw IllegalStateException("User not found: userId=$userId, login=$login")
                         }
                 }
         }
-//        }
     }
 
     private fun Connection.getUserIdByLogin(login: String): Uuid? =
@@ -209,19 +209,19 @@ class JdbcUserBudgetDao(
             }
 
     override fun deleteBudget(budgetId: Uuid) {
-//        errorStateTracker.catchCommitErrorState {
         connection.transactOrThrow {
             prepareStatement("delete from budget_access where budget_id = ?")
                 .use { statement: PreparedStatement ->
                     statement.setUuid(1, budgetId)
-                    statement.executeUpdate()
+                    if (statement.executeUpdate() != 1)
+                        throw IllegalStateException("Budget not found: budgetId=$budgetId")
                 }
             prepareStatement("delete from budgets where id = ?")
                 .use { statement: PreparedStatement ->
                     statement.setUuid(1, budgetId)
-                    statement.executeUpdate()
+                    if (statement.executeUpdate() != 1)
+                        throw IllegalStateException("Budget not found: budgetId=$budgetId")
                 }
-//            }
         }
     }
 

@@ -181,6 +181,7 @@ open class JdbcTransactionDao(
         accountDao: AccountDao,
     ): TransactionEntity? {
         connection.transactOrThrow {
+            // TODO consider exposing a transaction-less version of getAccountOrNull so that these can be done atomically
             val idToAccountMap: (Uuid) -> AccountEntity? = { accountDao.getAccountOrNull(it, budgetId) }
             // require clearTransaction is a simple draft transaction(s) clearing transaction
             // with a single real item
@@ -242,7 +243,7 @@ open class JdbcTransactionDao(
                 timestamp = timestamp,
                 transactionType = TransactionType.clearing.name,
                 budgetId = budgetId,
-            )!!
+            )
             prepareStatement(
                 """
                             |update transactions t
@@ -255,7 +256,8 @@ open class JdbcTransactionDao(
                     statement.setUuid(1, newTransactionId)
                     statement.setUuid(2, clearedDraftTransaction.id)
                     statement.setUuid(3, budgetId)
-                    statement.executeUpdate()
+                    if (statement.executeUpdate() != 1)
+                        throw IllegalStateException("Check being cleared not found clearedDraftTransactionId=${clearedDraftTransaction.id}")
                 }
             val balancesToAdd: List<BalanceToAdd> =
                 insertTransactionItems(
@@ -272,29 +274,17 @@ open class JdbcTransactionDao(
                         },
                     budgetId,
                 )
-                    ?.also {
+                    .also {
                         with(accountDao) {
                             it.updateBalances(budgetId)
                         }
                     }
-                    ?: throw IllegalStateException("Check failed")
-            return JdbcTransactionEntity(
-                id = newTransactionId,
+            return createTransactionEntity(
+                newTransactionId = newTransactionId,
                 description = description,
                 timestamp = timestamp,
-                transactionType = TransactionType.clearing.name,
-                clearedById = null,
-                items = itemsForClearingTransaction.mapIndexed { index, item ->
-                    JdbcTransactionItemEntity(
-                        id = balancesToAdd[index].transactionItemId,
-                        amount = item.amount,
-                        description = item.description,
-                        accountId = item.accountId,
-                        accountType = item.accountType,
-                        draftStatus = item.draftStatus,
-                        transactionId = newTransactionId,
-                    )
-                },
+                items = itemsForClearingTransaction,
+                balancesToAdd = balancesToAdd,
                 budgetId = budgetId,
             )
         }
@@ -308,7 +298,7 @@ open class JdbcTransactionDao(
         timestamp: Instant,
         transactionType: String,
         budgetId: Uuid,
-    ): Uuid? {
+    ): Uuid {
         Uuid.random()
             .let { transactionId: Uuid ->
                 prepareStatement(
@@ -326,7 +316,8 @@ open class JdbcTransactionDao(
                         return if (insertTransaction.use { it.executeUpdate() == 1 })
                             transactionId
                         else
-                            null
+                        // NOTE this precaution is probably unneeded since an SQLException would have been thrown already.
+                            throw IllegalStateException("Transaction insert failed with new UUID: $transactionId")
                     }
             }
     }
@@ -335,7 +326,7 @@ open class JdbcTransactionDao(
         transactionId: Uuid,
         items: List<TransactionItem>,
         budgetId: Uuid,
-    ): List<BalanceToAdd>? {
+    ): List<BalanceToAdd> {
         val transactionItemCounter = items.size
         val insertSql = buildString {
             var counter = transactionItemCounter
@@ -354,14 +345,15 @@ open class JdbcTransactionDao(
                     items
                         .forEach { transactionItem: TransactionItem ->
                             val transactionItemId = Uuid.random()
-                            parameterIndex += setStandardProperties(
-                                transactionItemId,
-                                transactionItemInsert,
-                                parameterIndex,
-                                transactionId,
-                                transactionItem,
-                                budgetId,
-                            )
+                            parameterIndex +=
+                                setStandardProperties(
+                                    transactionItemId,
+                                    transactionItemInsert,
+                                    parameterIndex,
+                                    transactionId,
+                                    transactionItem,
+                                    budgetId,
+                                )
                             transactionItemInsert.setUuid(parameterIndex++, transactionItem.accountId)
                             add(BalanceToAdd(transactionItem.accountId, transactionItemId, transactionItem.amount))
                         }
@@ -369,7 +361,8 @@ open class JdbcTransactionDao(
                 return if (transactionItemInsert.executeUpdate() == items.size)
                     balancesToAdd
                 else
-                    null
+                // NOTE this is probably an unneeded precaution since an SQLException would have already been thrown
+                    throw IllegalStateException("Unable to insert all transaction items.")
             }
     }
 
@@ -379,7 +372,6 @@ open class JdbcTransactionDao(
         timestamp: Instant,
         transactionType: String,
         items: List<TransactionItem>,
-//        clearsId: Uuid?,
         saveBalances: Boolean,
         budgetId: Uuid,
         accountDao: AccountDao,
@@ -391,44 +383,27 @@ open class JdbcTransactionDao(
                 transactionType = transactionType,
                 budgetId = budgetId,
             )
-                ?.let { transactionId: Uuid ->
-                    // FIXME roll back if an insert fails after this
+                .let { transactionId: Uuid ->
                     insertTransactionItems(
                         transactionId,
                         items,
                         budgetId,
                     )
-                        ?.let { balancesToAdd: List<BalanceToAdd> ->
+                        .let { balancesToAdd: List<BalanceToAdd> ->
                             if (saveBalances)
                                 with(accountDao) {
                                     balancesToAdd.updateBalances(budgetId)
                                 }
-                            val transactionItemEntities =
-                                balancesToAdd
-                                    .mapIndexed { index, balanceToAdd ->
-                                        val item = items[index]
-                                        JdbcTransactionItemEntity(
-                                            id = balanceToAdd.transactionItemId,
-                                            amount = item.amount,
-                                            description = item.description,
-                                            accountId = item.accountId,
-                                            accountType = item.accountType,
-                                            draftStatus = item.draftStatus,
-                                            transactionId = transactionId,
-                                        )
-                                    }
-                            JdbcTransactionEntity(
-                                id = transactionId,
+                            createTransactionEntity(
+                                newTransactionId = transactionId,
                                 description = description,
                                 timestamp = timestamp,
-                                transactionType = transactionType,
-                                items = transactionItemEntities,
+                                items = items,
+                                balancesToAdd = balancesToAdd,
                                 budgetId = budgetId,
                             )
                         }
-//            }
                 }
-//            }
         }
 
     override fun deleteTransaction(transactionId: Uuid, budgetId: Uuid): List<BalanceToAdd> {
@@ -503,11 +478,11 @@ open class JdbcTransactionDao(
         // NOTE needed for:
         //      1. getting the account type of each item's account
         //      2. getting the account type of each chargeTransactionsBeingCleared's account
-        //      Thus, if we added accountType to the TransactionItemEntity, we wouldn't need this map
-//        idToAccountMap: (Uuid) -> AccountData?,
+        //      3. updating balances
         accountDao: AccountDao,
     ): TransactionEntity? {
         connection.transactOrThrow {
+            // TODO     If we added accountType to the TransactionItemEntity, we wouldn't need this map
             val idToAccountMap: (Uuid) -> AccountEntity? = { accountDao.getAccountOrNull(it, budgetId) }
             val allocatedClearingItems = items.allocateItemsByAccountType(idToAccountMap)
             // require billPayTransaction is a simple real transfer between a real and a charge account
@@ -545,12 +520,13 @@ open class JdbcTransactionDao(
                     } ==
                         -billPayChargeTransactionItem.amount,
             )
-            val newTransactionId: Uuid = insertTransaction(
-                description = description,
-                timestamp = timestamp,
-                transactionType = TransactionType.clearing.name,
-                budgetId = budgetId,
-            )!!
+            val newTransactionId: Uuid =
+                insertTransaction(
+                    description = description,
+                    timestamp = timestamp,
+                    transactionType = TransactionType.clearing.name,
+                    budgetId = budgetId,
+                )
             allocatedChargeTransactionsBeingCleared
                 .forEachIndexed { index: Int, allocatedChargeTransactionBeingCleared: AllocatedItemEntities ->
                     prepareStatement(
@@ -564,9 +540,11 @@ open class JdbcTransactionDao(
                     )
                         .use { statement ->
                             statement.setUuid(1, budgetId)
-                            statement.setUuid(2, allocatedChargeTransactionBeingCleared.charge.first().id)
+                            val transactionItemId: Uuid = allocatedChargeTransactionBeingCleared.charge.first().id
+                            statement.setUuid(2, transactionItemId)
                             if (statement.executeUpdate() != 1)
-                                throw IllegalStateException("Charge being cleared not found in DB")
+                            // NOTE probably unneeded precaution since an exception would already be thrown.
+                                throw IllegalStateException("Charge being cleared not found in DB: transactionItemId=$transactionItemId")
                         }
                     prepareStatement(
                         """
@@ -578,41 +556,60 @@ open class JdbcTransactionDao(
                     )
                         .use { statement ->
                             statement.setUuid(1, newTransactionId)
-                            statement.setUuid(2, chargeTransactionsBeingCleared[index])
+                            val transactionId: Uuid = chargeTransactionsBeingCleared[index]
+                            statement.setUuid(2, transactionId)
                             statement.setUuid(3, budgetId)
-                            statement.executeUpdate()
+                            if (statement.executeUpdate() != 1)
+                            // NOTE probably unneeded precaution since an exception would already be thrown.
+                                throw IllegalStateException("Charge being cleared not found in DB transactionId=$transactionId")
                         }
                 }
             with(accountDao) {
-                val balancesToAdd =
+                val balancesToAdd: List<BalanceToAdd> =
                     insertTransactionItems(
                         transactionId = newTransactionId,
                         items = items,
                         budgetId = budgetId,
-                    )!!
+                    )
                 balancesToAdd.updateBalances(budgetId)
-                return JdbcTransactionEntity(
-                    id = newTransactionId,
-                    description = description,
-                    timestamp = timestamp,
-                    transactionType = TransactionType.clearing.name,
-                    clearedById = null,
-                    items = items.mapIndexed { index, item ->
-                        JdbcTransactionItemEntity(
-                            id = balancesToAdd[index].transactionItemId,
-                            amount = item.amount,
-                            description = item.description,
-                            accountId = item.accountId,
-                            accountType = item.accountType,
-                            draftStatus = item.draftStatus,
-                            transactionId = newTransactionId,
-                        )
-                    },
-                    budgetId = budgetId,
-                )
+                return createTransactionEntity(newTransactionId, description, timestamp, items, balancesToAdd, budgetId)
             }
         }
     }
+
+    fun TransactionItemData.toTransactionItemEntity(
+        newTransactionId: Uuid,
+        transactionItemId: Uuid,
+    ): TransactionItemEntity =
+        JdbcTransactionItemEntity(
+            id = transactionItemId,
+            amount = amount,
+            description = description,
+            accountId = accountId,
+            accountType = accountType,
+            draftStatus = draftStatus,
+            transactionId = newTransactionId,
+        )
+
+
+    private fun createTransactionEntity(
+        newTransactionId: Uuid,
+        description: String,
+        timestamp: Instant,
+        items: List<TransactionItemData>,
+        balancesToAdd: List<BalanceToAdd>,
+        budgetId: Uuid,
+    ): JdbcTransactionEntity = JdbcTransactionEntity(
+        id = newTransactionId,
+        description = description,
+        timestamp = timestamp,
+        transactionType = TransactionType.clearing.name,
+        clearedById = null,
+        items = items.mapIndexed { index, item ->
+            item.toTransactionItemEntity(newTransactionId, balancesToAdd[index].transactionItemId)
+        },
+        budgetId = budgetId,
+    )
 
     private fun List<TransactionItem>.allocateItemsByAccountType(idToAccount: (Uuid) -> AccountData?): AllocatedItem {
         val real = mutableListOf<TransactionItem>()
@@ -826,31 +823,10 @@ open class JdbcTransactionDao(
                                     timestamp = result.getInstant("transaction_timestamp")
                                     transactionType = TransactionType.valueOf(result.getString("type")).name
                                     clearedById = result.getUuid("cleared_by_transaction_id")
-
-                                    add(
-                                        JdbcTransactionItemEntity(
-                                            id = result.getUuid("id")!!,
-                                            amount = result.getCurrencyAmount("amount"),
-                                            description = result.getString("description"),
-                                            accountId = result.getUuid("account_id")!!,
-                                            accountType = result.getString("account_type"),
-                                            draftStatus = result.getString("draft_status"),
-                                            transactionId = transactionId,
-                                        ),
-                                    )
-                                }
-                                while (result.next()) {
-                                    add(
-                                        JdbcTransactionItemEntity(
-                                            id = result.getUuid("id")!!,
-                                            amount = result.getCurrencyAmount("amount"),
-                                            description = result.getString("description"),
-                                            accountId = result.getUuid("account_id")!!,
-                                            accountType = result.getString("account_type"),
-                                            draftStatus = result.getString("draft_status"),
-                                            transactionId = transactionId,
-                                        ),
-                                    )
+                                    add(result.toTransactionItemEntity(transactionId))
+                                    while (result.next()) {
+                                        add(result.toTransactionItemEntity(transactionId))
+                                    }
                                 }
                             }
                             return itemList
@@ -869,6 +845,18 @@ open class JdbcTransactionDao(
                         }
                 }
         }
+
+    private fun ResultSet.toTransactionItemEntity(
+        transactionId: Uuid,
+    ): JdbcTransactionItemEntity = JdbcTransactionItemEntity(
+        id = getUuid("id")!!,
+        amount = getCurrencyAmount("amount"),
+        description = getString("description"),
+        accountId = getUuid("account_id")!!,
+        accountType = getString("account_type"),
+        draftStatus = getString("draft_status"),
+        transactionId = transactionId,
+    )
 
     /**
      * Sets a set of standard parameter starting at [parameterIndex]

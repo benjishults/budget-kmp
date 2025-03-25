@@ -155,7 +155,7 @@ class BudgetData(
             accountDao: AccountDao,
         ): BudgetData {
             val (checkingAccount: AccountEntity, draftAccount: AccountEntity) =
-                accountDao.createRealAndDraftAccountOrNull(
+                accountDao.createRealAndDraftAccount(
                     name = defaultCheckingAccountName,
                     description = defaultCheckingAccountDescription,
                     balance = checkingBalance,

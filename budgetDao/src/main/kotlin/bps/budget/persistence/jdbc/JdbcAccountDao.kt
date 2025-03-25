@@ -161,7 +161,7 @@ where acc.budget_id = ?
             }
         }
 
-    override fun deactivateAccount(accountId: Uuid): Boolean =
+    override fun deactivateAccount(accountId: Uuid): Unit =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -174,7 +174,8 @@ where aap.account_id = ?
             )
                 .use { deactivateActivityPeriod: PreparedStatement ->
                     deactivateActivityPeriod.setUuid(1, accountId)
-                    deactivateActivityPeriod.executeUpdate() == 1
+                    if (deactivateActivityPeriod.executeUpdate() != 1)
+                        throw IllegalArgumentException("Could not deactivate accountId=$accountId")
                 }
         }
 
@@ -246,22 +247,20 @@ where aap.account_id = ?
                         type,
                         budgetId,
                     )
-                    if (preparedStatement.executeUpdate() == 1) {
-                        AccountEntity(
-                            name = name,
-                            description = description,
-                            id = id,
-                            balance = balance,
-                            type = type,
-                            budgetId = budgetId,
-                        )
-                    } else
-                        null
+                    preparedStatement.executeUpdate()
+                    AccountEntity(
+                        name = name,
+                        description = description,
+                        id = id,
+                        balance = balance,
+                        type = type,
+                        budgetId = budgetId,
+                    )
                 }
-                ?.also { insertAccountActivePeriod(it, budgetId) }
+                .also { insertAccountActivePeriod(it, budgetId) }
         }
 
-    private fun Connection.insertAccountActivePeriod(account: AccountEntity, budgetId: Uuid): Boolean =
+    private fun Connection.insertAccountActivePeriod(account: AccountEntity, budgetId: Uuid) =
         prepareStatement(
             """
                             insert into account_active_periods (id, account_id, budget_id)
@@ -274,7 +273,7 @@ where aap.account_id = ?
                 createActivePeriod.setUuid(2, account.id)
                 createActivePeriod.setUuid(3, budgetId)
                 // NOTE due to the uniqueness constraints on this table, this will be idempotent
-                createActivePeriod.executeUpdate() == 1
+                createActivePeriod.executeUpdate()
             }
 
     override fun createGeneralAccountWithIdOrNull(
@@ -316,7 +315,7 @@ where aap.account_id = ?
         description: String,
         budgetId: Uuid,
         balance: BigDecimal,
-    ): AccountEntity? =
+    ): AccountEntity =
         prepareStatement(
             """
                     insert into accounts (name, description, balance, type, budget_id, id)
@@ -341,19 +340,19 @@ where aap.account_id = ?
                         budgetId = budgetId,
                     )
                 } else
-                    null
+                    throw IllegalStateException("unable to create real account for budgetId=$budgetId")
             }
-            ?.also { insertAccountActivePeriod(it, budgetId) }
+            .also { insertAccountActivePeriod(it, budgetId) }
 
-    override fun createRealAndDraftAccountOrNull(
+    override fun createRealAndDraftAccount(
         name: String,
         description: String,
         budgetId: Uuid,
         balance: BigDecimal,
-    ): Pair<AccountEntity, AccountEntity>? =
+    ): Pair<AccountEntity, AccountEntity> =
         connection.transactOrThrow {
             createRealAccountInTransaction(name, description, budgetId, balance)
-                ?.let { realCompanion: AccountEntity ->
+                .let { realCompanion: AccountEntity ->
                     prepareStatement(
                         """
                             insert into accounts (name, description, balance, type, budget_id, id, companion_account_id)
@@ -379,9 +378,10 @@ where aap.account_id = ?
                                     companionId = realCompanion.id,
                                 )
                             } else
-                                null
+                            // NOTE an SQLException will probably already have been thrown
+                                throw IllegalStateException("unable to create accounts for budgetId=$budgetId")
                         }
-                        ?.also { (_, draftAccount) -> insertAccountActivePeriod(draftAccount, budgetId) }
+                        .also { (_, draftAccount) -> insertAccountActivePeriod(draftAccount, budgetId) }
                 }
         }
 

@@ -42,7 +42,7 @@ fun dropTables(connection: Connection, schema: String) {
     }
 }
 
-fun deleteAccounts(budgetId: Uuid, connection: Connection) =
+fun deleteAccounts(budgetId: Uuid, connection: Connection): Int =
     with(JdbcFixture) {
         cleanupTransactions(budgetId, connection)
         connection.transactOrThrow {
@@ -59,7 +59,7 @@ fun deleteAccounts(budgetId: Uuid, connection: Connection) =
         }
     }
 
-fun cleanupTransactions(budgetId: Uuid, connection: Connection) =
+fun cleanupTransactions(budgetId: Uuid, connection: Connection): Int =
     with(JdbcFixture) {
         connection.transactOrThrow {
             zeroBalance(budgetId)

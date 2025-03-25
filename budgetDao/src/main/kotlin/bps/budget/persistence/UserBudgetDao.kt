@@ -33,7 +33,7 @@ interface UserBudgetDao {
         timeZoneId: String,
         userId: Uuid,
         budgetId: Uuid,
-    ): Int
+    )
 
     fun updateAnalyticsStart(
         analyticsStart: Instant,
