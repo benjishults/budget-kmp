@@ -4,7 +4,6 @@ package bps.budget.server.transaction
 
 import bps.budget.model.AccountTransactionsResponse
 import bps.budget.model.TransactionType
-import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.TransactionDao
 import bps.budget.server.core.RequestError
@@ -51,7 +50,7 @@ fun Routing.transactionRoutes(transactionDao: TransactionDao) {
                                 "offset must be greater than or equal to 0, if provided",
                             )
                         } else
-                            returnAccountTransactions(
+                            respondWithAccountTransactions(
                                 accountId = Uuid.parse(accountId),
                                 budgetId = Uuid.parse(budgetId),
                                 transactionDao = transactionDao,
@@ -77,21 +76,41 @@ fun Routing.transactionRoutes(transactionDao: TransactionDao) {
     }
 
     get("/budgets/{budgetId}/transactions/{transactionId}") {
-        val budgetId = call.pathParameters["budgetId"]
-        val transactionId = call.parameters["transactionId"]
-        if (budgetId === null || transactionId === null) {
+        val budgetIdString: String? = call.pathParameters["budgetId"]
+        val transactionIdString: String? = call.parameters["transactionId"]
+        if (budgetIdString === null || transactionIdString === null) {
             call.respond(HttpStatusCode.BadRequest)
         } else {
-            TODO()
-//            getTransactions(
-//                budgetId = Uuid.parse(budgetId),
-//                accountDao = accountDao,
-//            )
+            var transactionId: Uuid = try {
+                Uuid.parse(transactionIdString)
+            } catch (_: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, "transactionId must be a UUID")
+                // NOTE non-local exit
+                return@get
+            }
+            var budgetId: Uuid = try {
+                Uuid.parse(budgetIdString)
+            } catch (_: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest, "budgetId must be a UUID")
+                // NOTE non-local exit
+                return@get
+            }
+            respondWithTransaction(
+                transactionId = transactionId,
+                budgetId = budgetId,
+                transactionDao = transactionDao,
+            )
         }
     }
 }
 
-private suspend fun RoutingContext.returnAccountTransactions(
+private suspend fun RoutingContext.respondWithTransaction(transactionId: Uuid, budgetId: Uuid, transactionDao: TransactionDao) {
+    transactionDao.getTransactionOrNull(transactionId, budgetId)
+        ?.let { call.respond(HttpStatusCode.OK, it.toResponse()) }
+        ?: call.respond(HttpStatusCode.NotFound)
+}
+
+private suspend fun RoutingContext.respondWithAccountTransactions(
     accountId: Uuid,
     budgetId: Uuid,
     transactionDao: TransactionDao,

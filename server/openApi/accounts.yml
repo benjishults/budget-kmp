@@ -424,10 +424,10 @@ components:
           items:
             schema:
               $ref: '#/components/schemas/TransactionItemResponse'
-        clearsId:
+        clearedById:
           type: string
           format: uuid
-          description: Optional id of transaction cleared by this transaction.
+          description: Optional id of transaction this is cleared by.
         budgetId:
           type: string
           format: uuid
@@ -453,14 +453,14 @@ components:
         accountId:
           type: string
           format: uuid
-        budgetId:
-          type: string
-          format: uuid
+      #        budgetId:
+      #          type: string
+      #          format: uuid
       required:
         - id
         - amount
         - accountId
-        - budgetId
+    #        - budgetId
     AccountTransactionResponse:
       type: object
       properties:

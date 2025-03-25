@@ -102,7 +102,7 @@ class JdbcUserBudgetDao(
         }
     }
 
-    override fun updateTimeZone(timeZoneId: String, userId: Uuid, budgetId: Uuid) : Unit=
+    override fun updateTimeZone(timeZoneId: String, userId: Uuid, budgetId: Uuid): Unit =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -139,7 +139,7 @@ class JdbcUserBudgetDao(
                 }
         }
 
-    override fun createBudgetOrNull(generalAccountId: Uuid, budgetId: Uuid): Uuid? =
+    override fun createBudget(generalAccountId: Uuid, budgetId: Uuid): Uuid =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -149,10 +149,8 @@ class JdbcUserBudgetDao(
                 .use { createBudgetStatement: PreparedStatement ->
                     createBudgetStatement.setUuid(1, budgetId)
                     createBudgetStatement.setUuid(2, generalAccountId)
-                    if (createBudgetStatement.executeUpdate() != 1)
-                        null
-                    else
-                        budgetId
+                    createBudgetStatement.executeUpdate()
+                    budgetId
                 }
         }
 

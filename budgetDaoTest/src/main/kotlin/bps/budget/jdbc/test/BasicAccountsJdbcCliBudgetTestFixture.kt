@@ -95,7 +95,7 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
+        userBudgetDao.createBudget(generalAccountId, budgetId)!!
         userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,
