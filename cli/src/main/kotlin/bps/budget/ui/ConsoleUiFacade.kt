@@ -42,7 +42,7 @@ class ConsoleUiFacade(
         val timeZone: TimeZone = getDesiredTimeZone()
         val generalAccountId: Uuid = Uuid.random()
         val budgetId: Uuid = Uuid.random()
-        userBudgetDao.createBudgetOrNull(generalAccountId, budgetId)!!
+        userBudgetDao.createBudget(generalAccountId, budgetId)!!
         userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,

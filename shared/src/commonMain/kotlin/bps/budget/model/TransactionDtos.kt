@@ -17,11 +17,11 @@ class TransactionsResponse(
 @Serializable
 class TransactionResponse(
     val id: Uuid,
-    val type: TransactionType,
+    val type: String,
     val description: String? = null,
     val timestamp: Instant,
     val items: List<TransactionItemResponse>,
-    val clearsId: Uuid? = null,
+    val clearedById: Uuid? = null,
     val budgetId: Uuid,
 )
 
@@ -36,7 +36,7 @@ class TransactionItemResponse(
     val amount: DecimalWithCents,
     val draftStatus: String,
     val accountId: Uuid,
-    val budgetId: Uuid,
+//    val budgetId: Uuid,
 )
 
 @Serializable

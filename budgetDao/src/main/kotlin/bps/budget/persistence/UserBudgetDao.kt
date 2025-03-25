@@ -8,18 +8,20 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 interface UserBudgetDao {
 
-    fun getUserByLoginOrNull(login: String): User? = null
+    fun getUserByLoginOrNull(login: String): User? =
+        null
 
     fun createUser(
         login: String,
         password: String,
         userId: Uuid = Uuid.random(),
-    ): Uuid = TODO()
+    ): Uuid =
+        TODO()
 
-    fun createBudgetOrNull(
+    fun createBudget(
         generalAccountId: Uuid,
         budgetId: Uuid = Uuid.random(),
-    ): Uuid?
+    ): Uuid
 
     fun grantAccess(
         budgetName: String,
