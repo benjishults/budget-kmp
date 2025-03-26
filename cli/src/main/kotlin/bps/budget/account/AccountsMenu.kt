@@ -4,13 +4,19 @@ package bps.budget.account
 
 import bps.budget.UserConfiguration
 import bps.budget.budgetQuitItem
+import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.consistency.createCategoryAccountConsistently
 import bps.budget.consistency.createChargeAccountConsistently
-import bps.budget.consistency.createRealAccountConsistentlyWithIo
+import bps.budget.income.createInitialBalanceTransaction
 import bps.budget.model.Account
 import bps.budget.model.BudgetData
+import bps.budget.model.RealAccount
+import bps.budget.model.Transaction
 import bps.budget.model.toCurrencyAmountOrNull
+import bps.budget.model.toDraftAccount
+import bps.budget.model.toRealAccount
 import bps.budget.persistence.AccountDao
+import bps.budget.persistence.AccountEntity
 import bps.budget.persistence.TransactionDao
 import bps.console.app.MenuSession
 import bps.console.app.TryAgainAtMostRecentMenuException
@@ -19,6 +25,7 @@ import bps.console.inputs.NonNegativeStringValidator
 import bps.console.inputs.NotInListStringValidator
 import bps.console.inputs.SimplePrompt
 import bps.console.inputs.SimplePromptWithDefault
+import bps.console.inputs.getTimestampFromUser
 import bps.console.io.OutPrinter
 import bps.console.io.WithIo
 import bps.console.menu.Menu
@@ -27,6 +34,8 @@ import bps.console.menu.backItem
 import bps.console.menu.pushMenu
 import bps.console.menu.takeAction
 import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
+import kotlinx.datetime.toInstant
 import java.math.BigDecimal
 import kotlin.math.min
 import kotlin.uuid.ExperimentalUuidApi
@@ -349,6 +358,90 @@ private fun WithIo.createRealFund(
             budgetData,
             clock,
         )
+    }
+}
+
+// TODO move the stuff that needs IO back to the call site
+fun WithIo.createRealAccountConsistentlyWithIo(
+    name: String,
+    description: String,
+    balance: BigDecimal,
+    isDraft: Boolean,
+    transactionDao: TransactionDao,
+    accountDao: AccountDao,
+    budgetData: BudgetData,
+    clock: Clock,
+): RealAccount? =
+    try {
+        if (isDraft) {
+            accountDao
+                .createRealAndDraftAccount(
+                    name,
+                    description,
+                    budgetId = budgetData.id,
+                )
+                .let { (real: AccountEntity, draft: AccountEntity) ->
+                    val realAccount = real.toRealAccount()!!
+                    budgetData.addRealAccount(realAccount)
+                    budgetData.addDraftAccount(draft.toDraftAccount { if (it == realAccount.id) realAccount else null }!!)
+                    realAccount
+                }
+        } else {
+            accountDao.createRealAccount(
+                name,
+                description,
+                budgetId = budgetData.id,
+            )
+                .toRealAccount()!!
+                .also {
+                    budgetData.addRealAccount(it)
+                }
+        }
+            .also { realAccount: RealAccount ->
+                createAndSaveIncomeTransaction(balance, realAccount, budgetData, clock, transactionDao, accountDao)
+            }
+    } catch (_: Exception) {
+        outPrinter.important("Unable to save real account.")
+        null
+    }
+
+private fun WithIo.createAndSaveIncomeTransaction(
+    balance: BigDecimal,
+    realAccount: RealAccount,
+    budgetData: BudgetData,
+    clock: Clock,
+    transactionDao: TransactionDao,
+    accountDao: AccountDao,
+) {
+    if (balance > BigDecimal.ZERO) {
+        val incomeDescription: String =
+            SimplePromptWithDefault(
+                "Enter DESCRIPTION of income [initial balance in '${realAccount.name}']: ",
+                defaultValue = "initial balance in '${realAccount.name}'",
+                inputReader = inputReader,
+                outPrinter = outPrinter,
+            )
+                .getResult()
+            // NOTE I don't think this is possible when there's a default String value
+                ?: throw Error("No description entered.")
+        outPrinter("Enter timestamp for '$incomeDescription' transaction\n")
+        val timestamp: Instant = getTimestampFromUser(
+            timeZone = budgetData.timeZone,
+            clock = clock,
+        )
+            ?.toInstant(budgetData.timeZone)
+            ?: throw TryAgainAtMostRecentMenuException("No timestamp entered.")
+        createInitialBalanceTransaction(
+            incomeDescription,
+            timestamp,
+            balance,
+            budgetData,
+            realAccount,
+        )
+            .let { incomeTransaction: Transaction ->
+                commitTransactionConsistently(incomeTransaction, transactionDao, accountDao, budgetData)
+                outPrinter.important("Real account '${realAccount.name}' created with balance $$balance")
+            }
     }
 }
 

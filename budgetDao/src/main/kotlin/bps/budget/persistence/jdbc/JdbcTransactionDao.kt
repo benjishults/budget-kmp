@@ -367,7 +367,7 @@ open class JdbcTransactionDao(
     }
 
     // TODO consider combining the various transaction commit functions into one
-    override fun createTransactionOrNull(
+    override fun createTransaction(
         description: String,
         timestamp: Instant,
         transactionType: String,
@@ -375,7 +375,7 @@ open class JdbcTransactionDao(
         saveBalances: Boolean,
         budgetId: Uuid,
         accountDao: AccountDao,
-    ): TransactionEntity? =
+    ): TransactionEntity =
         connection.transactOrThrow {
             insertTransaction(
                 timestamp = timestamp,

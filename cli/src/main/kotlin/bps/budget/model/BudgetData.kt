@@ -70,9 +70,29 @@ class BudgetData(
 
     fun commit(commitableTransactionItems: List<AccountCommitableTransactionItem>) {
         commitableTransactionItems
-            .forEach { item: AccountCommitableTransactionItem ->
-                getAccountByIdOrNull<Account>(item.accountId)!!
-                    .addAmount(item.amount)
+            .forEachIndexed { index: Int, item: AccountCommitableTransactionItem ->
+                try {
+                    getAccountByIdOrNull<Account>(item.accountId)!!
+                        .addAmount(item.amount)
+                } catch (e: Exception) {
+                    if (index > 0)
+                        revertBalances(
+                            commitableTransactionItems
+                                .take(index),
+                        )
+                    throw e
+                }
+            }
+    }
+
+    /**
+     * This reverses the balance changes that would have resulted from the application of this [balancesToUpdate].
+     * In other words, this commits the [Transaction.Item.negate] of each of the [balancesToUpdate]'s [Transaction.allItems].
+     */
+    fun revertBalances(balancesToUpdate: List<AccountCommitableTransactionItem>) {
+        balancesToUpdate
+            .forEach {
+                byId[it.accountId]!!.addAmount(-it.amount)
             }
     }
 
@@ -162,13 +182,13 @@ class BudgetData(
                     budgetId = budgetId,
                 )!!
             val generalAccount =
-                accountDao.createGeneralAccountWithIdOrNull(
+                accountDao.createGeneralAccountWithId(
                     id = generalAccountId,
                     balance = checkingBalance + walletBalance,
                     budgetId = budgetId,
                 )!!
             val wallet =
-                accountDao.createAccountOrNull(
+                accountDao.createAccount(
                     name = defaultWalletAccountName,
                     description = defaultWalletAccountDescription,
                     balance = walletBalance,

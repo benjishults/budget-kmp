@@ -38,12 +38,12 @@ open class JdbcAccountDao(
             }
         }
 
-    override fun getAccountOrNull(accountId: Uuid, budgetId: Uuid): AccountEntity? =
+    override fun getAccountOrNull(accountId: Uuid, budgetId: Uuid/*, transactional: Boolean*/): AccountEntity? =
         connection.transactOrThrow {
-            internalGetAccountOrNull(accountId, budgetId)
+            getAccountOrNullInternal(accountId, budgetId)
         }
 
-    private fun Connection.internalGetAccountOrNull(
+    private fun Connection.getAccountOrNullInternal(
         accountId: Uuid,
         budgetId: Uuid,
     ): AccountEntity? =
@@ -226,13 +226,13 @@ where aap.account_id = ?
                 }
         }
 
-    override fun createAccountOrNull(
+    override fun createAccount(
         name: String,
         description: String,
         type: String,
         balance: BigDecimal,
         budgetId: Uuid,
-    ): AccountEntity? =
+    ): AccountEntity =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -276,11 +276,11 @@ where aap.account_id = ?
                 createActivePeriod.executeUpdate()
             }
 
-    override fun createGeneralAccountWithIdOrNull(
+    override fun createGeneralAccountWithId(
         id: Uuid,
         balance: BigDecimal,
         budgetId: Uuid,
-    ): AccountEntity? =
+    ): AccountEntity =
         connection.transactOrThrow {
             prepareStatement(
                 """
@@ -305,9 +305,10 @@ where aap.account_id = ?
                             budgetId = budgetId,
                         )
                     } else
-                        null
+                    // NOTE probably an unneeded precaution since an SQLException would have been thrown already
+                        throw IllegalArgumentException("Account already exists with accountId=$id")
                 }
-                ?.also { insertAccountActivePeriod(it, budgetId) }
+                .also { insertAccountActivePeriod(it, budgetId) }
         }
 
     private fun Connection.createRealAccountInTransaction(

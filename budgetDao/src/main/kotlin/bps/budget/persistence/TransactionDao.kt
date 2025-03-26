@@ -57,7 +57,7 @@ abstract class TransactionDao {
     ) : AccountCommitableTransactionItem, TransactionItemData
 
     // TODO consider combining the various transaction commit functions into one
-    abstract fun createTransactionOrNull(
+    abstract fun createTransaction(
         description: String,
         timestamp: Instant,
         transactionType: String,
@@ -68,7 +68,7 @@ abstract class TransactionDao {
         budgetId: Uuid,
         // NOTE when I'm using this accountDao, I don't get the same transactional guarantees that you might wish for.
         accountDao: AccountDao,
-    ): TransactionEntity?
+    ): TransactionEntity
 
 //    fun commit(
 //        transaction: Transaction,
@@ -94,7 +94,7 @@ abstract class TransactionDao {
      * ```
      * @throws IllegalStateException if the given transaction has already been cleared.
      * @throws IllegalArgumentException if the transaction doesn't exist.
-     * @return the list of [AccountDao.BalanceToAdd]s that should be applied to correct balances on accounts.
+     * @return the list of [BalanceToAdd]s that should be applied to correct balances on accounts.
      */
     // TODO consider options rather than this map:
     //      1. use (Uuid) -> Account rather than map

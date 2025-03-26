@@ -186,12 +186,12 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
                 balance = checkingBalance,
                 budgetId = budgetId,
             )
-            accountDao.createGeneralAccountWithIdOrNull(
+            accountDao.createGeneralAccountWithId(
                 id = generalAccountId,
                 balance = checkingBalance + walletBalance,
                 budgetId = budgetId,
             )
-            accountDao.createAccountOrNull(
+            accountDao.createAccount(
                 name = defaultWalletAccountName,
                 description = defaultWalletAccountDescription,
                 balance = walletBalance,
