@@ -94,7 +94,7 @@ class ConsoleUiFacade(
                     )
                 }
         } else {
-            accountDao.createGeneralAccountWithIdOrNull(
+            accountDao.createGeneralAccountWithId(
                 generalAccountId,
                 budgetId = Uuid.random(),
             )!!

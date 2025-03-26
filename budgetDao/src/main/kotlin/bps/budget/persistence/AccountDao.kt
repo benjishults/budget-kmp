@@ -16,6 +16,7 @@ interface AccountDao {
     fun getAccountOrNull(
         accountId: Uuid,
         budgetId: Uuid,
+//        transactional: Boolean = true,
 //        accountFactory: AccountFactory<T>,
     ): AccountEntity? =
         TODO()
@@ -50,7 +51,10 @@ interface AccountDao {
 //        factory: AccountFactory<T>,
     ): List<AccountEntity> = TODO()
 
-    fun List<AccountCommitableTransactionItem>.updateBalances(budgetId: Uuid)
+    fun List<AccountCommitableTransactionItem>.updateBalances(
+        budgetId: Uuid,
+//        transactional: Boolean = true,
+    )
 
     fun updateAccount(
         id: Uuid,
@@ -59,49 +63,49 @@ interface AccountDao {
         budgetId: Uuid,
     ): Boolean
 
-    fun createAccountOrNull(
+    fun createAccount(
         name: String,
         description: String,
         type: String,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
         budgetId: Uuid,
-    ): AccountEntity?
+    ): AccountEntity
 
     fun createCategoryAccountOrNull(
         name: String,
         description: String,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
         budgetId: Uuid,
-    ): AccountEntity? =
-        createAccountOrNull(name, description, AccountType.category.name, balance, budgetId)
+    ): AccountEntity =
+        createAccount(name, description, AccountType.category.name, balance, budgetId)
 
-    fun createRealAccountOrNull(
+    fun createRealAccount(
         name: String,
         description: String,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
         budgetId: Uuid,
-    ): AccountEntity? =
-        createAccountOrNull(name, description, AccountType.real.name, balance, budgetId)
+    ): AccountEntity =
+        createAccount(name, description, AccountType.real.name, balance, budgetId)
 
-    fun createChargeAccountOrNull(
+    fun createChargeAccount(
         name: String,
         description: String,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
         budgetId: Uuid,
-    ): AccountEntity? =
-        createAccountOrNull(name, description, AccountType.charge.name, balance, budgetId)
+    ): AccountEntity =
+        createAccount(name, description, AccountType.charge.name, balance, budgetId)
 
-    fun createGeneralAccountWithIdOrNull(
+    fun createGeneralAccountWithId(
         id: Uuid,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
         budgetId: Uuid,
-    ): AccountEntity?
+    ): AccountEntity
 
     fun createRealAndDraftAccount(
         name: String,
         description: String,
         budgetId: Uuid,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
-    ): Pair<AccountEntity, AccountEntity>?
+    ): Pair<AccountEntity, AccountEntity>
 
 }

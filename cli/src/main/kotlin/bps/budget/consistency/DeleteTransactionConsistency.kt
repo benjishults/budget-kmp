@@ -4,7 +4,6 @@ import bps.budget.model.BudgetData
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.TransactionDao
-import bps.budget.persistence.TransactionDao.BalanceToAdd
 import bps.budget.persistence.TransactionEntity
 import bps.budget.transaction.ViewTransactionFixture
 import bps.console.inputs.userSaysYes

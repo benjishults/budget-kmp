@@ -20,27 +20,31 @@ fun commitTransactionConsistently(
     accountDao: AccountDao,
     budgetData: BudgetData,
 ) {
-    // FIXME this function promises consistency but doesn't do any error handling, rollback, error propagation, etc.
     budgetData.commit(transaction.allItems())
-    transactionDao.createTransactionOrNull(
-        description =
-            transaction.description,
-        timestamp =
-            transaction.timestamp,
-        transactionType =
-            transaction.transactionType,
-        items = transaction
-            .allItems()
-            .map { item: Transaction.Item<*> ->
-                item.toTransactionDaoItem()
-            },
-        saveBalances =
-            true,
-        budgetId =
-            budgetData.id,
-        accountDao =
-            accountDao,
-    )
+    try {
+        transactionDao.createTransaction(
+            description =
+                transaction.description,
+            timestamp =
+                transaction.timestamp,
+            transactionType =
+                transaction.transactionType,
+            items = transaction
+                .allItems()
+                .map { item: Transaction.Item<*> ->
+                    item.toTransactionDaoItem()
+                },
+            saveBalances =
+                true,
+            budgetId =
+                budgetData.id,
+            accountDao =
+                accountDao,
+        )
+    } catch (e: Exception) {
+        budgetData.revertBalances(transaction.allItems())
+        throw e
+    }
 }
 
 fun commitCreditCardPaymentConsistently(
@@ -51,18 +55,23 @@ fun commitCreditCardPaymentConsistently(
     budgetData: BudgetData,
 ) {
     budgetData.commit(transaction.allItems())
-    transactionDao.createCreditCardPaymentTransaction(
-        chargeTransactionsBeingCleared = allSelectedChargeTransactionIds,
-        description = transaction.description,
-        timestamp = transaction.timestamp,
-        items = transaction
-            .allItems()
-            .map { item: Transaction.Item<*> ->
-                item.toTransactionDaoItem()
-            },
-        budgetId = budgetData.id,
-        accountDao = accountDao,
-    )
+    try {
+        transactionDao.createCreditCardPaymentTransaction(
+            chargeTransactionsBeingCleared = allSelectedChargeTransactionIds,
+            description = transaction.description,
+            timestamp = transaction.timestamp,
+            items = transaction
+                .allItems()
+                .map { item: Transaction.Item<*> ->
+                    item.toTransactionDaoItem()
+                },
+            budgetId = budgetData.id,
+            accountDao = accountDao,
+        )
+    } catch (e: Exception) {
+        budgetData.revertBalances(transaction.allItems())
+        throw e
+    }
 }
 
 fun clearCheckConsistently(
@@ -96,12 +105,17 @@ fun clearCheckConsistently(
         )
     }
     budgetData.commit(clearingTransactionItems)
-    transactionDao.createClearCheckTransaction(
-        draftBeingClearedTransactionItem.transactionId,
-        "clearing check: '$description'",
-        timestamp,
-        clearingTransactionItems,
-        budgetData.id,
-        accountDao,
-    )
+    try {
+        transactionDao.createClearCheckTransaction(
+            draftBeingClearedTransactionItem.transactionId,
+            "clearing check: '$description'",
+            timestamp,
+            clearingTransactionItems,
+            budgetData.id,
+            accountDao,
+        )
+    } catch (e: Exception) {
+        budgetData.revertBalances(clearingTransactionItems)
+        throw e
+    }
 }

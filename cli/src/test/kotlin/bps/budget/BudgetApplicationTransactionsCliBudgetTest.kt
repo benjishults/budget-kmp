@@ -25,8 +25,8 @@ import kotlin.uuid.Uuid
 class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
     WithMockClock,
     // NOTE for debugging
-    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
-//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
+//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
+    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
 
     val budgetConfigurations: BudgetConfigurations = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
 
