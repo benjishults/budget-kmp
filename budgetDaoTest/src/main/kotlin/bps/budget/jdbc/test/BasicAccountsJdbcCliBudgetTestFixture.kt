@@ -1,6 +1,5 @@
 package bps.budget.jdbc.test
 
-import bps.budget.model.AccountType
 import bps.budget.model.AuthenticatedUser
 import bps.budget.persistence.AccountDao
 import bps.jdbc.JdbcConfig
@@ -37,7 +36,7 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
         beforeSpec {
             initializeDb()
             try {
-                deleteAccounts(budgetId, jdbcConnectionProvider.connection)
+                deleteAccounts(budgetId, dataSource)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -68,13 +67,13 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
 
     fun Spec.resetAfterEach(budgetId: AtomicReference<Uuid?>) {
         afterEach {
-            cleanupTransactions(budgetId.value!!, jdbcConnectionProvider.connection)
+            cleanupTransactions(budgetId.value!!, dataSource)
         }
     }
 
     fun Spec.resetBalancesAndTransactionAfterSpec(budgetId: Uuid) {
         afterSpec {
-            cleanupTransactions(budgetId, jdbcConnectionProvider.connection)
+            cleanupTransactions(budgetId, dataSource)
         }
     }
 
@@ -95,7 +94,7 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        userBudgetDao.createBudget(generalAccountId, budgetId)!!
+        userBudgetDao.createBudget(generalAccountId, budgetId)
         userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,
@@ -191,74 +190,73 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
                 balance = checkingBalance + walletBalance,
                 budgetId = budgetId,
             )
-            accountDao.createAccount(
+            accountDao.createRealAccount(
                 name = defaultWalletAccountName,
                 description = defaultWalletAccountDescription,
                 balance = walletBalance,
-                type = AccountType.real.name,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 name = defaultCosmeticsAccountName,
                 description = defaultCosmeticsAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultEducationAccountName,
                 defaultEducationAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultEntertainmentAccountName,
                 defaultEntertainmentAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultFoodAccountName,
                 defaultFoodAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultHobbyAccountName,
                 defaultHobbyAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultHomeAccountName,
                 defaultHomeAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultHousingAccountName,
                 defaultHousingAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultMedicalAccountName,
                 defaultMedicalAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultNecessitiesAccountName,
                 defaultNecessitiesAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultNetworkAccountName,
                 defaultNetworkAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultTransportationAccountName,
                 defaultTransportationAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultTravelAccountName,
                 defaultTravelAccountDescription,
                 budgetId = budgetId,
             )
-            accountDao.createCategoryAccountOrNull(
+            accountDao.createCategoryAccount(
                 defaultWorkAccountName,
                 defaultWorkAccountDescription,
                 budgetId = budgetId,

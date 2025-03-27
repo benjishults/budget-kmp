@@ -25,8 +25,8 @@ import kotlin.uuid.Uuid
 class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
     WithMockClock,
     // NOTE for debugging
-//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
-    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
+    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
+//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
 
     val budgetConfigurations: BudgetConfigurations = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
 
@@ -34,7 +34,7 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
         BasicAccountsJdbcCliBudgetTestFixture(
             budgetConfigurations.persistence.jdbc!!,
             budgetConfigurations.budget.name,
-            budgetConfigurations.user.defaultLogin!!,
+            budgetConfigurations.user.defaultLogin,
         )
 
     init {
@@ -48,18 +48,17 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
 
         clearInputsAndOutputsBeforeEach()
         with(basicAccountsJdbcCliBudgetTestFixture) {
-            val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, jdbcConnectionProvider)
+            val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, dataSource)
             createBasicAccountsBeforeSpec(
                 budgetId = budgetId,
                 budgetName = budgetName,
-                authenticatedUser = AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
+                authenticatedUser = AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin),
                 timeZone = TimeZone.of("America/Chicago"),
                 clock = clock,
             ) {
                 initializingBudgetDao.prepForFirstLoad()
             }
             resetBalancesAndTransactionAfterSpec(budgetId)
-            closeJdbcAfterSpec()
         }
         stopApplicationAfterSpec()
 

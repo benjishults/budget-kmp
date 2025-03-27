@@ -8,11 +8,12 @@ import bps.budget.persistence.jdbc.JdbcAccountDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
 import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.budget.persistence.jdbc.JdbcUserBudgetDao
+import bps.jdbc.HikariYamlConfig
 import bps.jdbc.JdbcConfig
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
+import bps.jdbc.configureDataSource
 import bps.jdbc.test.JdbcTestFixture
-import bps.jdbc.toJdbcConnectionProvider
+import javax.sql.DataSource
 
 interface JdbcCliBudgetTestFixture : JdbcFixture, JdbcTestFixture {
 
@@ -32,17 +33,16 @@ interface JdbcCliBudgetTestFixture : JdbcFixture, JdbcTestFixture {
                 override val budgetName: String = budgetName
                 override val jdbcConfig: JdbcConfig = jdbcConfig
 
-                override val jdbcConnectionProvider: JdbcConnectionProvider =
-                    jdbcConfig.toJdbcConnectionProvider()
+                override val dataSource: DataSource = configureDataSource(jdbcConfig, HikariYamlConfig())
 
                 override val accountDao: AccountDao =
-                    JdbcAccountDao(jdbcConnectionProvider)
+                    JdbcAccountDao(dataSource)
                 override val transactionDao: TransactionDao =
-                    JdbcTransactionDao(jdbcConnectionProvider)
+                    JdbcTransactionDao(dataSource)
                 override val userBudgetDao: UserBudgetDao =
-                    JdbcUserBudgetDao(jdbcConnectionProvider)
+                    JdbcUserBudgetDao(dataSource)
                 override val analyticsDao: AnalyticsDao =
-                    JdbcAnalyticsDao(jdbcConnectionProvider)
+                    JdbcAnalyticsDao(dataSource)
             }
     }
 

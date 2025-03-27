@@ -8,12 +8,12 @@ import bps.budget.makeAllowancesLabel
 import bps.budget.recordIncomeLabel
 import bps.budget.recordSpendingLabel
 import bps.budget.manageAccountsLabel
-import bps.jdbc.toJdbcConnectionProvider
 import bps.budget.transferLabel
 import bps.budget.ui.ConsoleUiFacade
 import bps.budget.useOrPayCreditCardsLabel
 import bps.budget.writeOrClearChecksLabel
 import bps.console.SimpleConsoleIoTestFixture
+import bps.jdbc.configureDataSource
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldHaveSize
@@ -28,9 +28,9 @@ class NoOrLowDataScenariosBudgetTest : FreeSpec(),
         clearInputsAndOutputsBeforeEach()
         val configurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
         afterEach {
-            JdbcInitializingBudgetDao(configurations.budget.name, configurations.persistence.jdbc!!.toJdbcConnectionProvider())
+            JdbcInitializingBudgetDao(configurations.budget.name, configureDataSource(configurations.persistence.jdbc!!, configurations.hikari))
                 .use {
-                    dropTables(it.connection, configurations.persistence.jdbc!!.schema)
+                    dropTables(it.dataSource, configurations.persistence.jdbc!!.schema)
                 }
         }
 

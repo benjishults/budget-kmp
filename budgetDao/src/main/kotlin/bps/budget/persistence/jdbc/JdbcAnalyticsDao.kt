@@ -2,7 +2,6 @@ package bps.budget.persistence.jdbc
 
 import bps.budget.analytics.AnalyticsOptions
 import bps.budget.persistence.AnalyticsDao
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import bps.time.NaturalLocalInterval
@@ -21,16 +20,15 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.util.SortedMap
 import java.util.TreeMap
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class JdbcAnalyticsDao(
-    val jdbcConnectionProvider: JdbcConnectionProvider,
+    val dataSource: DataSource,
     override val clock: Clock = Clock.System,
-) : AnalyticsDao, JdbcFixture, AutoCloseable {
-
-    private val connection = jdbcConnectionProvider.connection
+) : AnalyticsDao, JdbcFixture {
 
     data class Item(
         val amount: BigDecimal,
@@ -179,7 +177,7 @@ class JdbcAnalyticsDao(
     ): BigDecimal? =
         MonthlyItemSeries()
             .let { incomes: MonthlyItemSeries ->
-                connection.transactOrThrow {
+                dataSource.transactOrThrow {
                     prepareStatement(
                         """
                 |select t.timestamp_utc, i.amount
@@ -239,7 +237,7 @@ class JdbcAnalyticsDao(
         options: AnalyticsOptions,
         budgetId: Uuid,
     ): BigDecimal? =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             val incomes = MonthlyItemSeries()
             prepareStatement(
                 """
@@ -289,7 +287,7 @@ class JdbcAnalyticsDao(
         options: AnalyticsOptions,
         budgetId: Uuid,
     ): BigDecimal? =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             val expenditures = MonthlyItemSeries()
             prepareStatement(
                 """
@@ -346,7 +344,7 @@ class JdbcAnalyticsDao(
         options: AnalyticsOptions,
         budgetId: Uuid,
     ): BigDecimal? =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             val expenditures = MonthlyItemSeries()
             prepareStatement(
                 """
@@ -444,9 +442,4 @@ class JdbcAnalyticsDao(
             atIndex
         }
 
-    override fun close() {
-        jdbcConnectionProvider.close()
-    }
-
 }
-

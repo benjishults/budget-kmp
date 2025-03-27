@@ -12,6 +12,7 @@ import java.sql.ResultSet
 import java.sql.Timestamp
 import java.sql.Types
 import java.util.UUID
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toKotlinUuid
@@ -60,40 +61,35 @@ interface JdbcFixture {
         setObject(parameterIndex, uuid, Types.OTHER)
 
     companion object : JdbcFixture {
+
         /**
          * Commits after running [block].  Throws and rolls back if [block] or [Connection.commit] throw.
+         * @returns the result of [block] on success.
          */
-        @JvmStatic
-        inline fun <T> Connection.transactOrThrow(
+        inline fun <T> DataSource.transactOrThrow(
             block: Connection.() -> T,
         ): T =
-            transact({ throw it }, block)
-
-        /**
-         * Commits after running [block].  On any [Throwable], rolls back and returns the result of [onRollback].
-         * @returns the result of [block] on success or the value of executing [onRollback] if anything is thrown.
-         * @param onRollback defaults to throwing the [Throwable].  Called only if a [Throwable] is thrown from [block]
-         * or from the subsequent call to [Connection.commit].
-         */
-        @JvmStatic
-        inline fun <T> Connection.transact(
-            onRollback: (Throwable) -> T = { throw it },
-            block: Connection.() -> T,
-        ): T =
-            try {
-                block()
-                    .also {
-                        commit()
+            connection
+                .use { connection: Connection ->
+                    var error: Boolean = false
+                    try {
+                        connection.block()
+                    } catch (t: Throwable) {
+                        try {
+                            error = true
+                            connection.rollback()
+                            throw t
+                        } catch (rollbackException: Exception) {
+                            rollbackException.addSuppressed(t)
+                            throw rollbackException
+                        }
+                    } finally {
+                        // NOTE this is odd but needed since [block] is inlined and a non-local return can happen there.
+                        if (!error) {
+                            connection.commit()
+                        }
                     }
-            } catch (throwable: Throwable) {
-                try {
-                    rollback()
-                    onRollback(throwable)
-                } catch (rollbackException: Exception) {
-                    rollbackException.addSuppressed(throwable)
-                    throw rollbackException
                 }
-            }
-    }
 
+    }
 }

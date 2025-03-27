@@ -2,6 +2,7 @@ package bps.budget.server
 
 import bps.jdbc.JdbcConfig
 import bps.config.ConfigurationHelper
+import bps.jdbc.HikariYamlConfig
 import io.github.nhubbard.konf.Config
 import io.github.nhubbard.konf.toValue
 
@@ -9,6 +10,7 @@ interface BudgetServerConfigurations {
     val jdbc: JdbcConfig
     val server: ServerConfig
     val config: Config
+    val hikari: HikariYamlConfig
 
     companion object {
         /**
@@ -27,6 +29,10 @@ interface BudgetServerConfigurations {
                 override val server: ServerConfig =
                     config
                         .at("server")
+                        .toValue()
+                override val hikari: HikariYamlConfig =
+                    config
+                        .at("hikari")
                         .toValue()
 
                 override fun toString(): String =

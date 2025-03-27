@@ -5,25 +5,23 @@ import bps.budget.model.defaultGeneralAccountDescription
 import bps.budget.model.defaultGeneralAccountName
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.AccountEntity
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 open class JdbcAccountDao(
-    val jdbcConnectionProvider: JdbcConnectionProvider,
-) : AccountDao, JdbcFixture, AutoCloseable {
-
-    private val connection = jdbcConnectionProvider.connection
+    val dataSource: DataSource,
+) : AccountDao, JdbcFixture {
 
     override fun getAllAccountNamesForBudget(budgetId: Uuid): List<String> =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             buildList {
                 AccountType.entries.forEach { type ->
                     addAll(
@@ -39,11 +37,11 @@ open class JdbcAccountDao(
         }
 
     override fun getAccountOrNull(accountId: Uuid, budgetId: Uuid/*, transactional: Boolean*/): AccountEntity? =
-        connection.transactOrThrow {
-            getAccountOrNullInternal(accountId, budgetId)
+        dataSource.transactOrThrow {
+            this.getAccountOrNull(accountId, budgetId)
         }
 
-    private fun Connection.getAccountOrNullInternal(
+     override fun Connection.getAccountOrNull(
         accountId: Uuid,
         budgetId: Uuid,
     ): AccountEntity? =
@@ -81,7 +79,7 @@ open class JdbcAccountDao(
             }
 
     override fun getDeactivatedAccounts(type: String, budgetId: Uuid): List<AccountEntity> =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             getDeactivatedAccountsInternal(type, budgetId)
         }
 
@@ -113,7 +111,7 @@ open class JdbcAccountDao(
             }
 
     override fun getActiveAccounts(type: String, budgetId: Uuid): List<AccountEntity> =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             getActiveAccountsInternal(type, budgetId)
         }
 
@@ -162,7 +160,7 @@ where acc.budget_id = ?
         }
 
     override fun deactivateAccount(accountId: Uuid): Unit =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
 update account_active_periods aap
@@ -180,8 +178,16 @@ where aap.account_id = ?
         }
 
     override fun List<AccountDao.AccountCommitableTransactionItem>.updateBalances(budgetId: Uuid): Unit =
-        connection.transactOrThrow {
-            forEach { item: AccountDao.AccountCommitableTransactionItem ->
+        dataSource.transactOrThrow {
+            updateBalances(this@updateBalances, budgetId)
+        }
+
+    override fun Connection.updateBalances(
+        balancesToAdd: List<AccountDao.AccountCommitableTransactionItem>,
+        budgetId: Uuid,
+    ): Unit =
+        balancesToAdd
+            .forEach { item: AccountDao.AccountCommitableTransactionItem ->
                 val amount: BigDecimal = item.amount
                 val accountId: Uuid = item.accountId
                 prepareStatement(
@@ -199,7 +205,6 @@ where aap.account_id = ?
                         }
                     }
             }
-        }
 
     override fun updateAccount(
         id: Uuid,
@@ -207,7 +212,7 @@ where aap.account_id = ?
         description: String,
         budgetId: Uuid,
     ): Boolean =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                 update accounts
@@ -233,7 +238,7 @@ where aap.account_id = ?
         balance: BigDecimal,
         budgetId: Uuid,
     ): AccountEntity =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                 insert into accounts (name, description, balance, type, budget_id, id)
@@ -281,7 +286,7 @@ where aap.account_id = ?
         balance: BigDecimal,
         budgetId: Uuid,
     ): AccountEntity =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                 insert into accounts (name, description, balance, type, budget_id, id)
@@ -351,7 +356,7 @@ where aap.account_id = ?
         budgetId: Uuid,
         balance: BigDecimal,
     ): Pair<AccountEntity, AccountEntity> =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             createRealAccountInTransaction(name, description, budgetId, balance)
                 .let { realCompanion: AccountEntity ->
                     prepareStatement(
@@ -402,9 +407,5 @@ where aap.account_id = ?
                 setUuid(5, budgetId)
                 setUuid(6, it)
             }
-
-    override fun close() {
-        jdbcConnectionProvider.close()
-    }
 
 }

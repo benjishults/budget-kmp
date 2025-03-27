@@ -47,28 +47,27 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
         val basicAccountsJdbcCliBudgetTestFixture = BasicAccountsJdbcCliBudgetTestFixture(
             budgetConfigurations.persistence.jdbc!!,
             budgetConfigurations.budget.name,
-            budgetConfigurations.user.defaultLogin!!,
+            budgetConfigurations.user.defaultLogin,
         )
         val clock = produceSecondTickingClock()
         val budgetId: Uuid = Uuid.parse("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
         val userId: Uuid = Uuid.parse("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         with(basicAccountsJdbcCliBudgetTestFixture) {
-            val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, jdbcConnectionProvider)
-            val cliBudgetDao = JdbcCliBudgetDao(userName, jdbcConnectionProvider)
+            val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, dataSource)
+            val cliBudgetDao = JdbcCliBudgetDao(userName, dataSource)
             createBasicAccountsBeforeSpec(
                 budgetId,
                 budgetConfigurations.budget.name,
-                AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin!!),
+                AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin),
                 TimeZone.of("America/Chicago"),
                 clock,
             ) {
                 initializingBudgetDao.prepForFirstLoad()
             }
-            closeJdbcAfterSpec()
 
             "with data from config" - {
                 val budgetData = loadBudgetData(
-                    authenticatedUser = userBudgetDao.getUserByLoginOrNull(budgetConfigurations.user.defaultLogin!!) as AuthenticatedUser,
+                    authenticatedUser = userBudgetDao.getUserByLoginOrNull(budgetConfigurations.user.defaultLogin) as AuthenticatedUser,
                     initializingBudgetDao = initializingBudgetDao,
                     budgetName = budgetConfigurations.budget.name,
                     cliBudgetDao = cliBudgetDao,

@@ -33,7 +33,7 @@ class AnalyticsDaoTest : FreeSpec(),
 
         val connection: Connection = mockk(relaxed = true)
         val dao: AnalyticsDao = JdbcAnalyticsDao(
-            jdbcConnectionProvider = mockk(relaxed = true) {
+            dataSource = mockk(relaxed = true) {
                 every { this@mockk.connection } returns connection
             },
             // NOTE what gets passed in here doesn't matter since we are mocking the results on the connection

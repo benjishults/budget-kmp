@@ -8,12 +8,13 @@ import bps.jdbc.JdbcFixture.Companion.setUuid
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import java.math.BigDecimal
 import java.sql.Connection
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-fun dropTables(connection: Connection, schema: String) {
+fun dropTables(dataSource: DataSource, schema: String) {
     require(schema == "clean_after_test")
-    connection.transactOrThrow {
+    dataSource.transactOrThrow {
         createStatement()
             .use { statement ->
                 statement.execute("drop table if exists transaction_items")
@@ -42,10 +43,10 @@ fun dropTables(connection: Connection, schema: String) {
     }
 }
 
-fun deleteAccounts(budgetId: Uuid, connection: Connection): Int =
+fun deleteAccounts(budgetId: Uuid, dataSource: DataSource): Int =
     with(JdbcFixture) {
-        cleanupTransactions(budgetId, connection)
-        connection.transactOrThrow {
+        cleanupTransactions(budgetId, dataSource)
+        dataSource.transactOrThrow {
             prepareStatement("delete from account_active_periods where budget_id = ?")
                 .use {
                     it.setUuid(1, budgetId)
@@ -59,9 +60,9 @@ fun deleteAccounts(budgetId: Uuid, connection: Connection): Int =
         }
     }
 
-fun cleanupTransactions(budgetId: Uuid, connection: Connection): Int =
+fun cleanupTransactions(budgetId: Uuid, dataSource: DataSource): Int =
     with(JdbcFixture) {
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             zeroBalance(budgetId)
             prepareStatement("delete from transaction_items where budget_id = ?")
                 .use {

@@ -7,7 +7,7 @@ interface NoDataJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
 
     fun Spec.dropAllBeforeEach() {
         beforeEach {
-            dropTables(connection, jdbcConfig.schema)
+            dropTables(dataSource, jdbcConfig.schema)
         }
     }
 

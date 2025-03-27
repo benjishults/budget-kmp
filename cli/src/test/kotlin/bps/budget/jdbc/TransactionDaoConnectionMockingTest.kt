@@ -5,7 +5,6 @@ import bps.budget.model.CategoryAccount
 import bps.budget.persistence.AccountTransactionEntity
 import bps.budget.persistence.TransactionDao
 import bps.budget.persistence.jdbc.JdbcTransactionDao
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import io.kotest.assertions.asClue
 import io.kotest.assertions.withClue
@@ -17,6 +16,7 @@ import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Timestamp
 import java.util.UUID
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlin.uuid.toJavaUuid
@@ -25,14 +25,14 @@ import kotlin.uuid.toJavaUuid
 class TransactionDaoConnectionMockingTest : FreeSpec(), JdbcFixture, ConnectionMockingFixture {
 
     override val timestampFactory: () -> Timestamp = initializeTimestampFactory()
-    override val jdbcConnectionProvider: JdbcConnectionProvider
+    override val dataSource: DataSource
 
     init {
-        val (provider, connection) = mockConnectionProviderAndConnection()
-        jdbcConnectionProvider = provider
+        val (dataSource, connection) = mockDataSourceAndConnection()
+        this.dataSource = dataSource
         closeConnectionAfterSpec()
 
-        val transactionDaoTestSubject: TransactionDao = JdbcTransactionDao(jdbcConnectionProvider)
+        val transactionDaoTestSubject: TransactionDao = JdbcTransactionDao(dataSource)
 
         val budgetId: Uuid = Uuid.random()
         "test fetchTransactionItemsInvolvingAccount" {

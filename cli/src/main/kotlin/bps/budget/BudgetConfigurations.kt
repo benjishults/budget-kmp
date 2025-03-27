@@ -1,6 +1,7 @@
 package bps.budget
 
 import bps.config.ConfigurationHelper
+import bps.jdbc.HikariYamlConfig
 import io.github.nhubbard.konf.Config
 import io.github.nhubbard.konf.toValue
 
@@ -9,6 +10,7 @@ interface BudgetConfigurations {
     val user: UserConfiguration
     val budget: BudgetConfig
     val config: Config
+    val hikari: HikariYamlConfig
 
     companion object {
         /**
@@ -32,6 +34,16 @@ interface BudgetConfigurations {
                     config
                         .at("budget")
                         .toValue()
+                override val hikari: HikariYamlConfig =
+                    try {
+                        config
+                            .at("budget")
+                            .toValue()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        println("using connection pool defaults")
+                        HikariYamlConfig()
+                    }
 
                 override fun toString(): String =
                     "BudgetConfigurations($persistence)"

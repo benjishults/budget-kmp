@@ -180,13 +180,13 @@ class BudgetData(
                     description = defaultCheckingAccountDescription,
                     balance = checkingBalance,
                     budgetId = budgetId,
-                )!!
+                )
             val generalAccount =
                 accountDao.createGeneralAccountWithId(
                     id = generalAccountId,
                     balance = checkingBalance + walletBalance,
                     budgetId = budgetId,
-                )!!
+                )
             val wallet =
                 accountDao.createAccount(
                     name = defaultWalletAccountName,
@@ -194,7 +194,7 @@ class BudgetData(
                     balance = walletBalance,
                     type = AccountType.real.name,
                     budgetId = budgetId,
-                )!!
+                )
             val generalCategoryAccount = generalAccount.toCategoryAccount()!!
             val realWalletAccount = wallet.toRealAccount()!!
             val realCheckingAccount = checkingAccount.toRealAccount()!!
@@ -208,71 +208,97 @@ class BudgetData(
                     AccountsHolder(
                         listOf(
                             generalCategoryAccount,
-                            accountDao.createCategoryAccountOrNull(
-                                name = defaultCosmeticsAccountName,
-                                description = defaultCosmeticsAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultEducationAccountName,
-                                defaultEducationAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultEntertainmentAccountName,
-                                defaultEntertainmentAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultFoodAccountName,
-                                defaultFoodAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultHobbyAccountName,
-                                defaultHobbyAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultHomeAccountName,
-                                defaultHomeAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultHousingAccountName,
-                                defaultHousingAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultMedicalAccountName,
-                                defaultMedicalAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultNecessitiesAccountName,
-                                defaultNecessitiesAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultNetworkAccountName,
-                                defaultNetworkAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultTransportationAccountName,
-                                defaultTransportationAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultTravelAccountName,
-                                defaultTravelAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
-                            accountDao.createCategoryAccountOrNull(
-                                defaultWorkAccountName,
-                                defaultWorkAccountDescription,
-                                budgetId = budgetId,
-                            )!!.toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    name = defaultCosmeticsAccountName,
+                                    description = defaultCosmeticsAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultEducationAccountName,
+                                    defaultEducationAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultEntertainmentAccountName,
+                                    defaultEntertainmentAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultFoodAccountName,
+                                    defaultFoodAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultHobbyAccountName,
+                                    defaultHobbyAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultHomeAccountName,
+                                    defaultHomeAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultHousingAccountName,
+                                    defaultHousingAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultMedicalAccountName,
+                                    defaultMedicalAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultNecessitiesAccountName,
+                                    defaultNecessitiesAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultNetworkAccountName,
+                                    defaultNetworkAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultTransportationAccountName,
+                                    defaultTransportationAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultTravelAccountName,
+                                    defaultTravelAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
+                            accountDao
+                                .createCategoryAccount(
+                                    defaultWorkAccountName,
+                                    defaultWorkAccountDescription,
+                                    budgetId = budgetId,
+                                )
+                                .toCategoryAccount()!!,
                         ),
                     ),
                 realAccounts =

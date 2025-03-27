@@ -2,6 +2,7 @@ package bps.budget.persistence
 
 import bps.budget.model.AccountType
 import java.math.BigDecimal
+import java.sql.Connection
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -14,6 +15,19 @@ interface AccountDao {
     }
 
     fun getAccountOrNull(
+        accountId: Uuid,
+        budgetId: Uuid,
+//        transactional: Boolean = true,
+//        accountFactory: AccountFactory<T>,
+    ): AccountEntity? =
+        TODO()
+
+    /**
+     * Expects the caller to commit and close the connection.
+     */
+    // NOTE I don't like how this ties the DAO to JDBC
+    //      This breaks the D in SOLID
+    fun Connection.getAccountOrNull(
         accountId: Uuid,
         budgetId: Uuid,
 //        transactional: Boolean = true,
@@ -56,6 +70,16 @@ interface AccountDao {
 //        transactional: Boolean = true,
     )
 
+    /**
+     * Expects the caller to commit and close the connection.
+     */
+    // NOTE I don't like how this ties the DAO to JDBC
+    //      This breaks the D in SOLID
+    fun Connection.updateBalances(
+        balancesToAdd: List<AccountCommitableTransactionItem>,
+        budgetId: Uuid,
+    )
+
     fun updateAccount(
         id: Uuid,
         name: String,
@@ -71,7 +95,7 @@ interface AccountDao {
         budgetId: Uuid,
     ): AccountEntity
 
-    fun createCategoryAccountOrNull(
+    fun createCategoryAccount(
         name: String,
         description: String,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
