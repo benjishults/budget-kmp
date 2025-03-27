@@ -9,7 +9,7 @@ import bps.budget.persistence.jdbc.JdbcUserBudgetDao
 import bps.budget.server.account.accountRoutes
 import bps.budget.server.transaction.transactionRoutes
 import bps.config.convertToPath
-import bps.jdbc.JdbcConnectionProvider
+import bps.jdbc.configureDataSource
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -31,19 +31,12 @@ fun main() {
                 convertToPath("~/.config/bps-budget-server/budget-server.yml"),
             ),
         )
-    val jdbcConnectionProvider = JdbcConnectionProvider(
-        database = configurations.jdbc.database,
-        dbProvider = configurations.jdbc.dbProvider,
-        host = configurations.jdbc.host,
-        port = configurations.jdbc.port,
-        schema = configurations.jdbc.schema,
-        user = configurations.jdbc.user,
-        password = configurations.jdbc.password,
-    )
-    val accountDao = JdbcAccountDao(jdbcConnectionProvider)
-    val transactionDao = JdbcTransactionDao(jdbcConnectionProvider)
-    val userBudgetDao = JdbcUserBudgetDao(jdbcConnectionProvider)
-    val analyticsDao = JdbcAnalyticsDao(jdbcConnectionProvider, Clock.System)
+    val dataSource = configureDataSource(configurations.jdbc, configurations.hikari)
+
+    val accountDao = JdbcAccountDao(dataSource)
+    val transactionDao = JdbcTransactionDao(dataSource)
+    val userBudgetDao = JdbcUserBudgetDao(dataSource)
+    val analyticsDao = JdbcAnalyticsDao(dataSource, Clock.System)
 
     embeddedServer(
         factory = Netty,
@@ -55,11 +48,6 @@ fun main() {
                 Json {
                     prettyPrint = true
                     ignoreUnknownKeys = true
-//                serializersModule = SerializersModule {
-//                    contextual(BigDecimal::class, BigDecimalNumericSerializer)
-//                    contextual(Instant::class, InstantAsIsoSerializer)
-//                    contextual(UUID::class, UUIDSerializer)
-//                }
                 },
             )
         }

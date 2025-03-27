@@ -22,13 +22,13 @@ class TimeZoneCliBudgetTest : FreeSpec(),
             JdbcCliBudgetTestFixture(budgetConfigurations.persistence.jdbc!!, budgetConfigurations.budget.name)
         with(jdbcCliBudgetTestFixture) {
             beforeSpec {
-                dropTables(connection, jdbcConfig.schema)
+                dropTables(dataSource, jdbcConfig.schema)
             }
             afterSpec {
-                dropTables(connection, jdbcConfig.schema)
+                dropTables(dataSource, jdbcConfig.schema)
             }
             "create table" - {
-                connection.transactOrThrow {
+                dataSource.transactOrThrow {
                     createStatement().use { statement ->
                         statement.execute(
                             """
@@ -46,7 +46,7 @@ class TimeZoneCliBudgetTest : FreeSpec(),
                     val now = Instant.parse("2024-08-09T00:00:00.00Z")
                     val nowAmericaChicago = "2024-08-08T19:00"
                     val label2 = "basic test"
-                    connection.transactOrThrow {
+                    dataSource.transactOrThrow {
                         prepareStatement(
                             """
                         insert into timestamps (timestamp_utc, timestamp_with_timezone, label)
@@ -61,7 +61,7 @@ class TimeZoneCliBudgetTest : FreeSpec(),
                             }
                     }
                     "read timestamps with bps.budget.persistence.jdbc.JdbcDaoKt.toLocalDateTime(java.sql.Timestamp, java.util.TimeZone) and validate" {
-                        connection.transactOrThrow {
+                        dataSource.transactOrThrow {
                             prepareStatement("select timestamp_utc, timestamp_with_timezone from timestamps where label = ?")
                                 .use { statement ->
                                     statement.setString(1, label2)

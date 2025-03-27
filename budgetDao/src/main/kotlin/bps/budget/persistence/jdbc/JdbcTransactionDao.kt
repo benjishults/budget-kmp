@@ -13,7 +13,6 @@ import bps.budget.persistence.TransactionData
 import bps.budget.persistence.TransactionEntity
 import bps.budget.persistence.TransactionItemEntity
 import bps.budget.persistence.allocateItemsByAccountType
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import kotlinx.datetime.Instant
@@ -21,17 +20,16 @@ import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @Suppress("SqlSourceToSinkFlow")
 @OptIn(ExperimentalUuidApi::class)
-open class JdbcTransactionDao(
+class JdbcTransactionDao(
 //    val errorStateTracker: JdbcDao.ErrorStateTracker,
-    val jdbcConnectionProvider: JdbcConnectionProvider,
-) : TransactionDao(), JdbcFixture, AutoCloseable {
-
-    private val connection: Connection = jdbcConnectionProvider.connection
+    val dataSource: DataSource,
+) : TransactionDao(), JdbcFixture {
 
     // TODO I would like these entity classes to be constructible only by DAO classes.
     //      Options:
@@ -179,10 +177,14 @@ open class JdbcTransactionDao(
         itemsForClearingTransaction: List<ClearingTransactionItem>,
         budgetId: Uuid,
         accountDao: AccountDao,
-    ): TransactionEntity? {
-        connection.transactOrThrow {
+    ): TransactionEntity? =
+        dataSource.transactOrThrow {
             // TODO consider exposing a transaction-less version of getAccountOrNull so that these can be done atomically
-            val idToAccountMap: (Uuid) -> AccountEntity? = { accountDao.getAccountOrNull(it, budgetId) }
+            val idToAccountMap: (Uuid) -> AccountEntity? = {
+                with(accountDao) {
+                    this.getAccountOrNull(it, budgetId)
+                }
+            }
             // require clearTransaction is a simple draft transaction(s) clearing transaction
             // with a single real item
             require(itemsForClearingTransaction.isNotEmpty())
@@ -276,10 +278,10 @@ open class JdbcTransactionDao(
                 )
                     .also {
                         with(accountDao) {
-                            it.updateBalances(budgetId)
+                            this@transactOrThrow.updateBalances(it, budgetId)
                         }
                     }
-            return createTransactionEntity(
+            createTransactionEntity(
                 newTransactionId = newTransactionId,
                 description = description,
                 timestamp = timestamp,
@@ -288,7 +290,6 @@ open class JdbcTransactionDao(
                 budgetId = budgetId,
             )
         }
-    }
 
     /**
      * @return a [Pair] of the new transaction ID and the prepared statement to insert it
@@ -298,9 +299,9 @@ open class JdbcTransactionDao(
         timestamp: Instant,
         transactionType: String,
         budgetId: Uuid,
-    ): Uuid {
+    ): Uuid =
         Uuid.random()
-            .let { transactionId: Uuid ->
+            .also { transactionId: Uuid ->
                 prepareStatement(
                     """
                 insert into transactions (id, description, timestamp_utc, type, budget_id)
@@ -313,14 +314,11 @@ open class JdbcTransactionDao(
                         insertTransaction.setInstant(3, timestamp)
                         insertTransaction.setString(4, transactionType)
                         insertTransaction.setUuid(5, budgetId)
-                        return if (insertTransaction.use { it.executeUpdate() == 1 })
-                            transactionId
-                        else
+                        if (insertTransaction.use { it.executeUpdate() != 1 })
                         // NOTE this precaution is probably unneeded since an SQLException would have been thrown already.
                             throw IllegalStateException("Transaction insert failed with new UUID: $transactionId")
                     }
             }
-    }
 
     private fun Connection.insertTransactionItems(
         transactionId: Uuid,
@@ -376,7 +374,7 @@ open class JdbcTransactionDao(
         budgetId: Uuid,
         accountDao: AccountDao,
     ): TransactionEntity =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             insertTransaction(
                 timestamp = timestamp,
                 description = description,
@@ -392,7 +390,7 @@ open class JdbcTransactionDao(
                         .let { balancesToAdd: List<BalanceToAdd> ->
                             if (saveBalances)
                                 with(accountDao) {
-                                    balancesToAdd.updateBalances(budgetId)
+                                    this@transactOrThrow.updateBalances(balancesToAdd, budgetId)
                                 }
                             createTransactionEntity(
                                 newTransactionId = transactionId,
@@ -406,24 +404,10 @@ open class JdbcTransactionDao(
                 }
         }
 
-    override fun deleteTransaction(transactionId: Uuid, budgetId: Uuid): List<BalanceToAdd> {
-        connection.transactOrThrow {
-            prepareStatement("""select * from transactions where id = ? and budget_id = ?""")
-                .use { statement ->
-                    statement.setUuid(1, transactionId)
-                    statement.setUuid(2, budgetId)
-                    statement.executeQuery()
-                        .use { resultSet ->
-                            if (resultSet.next()) {
-                                if (resultSet.getString("cleared_by_transaction_id") !== null) {
-                                    throw IllegalStateException("This transaction has already been cleared")
-                                }
-                            } else {
-                                throw IllegalArgumentException("No transaction found with id $transactionId")
-                            }
-                        }
-                }
-            return buildList {
+    override fun deleteTransaction(transactionId: Uuid, budgetId: Uuid, accountDao: AccountDao): List<BalanceToAdd> =
+        dataSource.transactOrThrow {
+            requireNotCleared(transactionId, budgetId)
+            buildList {
                 prepareStatement(
                     """
                     |delete from transaction_items where transaction_id = ? and budget_id = ?
@@ -449,14 +433,32 @@ open class JdbcTransactionDao(
             }
                 .also {
                     prepareStatement("""delete from transactions where id = ? and budget_id = ?""")
-                        .use { statement ->
+                        .use { statement: PreparedStatement ->
                             statement.setUuid(1, transactionId)
                             statement.setUuid(2, budgetId)
                             if (statement.executeUpdate() != 1)
                                 throw IllegalStateException("No transaction found with id $transactionId")
                         }
+                    with(accountDao) { this@transactOrThrow.updateBalances(it, budgetId) }
                 }
         }
+
+    private fun Connection.requireNotCleared(transactionId: Uuid, budgetId: Uuid) {
+        prepareStatement("""select * from transactions where id = ? and budget_id = ?""")
+            .use { statement ->
+                statement.setUuid(1, transactionId)
+                statement.setUuid(2, budgetId)
+                statement.executeQuery()
+                    .use { resultSet ->
+                        if (resultSet.next()) {
+                            if (resultSet.getString("cleared_by_transaction_id") !== null) {
+                                throw IllegalStateException("This transaction has already been cleared")
+                            }
+                        } else {
+                            throw IllegalArgumentException("No transaction found with id $transactionId")
+                        }
+                    }
+            }
     }
 
     /**
@@ -480,8 +482,8 @@ open class JdbcTransactionDao(
         //      2. getting the account type of each chargeTransactionsBeingCleared's account
         //      3. updating balances
         accountDao: AccountDao,
-    ): TransactionEntity? {
-        connection.transactOrThrow {
+    ): TransactionEntity? =
+        dataSource.transactOrThrow {
             // TODO     If we added accountType to the TransactionItemEntity, we wouldn't need this map
             val idToAccountMap: (Uuid) -> AccountEntity? = { accountDao.getAccountOrNull(it, budgetId) }
             val allocatedClearingItems = items.allocateItemsByAccountType(idToAccountMap)
@@ -571,11 +573,10 @@ open class JdbcTransactionDao(
                         items = items,
                         budgetId = budgetId,
                     )
-                balancesToAdd.updateBalances(budgetId)
-                return createTransactionEntity(newTransactionId, description, timestamp, items, balancesToAdd, budgetId)
+                this@transactOrThrow.updateBalances(balancesToAdd, budgetId)
+                createTransactionEntity(newTransactionId, description, timestamp, items, balancesToAdd, budgetId)
             }
         }
-    }
 
     fun TransactionItemData.toTransactionItemEntity(
         newTransactionId: Uuid,
@@ -649,7 +650,7 @@ open class JdbcTransactionDao(
     ): List<AccountTransactionEntity> =
         buildList {
             val actualTypes: List<String> = types.takeIf { it.isNotEmpty() } ?: TransactionType.entries.map { it.name }
-            connection.transactOrThrow {
+            dataSource.transactOrThrow {
                 // TODO if it is a clearing transaction, then create the full transaction by combining the cleared category items
                 //      with this.
                 prepareStatement(
@@ -699,18 +700,23 @@ open class JdbcTransactionDao(
                                 setInt(actualTypes.size + 3, limit)
                                 setInt(actualTypes.size + 4, offset)
                             }
-                        selectExtendedTransactionItemsForAccount
                             .executeQuery()
                             .use { result: ResultSet ->
                                 with(result) {
                                     var runningBalance: BigDecimal? = balanceAtStartOfPage
                                     while (next()) {
-                                        val transactionId: Uuid = getUuid("transaction_id")!!
-                                        val transactionTimestamp: Instant = getInstant("transaction_timestamp")
-                                        val id: Uuid = getUuid("item_id")!!
-                                        val amount: BigDecimal = getCurrencyAmount("amount")
-                                        val description: String? = getString("description")
-                                        val transactionDescription: String = getString("transaction_description")!!
+                                        val transactionId: Uuid =
+                                            getUuid("transaction_id")!!
+                                        val transactionTimestamp: Instant =
+                                            getInstant("transaction_timestamp")
+                                        val id: Uuid =
+                                            getUuid("item_id")!!
+                                        val amount: BigDecimal =
+                                            getCurrencyAmount("amount")
+                                        val description: String? =
+                                            getString("description")
+                                        val transactionDescription: String =
+                                            getString("transaction_description")!!
                                         val draftStatus: DraftStatus =
                                             DraftStatus.valueOf(getString("draft_status"))
                                         this@buildList.add(
@@ -781,9 +787,16 @@ open class JdbcTransactionDao(
         transactionId: Uuid,
         budgetId: Uuid,
     ): TransactionEntity? =
-        connection.transactOrThrow {
-            prepareStatement(
-                """
+        dataSource.transactOrThrow {
+            getTransactionOrNull(transactionId, budgetId)
+        }
+
+    override fun Connection.getTransactionOrNull(
+        transactionId: Uuid,
+        budgetId: Uuid,
+    ): TransactionEntity? =
+        prepareStatement(
+            """
                     |select t.description as transaction_description,
                     |       t.timestamp_utc as transaction_timestamp,
                     |       t.cleared_by_transaction_id,
@@ -804,47 +817,46 @@ open class JdbcTransactionDao(
                     |where t.budget_id = ?
                     |  and t.id = ?
                 """.trimMargin(),
-            )
-                .use { selectTransactionAndItems: PreparedStatement ->
-                    var description: String? = null
-                    var timestamp: Instant? = null
-                    var transactionType: String? = null
-                    var clearedById: Uuid? = null
-                    selectTransactionAndItems
-                        .apply {
-                            setUuid(1, budgetId)
-                            setUuid(2, transactionId)
-                        }
-                        .executeQuery()
-                        .use { result: ResultSet ->
-                            val itemList = buildList {
-                                if (result.next()) {
-                                    description = result.getString("transaction_description")
-                                    timestamp = result.getInstant("transaction_timestamp")
-                                    transactionType = TransactionType.valueOf(result.getString("type")).name
-                                    clearedById = result.getUuid("cleared_by_transaction_id")
+        )
+            .use { selectTransactionAndItems: PreparedStatement ->
+                var description: String? = null
+                var timestamp: Instant? = null
+                var transactionType: String? = null
+                var clearedById: Uuid? = null
+                selectTransactionAndItems
+                    .apply {
+                        setUuid(1, budgetId)
+                        setUuid(2, transactionId)
+                    }
+                    .executeQuery()
+                    .use { result: ResultSet ->
+                        val itemList = buildList {
+                            if (result.next()) {
+                                description = result.getString("transaction_description")
+                                timestamp = result.getInstant("transaction_timestamp")
+                                transactionType = TransactionType.valueOf(result.getString("type")).name
+                                clearedById = result.getUuid("cleared_by_transaction_id")
+                                add(result.toTransactionItemEntity(transactionId))
+                                while (result.next()) {
                                     add(result.toTransactionItemEntity(transactionId))
-                                    while (result.next()) {
-                                        add(result.toTransactionItemEntity(transactionId))
-                                    }
                                 }
                             }
-                            return itemList
-                                .takeIf { it.isNotEmpty() }
-                                ?.let { items: List<JdbcTransactionItemEntity> ->
-                                    JdbcTransactionEntity(
-                                        id = transactionId,
-                                        description = description!!,
-                                        timestamp = timestamp!!,
-                                        transactionType = transactionType!!,
-                                        clearedById = clearedById,
-                                        items = items,
-                                        budgetId = budgetId,
-                                    )
-                                }
                         }
-                }
-        }
+                        return itemList
+                            .takeIf { it.isNotEmpty() }
+                            ?.let { items: List<JdbcTransactionItemEntity> ->
+                                JdbcTransactionEntity(
+                                    id = transactionId,
+                                    description = description!!,
+                                    timestamp = timestamp!!,
+                                    transactionType = transactionType!!,
+                                    clearedById = clearedById,
+                                    items = items,
+                                    budgetId = budgetId,
+                                )
+                            }
+                    }
+            }
 
     private fun ResultSet.toTransactionItemEntity(
         transactionId: Uuid,
@@ -877,10 +889,6 @@ open class JdbcTransactionDao(
         transactionItemInsert.setString(parameterIndex + 4, transactionItem.draftStatus)
         transactionItemInsert.setUuid(parameterIndex + 5, budgetId)
         return 6
-    }
-
-    override fun close() {
-        jdbcConnectionProvider.close()
     }
 
 }

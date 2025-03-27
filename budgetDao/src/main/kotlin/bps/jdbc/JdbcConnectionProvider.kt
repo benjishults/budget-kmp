@@ -43,15 +43,16 @@ class JdbcConnectionProvider(
         keepAliveSingleThreadScheduledExecutor
             .apply {
                 scheduleWithFixedDelay(
+                    /* command = */
                     {
-                        if (!connection.isValid(4_000)) {
+                        if (!connection.isValid(4)) {
                             // TODO log this
                             connection = startConnection(user, password)
                         }
                     },
-                    5_000,
-                    20_000,
-                    TimeUnit.SECONDS,
+                    /* initialDelay = */ 5,
+                    /* delay = */ 20,
+                    /* unit = */ TimeUnit.SECONDS,
                 )
             }
     }

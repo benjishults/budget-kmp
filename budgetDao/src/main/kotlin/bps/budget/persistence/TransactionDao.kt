@@ -4,6 +4,7 @@ import bps.budget.model.DraftStatus
 import bps.budget.persistence.AccountDao.AccountCommitableTransactionItem
 import kotlinx.datetime.Instant
 import java.math.BigDecimal
+import java.sql.Connection
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -62,39 +63,17 @@ abstract class TransactionDao {
         timestamp: Instant,
         transactionType: String,
         items: List<TransactionItem>,
-//        clearsId: Uuid? = null,
-//        accountDao: AccountDao,
         saveBalances: Boolean = true,
         budgetId: Uuid,
-        // NOTE when I'm using this accountDao, I don't get the same transactional guarantees that you might wish for.
         accountDao: AccountDao,
     ): TransactionEntity
 
-//    fun commit(
-//        transaction: Transaction,
-//        budgetId: Uuid,
-//        accountDao: AccountDao,
-//        saveBalances: Boolean = true,
-//    ) {
-//    }
-
     /**
-     * Deletes the given transaction and all its items from the DB.
-     *
-     * Recommended usage--if you want balances updated, use the [AccountDao] as follows:
-     *
-     * ```kotlin
-     *         with(accountDao) {
-     *             transactionDao.deleteTransaction(
-     *                 transactionId = transactionId,
-     *                 budgetId = budgeId,
-     *             )
-     *                 .updateBalances(budgetId = budgetId)
-     *        }
-     * ```
+     * Deletes the given transaction and all its items from the DB and uses [accountDao] to
+     * update balances.
      * @throws IllegalStateException if the given transaction has already been cleared.
      * @throws IllegalArgumentException if the transaction doesn't exist.
-     * @return the list of [BalanceToAdd]s that should be applied to correct balances on accounts.
+     * @return the list of [BalanceToAdd]s that were applied to correct balances on accounts.
      */
     // TODO consider options rather than this map:
     //      1. use (Uuid) -> Account rather than map
@@ -103,6 +82,7 @@ abstract class TransactionDao {
     abstract fun deleteTransaction(
         transactionId: Uuid,
         budgetId: Uuid,
+        accountDao: AccountDao,
 //     * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
 //        accountIdToAccountMap: Map<Uuid, Account>,
     ): List<BalanceToAdd>
@@ -178,11 +158,14 @@ abstract class TransactionDao {
 //    ): List<ExtendedTransactionItem<A>> =
 //        emptyList()
 
-    /**
-     *
-     * @param accountIdToAccountMap must contain a mapping from **all** account IDs (including deactivated accounts).
-     */
     abstract fun getTransactionOrNull(
+        transactionId: Uuid,
+        budgetId: Uuid,
+    ): TransactionEntity?
+
+    // NOTE I don't like how this ties the DAO to JDBC
+    //      This breaks the D in SOLID
+    abstract fun Connection.getTransactionOrNull(
         transactionId: Uuid,
         budgetId: Uuid,
     ): TransactionEntity?

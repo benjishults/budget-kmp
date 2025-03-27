@@ -12,15 +12,14 @@ import bps.budget.model.toDraftAccount
 import bps.budget.model.toRealAccount
 import bps.budget.persistence.AccountDao
 import bps.budget.persistence.DataConfigurationException
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
-import bps.jdbc.JdbcFixture.Companion.transact
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -28,10 +27,8 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalUuidApi::class)
 class JdbcCliBudgetDao(
     val budgetName: String,
-    private val connectionProvider: JdbcConnectionProvider,
+    private val dataSource: DataSource,
 ) : CliBudgetDao, JdbcFixture {
-
-    private val connection: Connection = connectionProvider.connection
 
     private data class BudgetDataInfo(
         val generalAccountId: Uuid,
@@ -44,15 +41,15 @@ class JdbcCliBudgetDao(
      * Just loads top-level account info.  Details of transactions are loaded on-demand.
      * @throws DataConfigurationException if data isn't found.
      */
-    override fun load(budgetId: Uuid, userId: Uuid, accountDao: AccountDao): BudgetData =
-        connection.transactOrThrow {
-            try {
-                val (
-                    generalAccountId: Uuid,
-                    timeZone: TimeZone,
-                    analyticsStart: Instant,
-                    budgetName: String,
-                ) =
+    override fun load(budgetId: Uuid, userId: Uuid, accountDao: AccountDao): BudgetData {
+        val (
+            generalAccountId: Uuid,
+            timeZone: TimeZone,
+            analyticsStart: Instant,
+            budgetName: String,
+        ) =
+            dataSource.transactOrThrow {
+                try {
                     prepareStatement(
                         """
                             select b.general_account_id, ba.time_zone, ba.budget_name, ba.analytics_start
@@ -81,93 +78,94 @@ class JdbcCliBudgetDao(
                                         throw DataConfigurationException("Budget data not found for name: $budgetName")
                                 }
                         }
-                // TODO pull out duplicate code in these next three sections
-                val categoryAccountsHolder =
-                    AccountsHolder(
-                        active = accountDao
-                            .getActiveAccounts(
-                                type = AccountType.category.name,
-                                budgetId = budgetId,
-                            )
-                            .map { it.toCategoryAccount()!! },
-                        inactive = accountDao
-                            .getDeactivatedAccounts(
-                                type = AccountType.category.name,
-                                budgetId = budgetId,
-                            )
-                            .map { it.toCategoryAccount()!! },
-                    )
-                val generalAccount: CategoryAccount =
-                    categoryAccountsHolder
-                        .active
-                        .find { it.id == generalAccountId }!!
-                val realAccountsHolder =
-                    AccountsHolder(
-                        active = accountDao
-                            .getActiveAccounts(
-                                type = AccountType.real.name,
-                                budgetId = budgetId,
-                            )
-                            .map { it.toRealAccount()!! },
-                        inactive = accountDao
-                            .getDeactivatedAccounts(AccountType.real.name, budgetId)
-                            .map { it.toRealAccount()!! },
-                    )
-                val chargeAccountsHolder =
-                    AccountsHolder(
-                        active = accountDao
-                            .getActiveAccounts(
-                                type = AccountType.charge.name,
-                                budgetId = budgetId,
-                            )
-                            .map { it.toChargeAccount()!! },
-                        inactive =
-                            accountDao
-                                .getDeactivatedAccounts(AccountType.charge.name, budgetId)
-                                .map { it.toChargeAccount()!! },
-                    )
-                val draftAccountsHolder = AccountsHolder(
-                    active = accountDao.getActiveAccounts(
-                        AccountType.draft.name,
-                        budgetId,
-                    )
-                        .map {
-                            it.toDraftAccount { realId: Uuid ->
-                                realAccountsHolder
-                                    .allAccounts
-                                    .firstOrNull { it.id == realId }
-                            }!!
-                        },
-                    inactive = accountDao.getDeactivatedAccounts(
-                        AccountType.draft.name,
-                        budgetId,
-                    )
-                        .map {
-                            it.toDraftAccount { realId: Uuid ->
-                                realAccountsHolder
-                                    .allAccounts
-                                    .firstOrNull { it.id == realId }
-                            }!!
-                        },
-                )
-                BudgetData(
-                    budgetId,
-                    budgetName,
-                    timeZone,
-                    analyticsStart,
-                    generalAccount,
-                    categoryAccountsHolder,
-                    realAccountsHolder,
-                    chargeAccountsHolder,
-                    draftAccountsHolder,
-                )
-            } catch (ex: Exception) {
-                if (ex is DataConfigurationException) {
-                    throw ex
-                } else
-                    throw DataConfigurationException(ex)
+                } catch (ex: Exception) {
+                    if (ex is DataConfigurationException) {
+                        throw ex
+                    } else
+                        throw DataConfigurationException(ex)
+                }
             }
-        }
+        // TODO pull out duplicate code in these next three sections
+        val categoryAccountsHolder =
+            AccountsHolder(
+                active = accountDao
+                    .getActiveAccounts(
+                        type = AccountType.category.name,
+                        budgetId = budgetId,
+                    )
+                    .map { it.toCategoryAccount()!! },
+                inactive = accountDao
+                    .getDeactivatedAccounts(
+                        type = AccountType.category.name,
+                        budgetId = budgetId,
+                    )
+                    .map { it.toCategoryAccount()!! },
+            )
+        val generalAccount: CategoryAccount =
+            categoryAccountsHolder
+                .active
+                .find { it.id == generalAccountId }!!
+        val realAccountsHolder =
+            AccountsHolder(
+                active = accountDao
+                    .getActiveAccounts(
+                        type = AccountType.real.name,
+                        budgetId = budgetId,
+                    )
+                    .map { it.toRealAccount()!! },
+                inactive = accountDao
+                    .getDeactivatedAccounts(AccountType.real.name, budgetId)
+                    .map { it.toRealAccount()!! },
+            )
+        val chargeAccountsHolder =
+            AccountsHolder(
+                active = accountDao
+                    .getActiveAccounts(
+                        type = AccountType.charge.name,
+                        budgetId = budgetId,
+                    )
+                    .map { it.toChargeAccount()!! },
+                inactive =
+                    accountDao
+                        .getDeactivatedAccounts(AccountType.charge.name, budgetId)
+                        .map { it.toChargeAccount()!! },
+            )
+        val draftAccountsHolder = AccountsHolder(
+            active = accountDao.getActiveAccounts(
+                AccountType.draft.name,
+                budgetId,
+            )
+                .map {
+                    it.toDraftAccount { realId: Uuid ->
+                        realAccountsHolder
+                            .allAccounts
+                            .firstOrNull { it.id == realId }
+                    }!!
+                },
+            inactive = accountDao.getDeactivatedAccounts(
+                AccountType.draft.name,
+                budgetId,
+            )
+                .map {
+                    it.toDraftAccount { realId: Uuid ->
+                        realAccountsHolder
+                            .allAccounts
+                            .firstOrNull { it.id == realId }
+                    }!!
+                },
+        )
+        return BudgetData(
+            budgetId,
+            budgetName,
+            timeZone,
+            analyticsStart,
+            generalAccount,
+            categoryAccountsHolder,
+            realAccountsHolder,
+            chargeAccountsHolder,
+            draftAccountsHolder,
+        )
+    }
 
     /**
      * Must be called within a transaction with manual commits
@@ -241,7 +239,6 @@ class JdbcCliBudgetDao(
 
     override fun close() {
         super.close()
-        connectionProvider.close()
     }
 
 }

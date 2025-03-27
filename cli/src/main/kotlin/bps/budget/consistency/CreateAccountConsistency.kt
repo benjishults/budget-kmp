@@ -17,7 +17,7 @@ fun createCategoryAccountConsistently(
     budgetData: BudgetData,
 ): CategoryAccount? =
     accountDao
-        .createCategoryAccountOrNull(name, description, budgetId = budgetData.id)
+        .createCategoryAccount(name, description, budgetId = budgetData.id)
         .toCategoryAccount()!!
         .also { categoryAccount: CategoryAccount ->
             budgetData.addCategoryAccount(categoryAccount)

@@ -5,7 +5,6 @@ import bps.budget.model.CoarseAccess
 import bps.budget.model.User
 import bps.budget.model.UserBudgetAccess
 import bps.budget.persistence.UserBudgetDao
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import kotlinx.datetime.Instant
@@ -13,18 +12,17 @@ import kotlinx.datetime.TimeZone
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class JdbcUserBudgetDao(
-    val jdbcConnectionProvider: JdbcConnectionProvider,
-) : UserBudgetDao, JdbcFixture, AutoCloseable {
-
-    private val connection: Connection = jdbcConnectionProvider.connection
+    val dataSource: DataSource,
+) : UserBudgetDao, JdbcFixture {
 
     override fun getUserByLoginOrNull(login: String): User? =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                 |select *
@@ -66,7 +64,7 @@ class JdbcUserBudgetDao(
 
     override fun createUser(login: String, password: String, userId: Uuid): Uuid =
         userId.also {
-            connection.transactOrThrow {
+            dataSource.transactOrThrow {
                 prepareStatement("insert into users (login, id) values (?, ?)")
                     .use { statement ->
                         statement.setString(1, login)
@@ -83,7 +81,7 @@ class JdbcUserBudgetDao(
         userId: Uuid,
         budgetId: Uuid,
     ) {
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                     insert into budget_access (id, budget_id, user_id, time_zone, analytics_start, budget_name)
@@ -103,7 +101,7 @@ class JdbcUserBudgetDao(
     }
 
     override fun updateTimeZone(timeZoneId: String, userId: Uuid, budgetId: Uuid): Unit =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                     update budget_access
@@ -122,7 +120,7 @@ class JdbcUserBudgetDao(
         }
 
     override fun updateAnalyticsStart(analyticsStart: Instant, userId: Uuid, budgetId: Uuid): Int =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                     update budget_access
@@ -140,7 +138,7 @@ class JdbcUserBudgetDao(
         }
 
     override fun createBudget(generalAccountId: Uuid, budgetId: Uuid): Uuid =
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement(
                 """
                 insert into budgets (id, general_account_id)
@@ -155,7 +153,7 @@ class JdbcUserBudgetDao(
         }
 
     override fun deleteUser(userId: Uuid) {
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement("delete from budget_access where user_id = ?")
                 .use { statement: PreparedStatement ->
                     statement.setUuid(1, userId)
@@ -174,7 +172,7 @@ class JdbcUserBudgetDao(
 
     override fun deleteUserByLogin(login: String) {
 //        errorStateTracker.catchCommitErrorState {
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             getUserIdByLogin(login)
                 ?.let { userId: Uuid ->
                     prepareStatement("delete from budget_access where user_id = ?")
@@ -207,7 +205,7 @@ class JdbcUserBudgetDao(
             }
 
     override fun deleteBudget(budgetId: Uuid) {
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             prepareStatement("delete from budget_access where budget_id = ?")
                 .use { statement: PreparedStatement ->
                     statement.setUuid(1, budgetId)
@@ -221,10 +219,6 @@ class JdbcUserBudgetDao(
                         throw IllegalStateException("Budget not found: budgetId=$budgetId")
                 }
         }
-    }
-
-    override fun close() {
-        jdbcConnectionProvider.close()
     }
 
 }

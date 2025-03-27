@@ -22,17 +22,23 @@ tasks.named("compileKotlin", org.jetbrains.kotlin.gradle.tasks.KotlinCompilation
 dependencies {
 
     // TODO see how many of these I can get rid of
-    implementation(libs.commons.validator)
     implementation(projects.allShared)
-    runtimeOnly(libs.postgres)
+
     implementation(libs.kotlinx.datetime)
+    implementation(libs.kotlinx.serialization.json.jvm)
+
+    runtimeOnly(libs.postgres)
+
+    implementation(libs.commons.validator)
+
     implementation(libs.jackson.jsr310)
     implementation(libs.jackson.jdk8)
     implementation(libs.jackson.yaml)
     implementation(libs.jackson.kotlin) {
         exclude(group = "org.jetbrains.kotlin")
     }
-    implementation(libs.kotlinx.serialization.json.jvm)
+
+    api(libs.hikari)
 
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)

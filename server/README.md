@@ -16,6 +16,8 @@ jdbc:
   user: budget
   password: budget
 
+hikari:
+
 server:
   port: 8080
 ```

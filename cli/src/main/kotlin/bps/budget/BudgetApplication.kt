@@ -8,10 +8,8 @@ import bps.budget.persistence.TransactionDao
 import bps.budget.persistence.UserBudgetDao
 import bps.budget.persistence.jdbc.JdbcAccountDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
-import bps.jdbc.JdbcConnectionProvider
 import bps.budget.persistence.jdbc.JdbcTransactionDao
 import bps.budget.persistence.jdbc.JdbcUserBudgetDao
-import bps.jdbc.toJdbcConnectionProvider
 import bps.budget.ui.UiFacade
 import bps.console.app.MenuApplicationWithQuit
 import bps.console.io.DefaultInputReader
@@ -19,7 +17,9 @@ import bps.console.io.DefaultOutPrinter
 import bps.console.io.InputReader
 import bps.console.io.OutPrinter
 import bps.console.io.WithIo
+import bps.jdbc.configureDataSource
 import kotlinx.datetime.Clock
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 
 const val recordIncomeLabel = "Record Income"
@@ -53,20 +53,20 @@ class BudgetApplication private constructor(
         inputReader: InputReader = DefaultInputReader,
         outPrinter: OutPrinter = DefaultOutPrinter,
         clock: Clock = Clock.System,
-        jdbcConnectionProvider: JdbcConnectionProvider = configurations.persistence.jdbc!!.toJdbcConnectionProvider(),
+        dataSource: DataSource = configureDataSource(configurations.persistence.jdbc!!, configurations.hikari),
     ) : this(
         uiFacade = uiFacade,
         outPrinter = outPrinter,
         inputReader = inputReader,
         initializingBudgetDao = JdbcInitializingBudgetDao(
             configurations.budget.name,
-            jdbcConnectionProvider,
+            dataSource,
         ),
-        cliBudgetDao = JdbcCliBudgetDao(configurations.budget.name, jdbcConnectionProvider),
-        accountDao = JdbcAccountDao(jdbcConnectionProvider),
-        transactionDao = JdbcTransactionDao(jdbcConnectionProvider),
-        analyticsDao = JdbcAnalyticsDao(jdbcConnectionProvider),
-        userBudgetDao = JdbcUserBudgetDao(jdbcConnectionProvider),
+        cliBudgetDao = JdbcCliBudgetDao(configurations.budget.name, dataSource),
+        accountDao = JdbcAccountDao(dataSource),
+        transactionDao = JdbcTransactionDao(dataSource),
+        analyticsDao = JdbcAnalyticsDao(dataSource),
+        userBudgetDao = JdbcUserBudgetDao(dataSource),
         clock = clock,
         configurations = configurations,
     )

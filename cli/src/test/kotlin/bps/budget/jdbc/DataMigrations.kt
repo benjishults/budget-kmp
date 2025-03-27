@@ -8,10 +8,11 @@ import bps.budget.model.TransactionType
 import bps.config.convertToPath
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
-import bps.jdbc.toJdbcConnectionProvider
+import bps.jdbc.configureDataSource
 import java.math.BigDecimal
 import java.sql.Connection
 import java.sql.ResultSet
+import javax.sql.DataSource
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
@@ -34,10 +35,10 @@ class DataMigrations {
                             convertToPath("~/.config/bps-budget/migrations.yml"),
                         ),
                     )
-                val jdbcConnectionProvider = configurations.persistence.jdbc!!.toJdbcConnectionProvider()
-                val jdbcCliBudgetDao = JdbcInitializingBudgetDao(configurations.budget.name, jdbcConnectionProvider)
+                val dataSource: DataSource = configureDataSource(configurations.persistence.jdbc!!, configurations.hikari)
+                val jdbcCliBudgetDao = JdbcInitializingBudgetDao(configurations.budget.name, dataSource)
                 val migrationType = argsList[typeIndex]
-                with(jdbcCliBudgetDao.connection) {
+                with(jdbcCliBudgetDao.dataSource) {
                     when (migrationType) {
 //                        "customer-fix" -> {
 //                            customerFix(jdbcDao)
@@ -74,7 +75,7 @@ class DataMigrations {
             val details: MutableList<TransactionDetail> = mutableListOf(),
         )
 
-        private fun Connection.addTransactionTypes(jdbcCliBudgetDao: JdbcInitializingBudgetDao) {
+        private fun DataSource.addTransactionTypes(jdbcCliBudgetDao: JdbcInitializingBudgetDao) {
             jdbcCliBudgetDao.use {
                 transactOrThrow {
                     // TODO alter table add nullable id column

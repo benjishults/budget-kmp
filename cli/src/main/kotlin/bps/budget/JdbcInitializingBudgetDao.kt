@@ -1,22 +1,18 @@
 package bps.budget
 
-import bps.jdbc.JdbcConnectionProvider
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
-import java.sql.Connection
 import java.sql.Statement
+import javax.sql.DataSource
 
 // TODO this class is doing too much... could be split up... See how it's done in server.
 class JdbcInitializingBudgetDao(
     val budgetName: String,
-    private val connectionProvider: JdbcConnectionProvider,
+    val dataSource: DataSource,
 ) : InitializingBudgetDao, JdbcFixture {
 
-    final var connection: Connection = connectionProvider.connection
-        private set
-
     override fun prepForFirstLoad() {
-        connection.transactOrThrow {
+        dataSource.transactOrThrow {
             createStatement()
                 .use { createStatement: Statement ->
                     createStatement.executeUpdate(
@@ -148,7 +144,6 @@ create index if not exists lookup_transaction_items_by_account
 
     override fun close() {
         super.close()
-        connectionProvider.close()
     }
 
 }

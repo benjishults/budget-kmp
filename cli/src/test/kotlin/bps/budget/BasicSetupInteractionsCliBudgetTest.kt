@@ -28,7 +28,6 @@ class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
         clearInputsAndOutputsBeforeEach()
         with(noDataJdbcCliBudgetTestFixture) {
             dropAllBeforeEach()
-            closeJdbcAfterSpec()
         }
         "setup basic data through console ui" {
             val uiFunctions = ConsoleUiFacade(inputReader, outPrinter)

@@ -10,13 +10,12 @@ data class JdbcConfig(
     val password: String? = null,
 )
 
-fun JdbcConfig.toJdbcConnectionProvider() =
-    JdbcConnectionProvider(
-        database = database,
-        dbProvider = dbProvider,
-        host = host,
-        port = port,
-        schema = schema,
-        user = user,
-        password = password,
-    )
+data class HikariYamlConfig(
+    val dataSourceClassName: String = "org.postgresql.ds.PGSimpleDataSource",
+    val poolName: String = "postgres",
+    val cachePrepStmts: Boolean = true,
+    val prepStmtCacheSize: Int = 250,
+    val prepStmtCacheSqlLimit: Int = 2048,
+) {
+    val autoCommit: Boolean = false
+}

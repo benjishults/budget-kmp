@@ -14,6 +14,7 @@ androidx-test-junit = "1.2.1"
 bps-console = "5.1.0"
 commons-validator = "1.9.0"
 compose-multiplatform = "1.7.3"
+hikari = "6.3.0"
 jackson = "2.18.2"
 jetbrains-androidx-lifecycle = "2.8.4"
 #jetbrains-navigation-compose = "2.9.0-alpha14" causes a linking bug related to skiko
@@ -48,6 +49,7 @@ androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref
 bps-console = { group = "io.github.benjishults", name = "console", version.ref = "bps-console" }
 bps-console-test = { group = "io.github.benjishults", name = "console-test", version.ref = "bps-console" }
 commons-validator = { group = "commons-validator", name = "commons-validator", version.ref = "commons-validator" }
+hikari = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikari" }
 jackson-jsr310 = { group = "com.fasterxml.jackson.datatype", name = "jackson-datatype-jsr310", version.ref = "jackson" }
 jackson-guava = { group = "com.fasterxml.jackson.datatype", name = "jackson-datatype-guava", version.ref = "jackson" }
 jackson-jdk8 = { group = "com.fasterxml.jackson.datatype", name = "jackson-datatype-jdk8", version.ref = "jackson" }

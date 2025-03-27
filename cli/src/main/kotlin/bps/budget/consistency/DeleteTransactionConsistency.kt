@@ -34,9 +34,9 @@ fun WithIo.deleteTransactionConsistently(
             transactionDao.deleteTransaction(
                 transactionId = transactionItem.transactionId,
                 budgetId = budgetData.id,
+                accountDao,
             )
                 .let { balancesToUpdate: List<AccountDao.AccountCommitableTransactionItem> ->
-                    balancesToUpdate.updateBalances(budgetId = budgetData.id)
                     budgetData.commit(balancesToUpdate)
                 }
         }
