@@ -12,7 +12,7 @@ import kotlin.uuid.Uuid
 class AccountResponse(
     val name: String,
     val id: Uuid,
-    val type: AccountType,
+    val type: String,
     val balance: DecimalWithCents,
     val description: String,
     val budgetId: Uuid,
@@ -20,7 +20,7 @@ class AccountResponse(
 ) {
     init {
         require(
-            (companionId === null) == (type !== AccountType.draft),
+            (companionId === null) == (type !== AccountType.draft.name),
         )
     }
 }
@@ -37,7 +37,7 @@ class AccountsResponse(
 @Serializable
 class AccountRequest(
     val name: String,
-    val type: AccountType,
+    val type: String,
     val balance: DecimalWithCents = DecimalWithCents_ZERO,
     val description: String = "",
     val budgetId: Uuid,
@@ -45,7 +45,7 @@ class AccountRequest(
 ) {
     init {
         require(
-            (companionId === null) == (type !== AccountType.draft),
+            (companionId === null) == (type !== AccountType.draft.name),
         )
     }
 }

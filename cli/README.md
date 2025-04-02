@@ -2,34 +2,9 @@
 
 ## One-Time Setup
 
-### Set up the env for DB
+### PostgreSQL Setup
 
-Set the `BPS_BUDGET_DATA_DIR` environment variable to something like `~/data/bps-budget`
-and make sure that folder exists.
-
-You'll need to have pulled the postgres image from some container registry:
-
-```shell
-docker pull docker.io/postgres:latest
-```
-
-### Start Postgres
-
-Run the script to run Postgres in an OSI container.  (I use podman with docker as an alias to podman but docker
-works fine, too, if you prefer.)
-
-```shell
-./scripts/startDb.sh
-```
-
-### Create DB and users
-
-This will create databases, users, and schemas for both production and testing.
-
-```shell
-psql -U admin -h localhost -f ./scripts/setupDbAsAdmin.sql
-psql -U admin -d budget -h localhost -f ./scripts/setupBudgetSchemasAsAdmin.sql
-```
+See [another README](../budgetDao/README.md) for details.
 
 ### Build the Application
 
@@ -43,8 +18,8 @@ github.actor=<your github login>
 github.token=<token with packages:read>
 ```
 
-Alternatively, you can set the environment variables `GITHUB_ACTOR` and `GITHUB_TOKEN`. The latter is nice for the
-CI while the former is nice for your IDE.
+Alternatively, you can set the environment variables `GITHUB_ACTOR` and `GITHUB_TOKEN`. Using env variables is
+nice for the CI while using properties is nice for your IDE.
 
 Then build the application with
 
@@ -68,7 +43,6 @@ persistence:
         schema: budget
         user: budget
         password: budget
-
 budget:
     name: Budget # give your budget a custom name if you want
 budgetUser:
@@ -133,34 +107,8 @@ psql -U budget -h 127.0.0.1 -d budget
 
 When I need to do a data migration, I whip that up here: `bps.budget.persistence.migration.DataMigrations`.
 
+Application logs should be stored in `${user.home}/.local/share/bps-budget/logs`.
+
 ## CI Docker Image
 
-See [Dockerfile](ci/Dockerfile).
-
-Everything you need to know should be in
-the [GitHub action that builds and publishes the image](.github/workflows/publish-test-db-container.yml) (builds and
-publishes the image) and
-the [GitHub action that runs tests](.github/workflows/test.yml) (runs the container).
-
-To test manually, create the image:
-
-```shell
-cd ci
-docker build -t pg-test .
-```
-
-Test it with this
-
-```shell
-docker run -e POSTGRES_PASSWORD=test -e POSTGRES_USER=test -e POSTGRES_DB=budget --rm --name pg-test -p 5432:5432 -d pg-test:latest
-```
-
-and connect to it to ensure that the `test:test` user has access to two schemas: `test` and `clean_after_test`.
-
-You can look at logs with
-
-```shell
-docker logs pg-test
-```
-
-The image is published by the [publish-test-db-container.yml](.github/workflows/publish-test-db-container.yml) action.
+See [another README](../ci/postgresql/README.md).

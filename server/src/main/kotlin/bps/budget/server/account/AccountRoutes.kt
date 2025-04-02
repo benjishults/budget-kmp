@@ -33,12 +33,12 @@ fun Routing.accountRoutes(accountDao: AccountDao) {
                     }
                 }
                 ?: emptyList()
-        val budgetId = call.pathParameters["budgetId"]
-        if (budgetId === null)
+        val budgetIdString: String? = call.pathParameters["budgetId"]
+        if (budgetIdString === null)
             call.respond(HttpStatusCode.BadRequest)
         else {
             returnAccounts(
-                budgetId = Uuid.parse(budgetId),
+                budgetId = Uuid.parse(budgetIdString),
                 accountDao = accountDao,
                 types = types,
             )

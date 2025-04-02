@@ -57,7 +57,7 @@ interface JdbcFixture {
         getObject(name, UUID::class.java)
             ?.toKotlinUuid()
 
-    fun PreparedStatement.setUuid(parameterIndex: Int, uuid: Uuid) =
+    fun PreparedStatement.setUuid(parameterIndex: Int, uuid: Uuid): Unit =
         setObject(parameterIndex, uuid, Types.OTHER)
 
     companion object : JdbcFixture {

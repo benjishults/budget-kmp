@@ -37,8 +37,11 @@ dependencies {
     implementation(libs.jackson.kotlin) {
         exclude(group = "org.jetbrains.kotlin")
     }
+    implementation(libs.logback)
 
-    api(libs.hikari)
+    api(libs.hikari) {
+        exclude(group = "org.slf4j", module = "slf4j-api")
+    }
 
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)

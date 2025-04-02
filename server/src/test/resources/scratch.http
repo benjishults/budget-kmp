@@ -1,43 +1,43 @@
 ### GET request to example server
-GET http://0.0.0.0:8085/
+GET http://localhost:8085/
 
 ###
 
-GET http://0.0.0.0:8085/content/sample.html
+GET http://localhost:8085/content/sample.html
 
 ###
 
-GET http://0.0.0.0:8085/test
+GET http://localhost:8085/test
 
 ###
 
-GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts
 Accept: application/json
 
 ###
 
-GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real
 Accept: application/json
 
 ###
 
-GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=category
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=category
 Accept: application/json
 
 ###
 
-GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real&type=category
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real&type=category
 Accept: application/json
 
 ###
 
-GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real,category
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts?type=real,category
 Accept: application/json
 # expect failure
 
 ###
 
-GET http://0.0.0.0:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts/ff0d2b4e-064b-40b6-86a3-bb1f3e4a7025?
+GET http://localhost:8085/budgets/bffc0cec-a00e-41dc-9325-09e768a08e43/accounts/ff0d2b4e-064b-40b6-86a3-bb1f3e4a7025
 Accept: application/json
 
 ###

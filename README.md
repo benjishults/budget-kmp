@@ -1,5 +1,19 @@
 # budget-kmp
 
+## Run server application from a docker container
+
+First, copy the server executable jar into the folder containing to docker file for the server:
+
+```shell
+./gradlew copyServerShadowJarToDockerFolder
+```
+
+Then create the OCI container:
+
+```shell
+docker build . --tag ghcr.io/benjishults/budget-server:latest
+```
+
 ## Run
 
 ## Learnings about KMP
@@ -9,9 +23,9 @@ This repository is, at this point, my experiments for learning about KMP.
 The first things I'll probably do are
 
 1. experiment with a local server reached via applications running on another machine
-   1. build a server and run it on a machine on my network
-   2. build a simple Android or Web app just to test whether I can access
-      server from another device on the same network
+    1. build a server and run it on a machine on my network
+    2. build a simple Android or Web app just to test whether I can access
+       server from another device on the same network
 2. get me existing CLI application to build as a multi-platform target
 
 Longer term ideas:
@@ -33,14 +47,14 @@ automatically be a part of every target under composeApp. I don't want the CLI t
 
 Or, I could
 [do this](https://kotlinlang.org/docs/multiplatform-advanced-project-structure.html#declaring-custom-source-sets)
-to give myself a source set that is shared only among the GUI targets.  But, since CLI
+to give myself a source set that is shared only among the GUI targets. But, since CLI
 won't be a compose app, I feel like moving it to server makes more sense.
 
 > Or, I might just make CLI its own top-level module parallel to server and commonApp.
 > Looks like this is the only option since it doesn't seem to allow multiple jvm targets in the same multi-platform
 > project???
 
-I can use a source set under shared for common JVM code.  See
+I can use a source set under shared for common JVM code. See
 [here](https://kotlinlang.org/docs/multiplatform-add-dependencies.html#dependency-on-another-multiplatform-project).
 
 But, let's make sure basic things build before we mess around with the structure too much.
@@ -73,7 +87,7 @@ But, let's make sure basic things build before we mess around with the structure
 > If you need to access platform-specific APIs from a shared native source set, IntelliJ IDEA will help you detect
 > common declarations that you can use in the shared native code.
 
-Not sure if that means I can't have two JVM targets in the same module?  I'm interpreting it to mean that two JVM
+Not sure if that means I can't have two JVM targets in the same module? I'm interpreting it to mean that two JVM
 targets in the same module cannot share another source set in the same module?
 
 I think I should be able to use libraries in `shared` to solve this kind of problem.
