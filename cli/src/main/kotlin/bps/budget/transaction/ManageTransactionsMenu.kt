@@ -50,6 +50,8 @@ fun WithIo.manageTransactions(
                 budgetData = budgetData,
                 extraItems = listOf(
                     item({ "Delete a transaction" }, "d") {
+                        (it.current() as TransactionListMenu<*>).popContext()
+
                         menuSession.push(
                             TransactionListMenu(
                                 header = { "Choose a transaction to DELETE" },
@@ -62,7 +64,8 @@ fun WithIo.manageTransactions(
                                 timeZone = budgetData.timeZone,
                                 outPrinter = outPrinter,
                                 budgetData = budgetData,
-                            ) { _: MenuSession, extendedTransactionItem: AccountTransactionEntity ->
+                            ) { menuSession: MenuSession, extendedTransactionItem: AccountTransactionEntity ->
+                                (menuSession.current() as TransactionListMenu<*>).popContext()
                                 deleteTransactionConsistently(
                                     extendedTransactionItem,
                                     transactionDao,

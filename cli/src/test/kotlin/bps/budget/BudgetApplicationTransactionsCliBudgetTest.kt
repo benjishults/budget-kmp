@@ -575,10 +575,10 @@ Medical          |     200.00 |
                         """
                         |Choose a transaction to DELETE
                         |    Time Stamp          | Amount     | Balance    | Description
-                        | 1. 2024-08-08 19:00:05 |    -200.00 |       0.00 | allowance into 'Necessities'
-                        | 2. 2024-08-08 19:00:04 |    -300.00 |     200.00 | allowance into 'Food'
-                        | 3. 2024-08-08 19:00:02 |     200.00 |     500.00 | income into 'Wallet'
-                        | 4. 2024-08-08 19:00:01 |   5,000.00 |     300.00 | income into 'Checking'
+                        | 1. 2024-08-08 19:00:05 |    -200.00 |   4,700.00 | allowance into 'Necessities'
+                        | 2. 2024-08-08 19:00:04 |    -300.00 |   4,900.00 | allowance into 'Food'
+                        | 3. 2024-08-08 19:00:02 |     200.00 |   5,200.00 | income into 'Wallet'
+                        | 4. 2024-08-08 19:00:01 |   5,000.00 |   5,000.00 | income into 'Checking'
                         | 5. Back (b)
                         | 6. Quit (q)
                         |""".trimMargin(),
@@ -586,10 +586,10 @@ Medical          |     200.00 |
                         """
                             |'General' Account Transactions
                             |    Time Stamp          | Amount     | Balance    | Description
-                            | 1. 2024-08-08 19:00:05 |    -200.00 |       0.00 | allowance into 'Necessities'
-                            | 2. 2024-08-08 19:00:04 |    -300.00 |     200.00 | allowance into 'Food'
-                            | 3. 2024-08-08 19:00:02 |     200.00 |     500.00 | income into 'Wallet'
-                            | 4. 2024-08-08 19:00:01 |   5,000.00 |     300.00 | income into 'Checking'
+                            | 1. 2024-08-08 19:00:05 |    -200.00 |   4,700.00 | allowance into 'Necessities'
+                            | 2. 2024-08-08 19:00:04 |    -300.00 |   4,900.00 | allowance into 'Food'
+                            | 3. 2024-08-08 19:00:02 |     200.00 |   5,200.00 | income into 'Wallet'
+                            | 4. 2024-08-08 19:00:01 |   5,000.00 |   5,000.00 | income into 'Checking'
                             | 5. Delete a transaction (d)
                             | 6. Back (b)
                             | 7. Quit (q)
