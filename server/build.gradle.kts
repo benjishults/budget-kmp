@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.ktor)
     application
     alias(libs.plugins.serialization)
+    id("com.gradleup.shadow") version "8.3.6"
 }
 
 group = "bps.budget"
@@ -30,6 +31,8 @@ dependencies {
     implementation(libs.ktor.serialization.kotlinx.json)
 
     testImplementation(libs.ktor.server.test.host)
+    testImplementation(libs.ktor.client.core)
+    testImplementation(libs.ktor.client.content.negotiation)
 //    testImplementation(libs.kotlin.test.junit)
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)

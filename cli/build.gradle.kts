@@ -16,7 +16,7 @@ application {
 val classPathDirectory =
     file(
         System
-            .getenv("BPS_BUDGET_CLASSPATH")
+            .getenv("BPS_BUDGET_CLI_CLASSPATH")
             ?: Paths.get(
                 System.getProperty("user.home"),
                 ".local",
@@ -70,7 +70,9 @@ dependencies {
     //   https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#argon2id
 //    implementation("de.mkammerer:argon2-jvm:2.11")
     implementation(projects.budgetDao)
-    implementation(projects.konfiguration)
+    implementation(projects.konfiguration) {
+        exclude(group = "slf4j.org", module = "slf4j-api")
+    }
     implementation(projects.allShared)
     implementation(libs.commons.validator)
     implementation(libs.bps.console)
@@ -84,6 +86,7 @@ dependencies {
     implementation(libs.jackson.kotlin) {
         exclude(group = "org.jetbrains.kotlin")
     }
+    implementation(libs.logback)
 
 //    testImplementation(libs.junit.bom)
     testImplementation(projects.budgetDaoTest)

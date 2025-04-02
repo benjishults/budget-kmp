@@ -28,7 +28,7 @@ fun main() {
         BudgetServerConfigurations(
             sequenceOf(
                 "budget-server.yml",
-                convertToPath("~/.config/bps-budget-server/budget-server.yml"),
+                convertToPath(System.getenv("BPS_BUDGET_SERVER_CONFIG") ?: "~/.config/bps-budget-server/budget-server.yml"),
             ),
         )
     val dataSource = configureDataSource(configurations.jdbc, configurations.hikari)

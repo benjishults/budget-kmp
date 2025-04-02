@@ -1,4 +1,4 @@
-name: Build Safety Gate
+name: Test CLI Budget Program
 
 on:
   workflow_dispatch:

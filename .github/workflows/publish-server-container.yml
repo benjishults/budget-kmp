@@ -1,4 +1,4 @@
-name: publish-budget-test-db-container.yml
+name: publish-budget-server-container.yml
 on:
   - workflow_dispatch
 
@@ -18,7 +18,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and Push Container
         run: |
-          cd ci/postgresql
-          docker build . --tag ghcr.io/benjishults/postgres-test:latest
+          cd ci/server
+          docker build . --tag ghcr.io/benjishults/budget-server:latest
           #          docker run ghcr.io/benjishults/postgres-test:latest
-          docker push ghcr.io/benjishults/postgres-test:latest
+          docker push ghcr.io/benjishults/budget-server:latest

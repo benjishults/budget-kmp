@@ -21,7 +21,7 @@ fun AccountEntity.toResponse(): AccountResponse =
             AccountResponse(
                 name = name,
                 id = id,
-                type = AccountType.valueOf(type),
+                type = type,
                 balance = DecimalWithCents(balance.toPlainString()),
                 description = description,
                 budgetId = budgetId,
@@ -31,7 +31,7 @@ fun AccountEntity.toResponse(): AccountResponse =
             AccountResponse(
                 name,
                 id,
-                AccountType.valueOf(type),
+                type,
                 DecimalWithCents(balance.toPlainString()),
                 description,
                 budgetId,
