@@ -14,7 +14,6 @@ application {
 }
 
 dependencies {
-    // TODO seems a waste to pull in all this UI code when all I really need is to share the server port.
     implementation(projects.shared)
     implementation(projects.budgetDao)
     implementation(projects.allShared)
@@ -34,6 +33,7 @@ dependencies {
     testImplementation(libs.ktor.client.core)
     testImplementation(libs.ktor.client.content.negotiation)
 //    testImplementation(libs.kotlin.test.junit)
+//    testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk.jvm)
     testImplementation(libs.kotest.junit5)
     testImplementation(libs.kotest.assertions.core)

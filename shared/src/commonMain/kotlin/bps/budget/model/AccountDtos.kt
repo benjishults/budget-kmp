@@ -20,7 +20,7 @@ class AccountResponse(
 ) {
     init {
         require(
-            (companionId === null) == (type !== AccountType.draft.name),
+            (companionId === null) == (type != AccountType.draft.name),
         )
     }
 }
