@@ -29,8 +29,9 @@ create table if not exists users
 
 create table if not exists budgets
 (
-    id                 uuid not null primary key,
-    general_account_id uuid not null unique
+    -- there will be an account, a, with this a.budget_id=id, a.type='category', and a.name=general_account_name
+    id                   uuid        not null primary key,
+    general_account_name varchar(50) not null default 'General'
 );
 
 create table if not exists budget_access
@@ -121,8 +122,8 @@ insert into users (id, login)
 VALUES ('d9073256-0c5e-472e-bf3b-41ed1c1e5c35', 'fake@fake.com');
 
 -- create budget
-insert into budgets (id, general_account_id)
-values ('ccac6f53-04f3-4da5-a2ea-de39c6843e47', '1d5221d6-acb3-4377-8fa1-bc3289fa75ca');
+insert into budgets (id, general_account_name)
+values ('ccac6f53-04f3-4da5-a2ea-de39c6843e47', 'General');
 
 insert into budget_access (id, user_id, budget_id, budget_name, time_zone, coarse_access)
 VALUES ('a11a93df-6110-430e-ba76-08c1da364530', 'd9073256-0c5e-472e-bf3b-41ed1c1e5c35',
@@ -285,20 +286,6 @@ VALUES ('7db502f8-d633-4dd4-a890-f8c1257ede79', 'allocate', -100, '1d5221d6-acb3
         'ccac6f53-04f3-4da5-a2ea-de39c6843e47'),
        ('7db502f8-d633-4dd4-a890-f8c1257ede79', 'allocate to necessities', 50, '0aa01c8e-9944-45de-866b-388261010045',
         null, 'ccac6f53-04f3-4da5-a2ea-de39c6843e47');
-update category_accounts
-set balance = category_accounts.balance - 100
-where id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca';
-update category_accounts
-set balance = category_accounts.balance + 50
-where id = 'bea7965c-6f6a-4c80-ad3f-b9c1367664c0';
-update category_accounts
-set balance = category_accounts.balance + 50
-where id = '0aa01c8e-9944-45de-866b-388261010045';
-
-select *
-from category_accounts c
-         join budgets b on c.budget_id = b.id and c.id = b.general_account_id
-where b.id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47';
 
 select *
 from transaction_items as item
@@ -307,16 +294,6 @@ from transaction_items as item
 -- invariants:
 --   for each transaction:
 --      sum of category and draft amounts == sum of real amounts
-
-select id
-from transactions
-         join transaction_items ti
-              on transactions.id = ti.transaction_id
-                  and ti.budget_id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47'
-                  and transactions.budget_id = 'ccac6f53-04f3-4da5-a2ea-de39c6843e47'
-where ti.category_account_id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca'
-order by transactions.timestamp_utc desc
-limit 30;
 
 select *
 from transaction_items;

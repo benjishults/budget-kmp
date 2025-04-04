@@ -23,6 +23,8 @@ dependencies {
     // TODO see how many of these I can get rid of
     implementation(projects.allShared)
     implementation(projects.budgetDao)
+    implementation(projects.konfiguration)
+    implementation(libs.konf)
     implementation(libs.commons.validator)
     runtimeOnly(libs.postgres)
     implementation(libs.kotlinx.datetime)

@@ -1,7 +1,6 @@
 package bps.budget
 
 import bps.budget.jdbc.test.BasicAccountsJdbcCliBudgetTestFixture
-import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.defaultCheckingAccountName
 import bps.budget.model.defaultFoodAccountName
@@ -10,6 +9,9 @@ import bps.budget.model.defaultNecessitiesAccountName
 import bps.budget.model.defaultWalletAccountName
 import bps.budget.ui.ConsoleUiFacade
 import bps.console.ComplexConsoleIoTestFixture
+import bps.jdbc.HikariYamlConfig
+import bps.jdbc.JdbcConfig
+import bps.jdbc.getConfigFromResource
 import bps.kotlin.test.WithMockClock
 import io.kotest.assertions.asClue
 import io.kotest.core.spec.style.FreeSpec
@@ -28,13 +30,24 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
     ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
 //    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
 
-    val budgetConfigurations: BudgetConfigurations = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
+    val jdbcConfig: JdbcConfig
+    val hikariConfig: HikariYamlConfig
 
+    init {
+        getConfigFromResource("hasBasicAccountsJdbc.yml")
+            .also {
+                jdbcConfig = it.first
+                hikariConfig = it.second
+            }
+    }
+
+    val budgetName: String = "${this::class.simpleName!!.substring(0, 22)}-${Uuid.random()}"
+    val userName: String = "$budgetName@example.com"
     val basicAccountsJdbcCliBudgetTestFixture: BasicAccountsJdbcCliBudgetTestFixture =
         BasicAccountsJdbcCliBudgetTestFixture(
-            budgetConfigurations.persistence.jdbc!!,
-            budgetConfigurations.budget.name,
-            budgetConfigurations.user.defaultLogin,
+            jdbcConfig,
+            budgetName,
+            userName,
         )
 
     init {
@@ -43,34 +56,33 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
 
         val clock = produceSecondTickingClock(Instant.parse("2024-08-08T23:59:59.500Z"))
 
-        val budgetId: Uuid = Uuid.parse("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
-        val userId = Uuid.parse("f0f209c8-1b1e-43b3-8799-2dba58524d02")
-
         clearInputsAndOutputsBeforeEach()
         with(basicAccountsJdbcCliBudgetTestFixture) {
             val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, dataSource)
             createBasicAccountsBeforeSpec(
-                budgetId = budgetId,
                 budgetName = budgetName,
-                authenticatedUser = AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin),
+                userName = userName,
                 timeZone = TimeZone.of("America/Chicago"),
                 clock = clock,
             ) {
-                initializingBudgetDao.prepForFirstLoad()
+                initializingBudgetDao.ensureTablesAndIndexes()
             }
-            resetBalancesAndTransactionAfterSpec(budgetId)
+            cleanUpEverythingAfterSpec(userName)
         }
         stopApplicationAfterSpec()
 
-        val uiFunctions = ConsoleUiFacade(inputReader, outPrinter)
-
         "run application with data from DB" - {
             val application = BudgetApplication(
-                uiFunctions,
-                budgetConfigurations,
-                inputReader,
-                outPrinter,
-                clock,
+                uiFacade = ConsoleUiFacade(inputReader, outPrinter),
+                budgetName = budgetName,
+                userConfiguration = UserConfiguration(
+                    defaultLogin = userName,
+                ),
+                jdbcConfig = jdbcConfig,
+                hikari = hikariConfig,
+                inputReader = inputReader,
+                outPrinter = outPrinter,
+                clock = clock,
             )
             startApplicationForTesting(application.menuApplicationWithQuit)
             "record income" {
@@ -170,7 +182,7 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
                     budgetData.generalAccount.balance shouldBe BigDecimal(5200).setScale(2)
                     budgetData.categoryAccounts.size shouldBe 14
                 }
-                application.cliBudgetDao.load(application.budgetData.id, userId, application.accountDao)
+                application.cliBudgetDao.load(application.budgetData.name, userName, application.accountDao)
                     .asClue { budgetData: BudgetData ->
                         budgetData.categoryAccounts shouldContain budgetData.generalAccount
                         budgetData.generalAccount.balance shouldBe BigDecimal(5200).setScale(2)
@@ -2482,4 +2494,3 @@ Transfer recorded
         }
     }
 }
-

@@ -11,7 +11,7 @@ class JdbcInitializingBudgetDao(
     val dataSource: DataSource,
 ) : InitializingBudgetDao, JdbcFixture {
 
-    override fun prepForFirstLoad() {
+    override fun ensureTablesAndIndexes() {
         dataSource.transactOrThrow {
             createStatement()
                 .use { createStatement: Statement ->
@@ -28,8 +28,8 @@ create table if not exists users
                         """
 create table if not exists budgets
 (
-    id                 uuid not null primary key,
-    general_account_id uuid not null unique
+    id                   uuid        not null primary key,
+    general_account_name varchar(50) not null default 'General'
 )
                     """.trimIndent(),
                     )

@@ -1,6 +1,7 @@
 package bps.budget.persistence
 
 import bps.budget.model.AccountType
+import bps.budget.model.defaultGeneralAccountName
 import java.math.BigDecimal
 import java.sql.Connection
 import kotlin.uuid.ExperimentalUuidApi
@@ -121,6 +122,12 @@ interface AccountDao {
 
     fun createGeneralAccountWithId(
         id: Uuid,
+        balance: BigDecimal = BigDecimal.ZERO.setScale(2),
+        budgetId: Uuid,
+    ): AccountEntity
+
+    fun createGeneralAccount(
+        name: String = defaultGeneralAccountName,
         balance: BigDecimal = BigDecimal.ZERO.setScale(2),
         budgetId: Uuid,
     ): AccountEntity

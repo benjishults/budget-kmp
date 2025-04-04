@@ -1,10 +1,12 @@
 package bps.budget.jdbc
 
-import bps.budget.BudgetConfigurations
 import bps.budget.jdbc.test.JdbcCliBudgetTestFixture
 import bps.budget.jdbc.test.dropTables
+import bps.jdbc.HikariYamlConfig
+import bps.jdbc.JdbcConfig
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
+import bps.jdbc.getConfigFromResource
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldStartWith
@@ -12,14 +14,29 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import java.sql.Timestamp
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class TimeZoneCliBudgetTest : FreeSpec(),
     JdbcFixture {
 
+    val jdbcConfig: JdbcConfig
+    val hikariConfig: HikariYamlConfig
+
     init {
-        val budgetConfigurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
+        getConfigFromResource("noDataJdbc.yml")
+            .also {
+                jdbcConfig = it.first
+                hikariConfig = it.second
+            }
+    }
+
+    val budgetName: String = "${this::class.simpleName!!}-${Uuid.random()}"
+
+    init {
         val jdbcCliBudgetTestFixture =
-            JdbcCliBudgetTestFixture(budgetConfigurations.persistence.jdbc!!, budgetConfigurations.budget.name)
+            JdbcCliBudgetTestFixture(jdbcConfig, budgetName)
         with(jdbcCliBudgetTestFixture) {
             beforeSpec {
                 dropTables(dataSource, jdbcConfig.schema)

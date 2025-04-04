@@ -3,7 +3,7 @@ package bps.jdbc
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 
-fun configureDataSource(jdbc: JdbcConfig, hikari: HikariYamlConfig): HikariDataSource {
+fun configureDataSource(jdbc: JdbcConfig, hikari: HikariYamlConfig = HikariYamlConfig()): HikariDataSource {
     val hikariConfig = HikariConfig()
     hikariConfig.dataSourceClassName = hikari.dataSourceClassName
     hikariConfig.username = jdbc.user

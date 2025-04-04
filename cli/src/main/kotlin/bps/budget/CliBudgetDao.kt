@@ -3,7 +3,6 @@ package bps.budget
 import bps.budget.model.BudgetData
 import bps.budget.persistence.AccountDao
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 interface CliBudgetDao : AutoCloseable {
@@ -13,7 +12,7 @@ interface CliBudgetDao : AutoCloseable {
      * @throws bps.budget.persistence.DataConfigurationException if data isn't found.
      * @throws NotImplementedError unless overridden
      */
-    fun load(budgetId: Uuid, userId: Uuid, accountDao: AccountDao): BudgetData = TODO()
+    fun load(budgetName: String, userName: String, accountDao: AccountDao): BudgetData = TODO()
 
     /**
      * Ensures that resources held by the DAO are released.

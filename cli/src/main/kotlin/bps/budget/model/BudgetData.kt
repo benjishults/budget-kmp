@@ -170,7 +170,6 @@ class BudgetData(
             timeZone: TimeZone = TimeZone.Companion.currentSystemDefault(),
             checkingBalance: BigDecimal = BigDecimal.ZERO.setScale(2),
             walletBalance: BigDecimal = BigDecimal.ZERO.setScale(2),
-            generalAccountId: Uuid = Uuid.random(),
             budgetId: Uuid = Uuid.random(),
             accountDao: AccountDao,
         ): BudgetData {
@@ -182,8 +181,7 @@ class BudgetData(
                     budgetId = budgetId,
                 )
             val generalAccount =
-                accountDao.createGeneralAccountWithId(
-                    id = generalAccountId,
+                accountDao.createGeneralAccount(
                     balance = checkingBalance + walletBalance,
                     budgetId = budgetId,
                 )
