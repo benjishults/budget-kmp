@@ -4,7 +4,9 @@ import bps.budget.jdbc.test.NoDataJdbcCliBudgetTestFixture
 import bps.budget.model.BudgetData
 import bps.budget.ui.ConsoleUiFacade
 import bps.console.SimpleConsoleIoTestFixture
+import bps.jdbc.HikariYamlConfig
 import bps.jdbc.JdbcConfig
+import bps.jdbc.getConfigFromResource
 import io.kotest.assertions.asClue
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.collections.shouldContain
@@ -13,14 +15,27 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import kotlinx.datetime.TimeZone
 import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 @OptIn(ExperimentalUuidApi::class)
 class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
     SimpleConsoleIoTestFixture {
 
-    val budgetConfigurations = BudgetConfigurations(sequenceOf("noDataJdbc.yml"))
-    val jdbcConfig: JdbcConfig = budgetConfigurations.persistence.jdbc!!
-    val noDataJdbcCliBudgetTestFixture = NoDataJdbcCliBudgetTestFixture(jdbcConfig, budgetConfigurations.budget.name)
+    val jdbcConfig: JdbcConfig
+    val hikariConfig: HikariYamlConfig
+
+    init {
+        getConfigFromResource("noDataJdbc.yml")
+            .also {
+                jdbcConfig = it.first
+                hikariConfig = it.second
+            }
+    }
+
+    val budgetName: String = "${this::class.simpleName!!.substring(0, 22)}-${Uuid.random()}"
+    val userName: String = "$budgetName@example.com"
+    val noDataJdbcCliBudgetTestFixture: NoDataJdbcCliBudgetTestFixture =
+        NoDataJdbcCliBudgetTestFixture(jdbcConfig, budgetName)
     override val inputs: MutableList<String> = mutableListOf()
     override val outputs: MutableList<String> = mutableListOf()
 
@@ -36,7 +51,12 @@ class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
             )
             BudgetApplication(
                 uiFunctions,
-                budgetConfigurations,
+                budgetName,
+                userConfiguration = UserConfiguration(
+                    defaultLogin = userName,
+                ),
+                jdbcConfig,
+                hikariConfig,
                 inputReader,
                 outPrinter,
             )
@@ -47,8 +67,8 @@ class BasicSetupInteractionsCliBudgetTest : FreeSpec(),
                         budgetData.categoryAccounts.size shouldBe 14
                     }
                     application.cliBudgetDao.load(
-                        application.budgetData.id,
-                        application.authenticatedUser.id,
+                        budgetName,
+                        userName,
                         application.accountDao,
                     )
                         .asClue { budgetData: BudgetData ->

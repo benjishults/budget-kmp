@@ -23,7 +23,7 @@ fun loadOrBuildBudgetData(
     clock: Clock,
 ): BudgetData =
     try {
-        loadBudgetData(initializingBudgetDao, cliBudgetDao,accountDao, authenticatedUser, budgetName)
+        loadBudgetData(initializingBudgetDao, cliBudgetDao, accountDao, authenticatedUser.login, budgetName)
     } catch (ex: Exception) {
         when (ex) {
             is DataConfigurationException, is NoSuchElementException -> {
@@ -38,18 +38,15 @@ fun loadBudgetData(
     initializingBudgetDao: InitializingBudgetDao,
     cliBudgetDao: CliBudgetDao,
     accountDao: AccountDao,
-    authenticatedUser: AuthenticatedUser,
+    userName: String,
     budgetName: String,
 ): BudgetData =
     with(initializingBudgetDao) {
         // FIXME this should have already been called, no?
-        prepForFirstLoad()
+        ensureTablesAndIndexes()
         cliBudgetDao.load(
-            authenticatedUser
-                .access
-                .first { it.budgetName == budgetName }
-                .budgetId,
-            authenticatedUser.id,
+            budgetName,
+            userName,
             accountDao,
         )
     }

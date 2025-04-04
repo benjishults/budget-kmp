@@ -45,7 +45,7 @@ fun dropTables(dataSource: DataSource, schema: String) {
 
 fun deleteAccounts(budgetId: Uuid, dataSource: DataSource): Int =
     with(JdbcFixture) {
-        cleanupTransactions(budgetId, dataSource)
+        deleteTransactions(budgetId, dataSource)
         dataSource.transactOrThrow {
             prepareStatement("delete from account_active_periods where budget_id = ?")
                 .use {
@@ -60,7 +60,47 @@ fun deleteAccounts(budgetId: Uuid, dataSource: DataSource): Int =
         }
     }
 
-fun cleanupTransactions(budgetId: Uuid, dataSource: DataSource): Int =
+fun deleteUser(userName: String, dataSource: DataSource): Unit =
+    with(JdbcFixture) {
+        dataSource.transactOrThrow {
+            val listOfUserBudgets: List<Uuid> =
+                buildList {
+                    prepareStatement(
+                        """
+                        |select * from budget_access ba
+                        |join users u on u.id = ba.user_id
+                        |where u.login = ?
+                        """
+                            .trimMargin(),
+                    )
+                        .use {
+                            it.setString(1, userName)
+                            it.executeQuery()
+                                .use {
+                                    while (it.next()) {
+                                        add(it.getUuid("budget_id")!!)
+                                    }
+                                }
+                        }
+                }
+            listOfUserBudgets
+                .forEach { budgetId ->
+                    deleteAccounts(budgetId, dataSource)
+                    prepareStatement("delete from budget_access where budget_id = ?")
+                        .use {
+                            it.setUuid(1, budgetId)
+                            it.executeUpdate()
+                        }
+                }
+            prepareStatement("delete from users where login = ?")
+                .use {
+                    it.setString(1, userName)
+                    it.executeUpdate()
+                }
+        }
+    }
+
+fun deleteTransactions(budgetId: Uuid, dataSource: DataSource): Int =
     with(JdbcFixture) {
         dataSource.transactOrThrow {
             zeroBalance(budgetId)

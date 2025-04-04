@@ -1,6 +1,5 @@
 package bps.budget.jdbc.test
 
-import bps.budget.model.AuthenticatedUser
 import bps.budget.persistence.AccountDao
 import bps.jdbc.JdbcConfig
 import bps.time.atStartOfMonth
@@ -24,77 +23,60 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
     /**
      * Ensure that basic accounts are in place with zero balances in the DB before the test starts and deletes
      * transactions once the test is done.
+     * @return the budgetId
      */
     fun Spec.createBasicAccountsBeforeSpec(
-        budgetId: Uuid,
         budgetName: String,
-        authenticatedUser: AuthenticatedUser,
+        userName: String,
         timeZone: TimeZone,
         clock: Clock,
         initializeDb: () -> Unit = {},
     ) {
         beforeSpec {
             initializeDb()
-            try {
-                deleteAccounts(budgetId, dataSource)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            try {
-                userBudgetDao.deleteBudget(budgetId)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            try {
-                userBudgetDao.deleteUser(authenticatedUser.id)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            try {
-                userBudgetDao.deleteUserByLogin(authenticatedUser.login)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            upsertBasicAccounts(
+            initializeWithBasicAccounts(
                 budgetName,
+                userName,
                 timeZone = timeZone,
-                authenticatedUser = authenticatedUser,
-                budgetId = budgetId,
                 clock = clock,
             )
         }
     }
 
-    fun Spec.resetAfterEach(budgetId: AtomicReference<Uuid?>) {
+    fun Spec.cleanUpTransactionsAfterEach(budgetId: AtomicReference<Uuid?>) {
         afterEach {
-            cleanupTransactions(budgetId.value!!, dataSource)
+            deleteTransactions(budgetId.value!!, dataSource)
         }
     }
 
-    fun Spec.resetBalancesAndTransactionAfterSpec(budgetId: Uuid) {
+//    fun Spec.resetBalancesAndTransactionAfterSpec(budgetId: Uuid) {
+//        afterSpec {
+//            cleanupTransactions(budgetId, dataSource)
+//        }
+//    }
+
+    fun Spec.cleanUpEverythingAfterSpec(userName: String) {
         afterSpec {
-            cleanupTransactions(budgetId, dataSource)
+            deleteUser(userName, dataSource)
         }
     }
 
     /**
      * This will be called automatically before a spec starts if you've called [createBasicAccountsBeforeSpec].
      * This ensures the DB contains the basic accounts with zero balances.
+     * @return the budgetId
      */
-    private fun upsertBasicAccounts(
+    private fun initializeWithBasicAccounts(
         budgetName: String,
-        generalAccountId: Uuid = Uuid.parse("dfa8a21c-f0ad-434d-bcb5-9e37749fa81e"),
+        userName: String,
         timeZone: TimeZone = TimeZone.Companion.UTC,
-        authenticatedUser: AuthenticatedUser,
-        budgetId: Uuid,
         clock: Clock,
-    ) {
-        try {
-            userBudgetDao.createUser(authenticatedUser.login, "a", authenticatedUser.id)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        userBudgetDao.createBudget(generalAccountId, budgetId)
+    ): Uuid {
+        val userId = userBudgetDao.createUser(userName, "a").userId
+        val budgetId: Uuid =
+            userBudgetDao
+                .createBudget()
+                .budgetId
         userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,
@@ -111,16 +93,16 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
                     }
                     .atStartOfMonth()
                     .toInstant(timeZone),
-            userId = authenticatedUser.id,
+            userId = userId,
             budgetId = budgetId,
         )
         persistWithBasicAccounts(
             budgetName = budgetName,
-            generalAccountId = generalAccountId,
             timeZone = timeZone,
             budgetId = budgetId,
             accountDao = accountDao,
         )
+        return budgetId
     }
 
     companion object {
@@ -135,7 +117,6 @@ interface BasicAccountsJdbcCliBudgetTestFixture : JdbcCliBudgetTestFixture {
             }
         }
 
-        // TODO consider creating all these accounts on first run
         const val defaultWalletAccountName = "Wallet"
         const val defaultWalletAccountDescription = "Cash on hand"
         const val defaultCheckingAccountName = "Checking"

@@ -17,6 +17,8 @@ import bps.console.io.DefaultOutPrinter
 import bps.console.io.InputReader
 import bps.console.io.OutPrinter
 import bps.console.io.WithIo
+import bps.jdbc.HikariYamlConfig
+import bps.jdbc.JdbcConfig
 import bps.jdbc.configureDataSource
 import kotlinx.datetime.Clock
 import javax.sql.DataSource
@@ -34,6 +36,8 @@ const val userSettingsLabel = "User Settings"
 
 @OptIn(ExperimentalUuidApi::class)
 class BudgetApplication private constructor(
+    budgetName: String,
+    userConfiguration: UserConfiguration,
     override val inputReader: InputReader,
     override val outPrinter: OutPrinter,
     uiFacade: UiFacade,
@@ -44,45 +48,73 @@ class BudgetApplication private constructor(
     val analyticsDao: AnalyticsDao,
     val userBudgetDao: UserBudgetDao,
     clock: Clock,
-    configurations: BudgetConfigurations,
 ) : AutoCloseable, WithIo {
+
+//    constructor(
+//        uiFacade: UiFacade,
+//        configurations: BudgetConfigurations,
+//        inputReader: InputReader = DefaultInputReader,
+//        outPrinter: OutPrinter = DefaultOutPrinter,
+//        clock: Clock = Clock.System,
+//        dataSource: DataSource = configureDataSource(configurations.persistence.jdbc!!, configurations.hikari),
+//    ) : this(
+//        budgetName = configurations.budget.name,
+//        userConfiguration = configurations.user,
+//        uiFacade = uiFacade,
+//        outPrinter = outPrinter,
+//        inputReader = inputReader,
+//        initializingBudgetDao = JdbcInitializingBudgetDao(
+//            configurations.budget.name,
+//            dataSource,
+//        ),
+//        cliBudgetDao = JdbcCliBudgetDao(configurations.budget.name, dataSource),
+//        accountDao = JdbcAccountDao(dataSource),
+//        transactionDao = JdbcTransactionDao(dataSource),
+//        analyticsDao = JdbcAnalyticsDao(dataSource),
+//        userBudgetDao = JdbcUserBudgetDao(dataSource),
+//        clock = clock,
+//    )
 
     constructor(
         uiFacade: UiFacade,
-        configurations: BudgetConfigurations,
+        budgetName: String,
+        userConfiguration: UserConfiguration,
+        jdbcConfig: JdbcConfig,
+        hikari: HikariYamlConfig = HikariYamlConfig(),
         inputReader: InputReader = DefaultInputReader,
         outPrinter: OutPrinter = DefaultOutPrinter,
         clock: Clock = Clock.System,
-        dataSource: DataSource = configureDataSource(configurations.persistence.jdbc!!, configurations.hikari),
+        dataSource: DataSource = configureDataSource(jdbcConfig, hikari),
     ) : this(
+        budgetName = budgetName,
+        userConfiguration = userConfiguration,
         uiFacade = uiFacade,
         outPrinter = outPrinter,
         inputReader = inputReader,
         initializingBudgetDao = JdbcInitializingBudgetDao(
-            configurations.budget.name,
+            budgetName,
             dataSource,
         ),
-        cliBudgetDao = JdbcCliBudgetDao(configurations.budget.name, dataSource),
+        cliBudgetDao = JdbcCliBudgetDao(budgetName, dataSource),
         accountDao = JdbcAccountDao(dataSource),
         transactionDao = JdbcTransactionDao(dataSource),
         analyticsDao = JdbcAnalyticsDao(dataSource),
         userBudgetDao = JdbcUserBudgetDao(dataSource),
         clock = clock,
-        configurations = configurations,
     )
 
     init {
-        initializingBudgetDao.prepForFirstLoad()
+        initializingBudgetDao.ensureTablesAndIndexes()
     }
 
-    val authenticatedUser: AuthenticatedUser = uiFacade.login(userBudgetDao, configurations.user)
+    val authenticatedUser: AuthenticatedUser = uiFacade.login(userBudgetDao, userConfiguration.defaultLogin)
     val budgetData: BudgetData = loadOrBuildBudgetData(
         authenticatedUser = authenticatedUser,
         uiFacade = uiFacade,
         initializingBudgetDao = initializingBudgetDao,
         cliBudgetDao = cliBudgetDao,
         accountDao = accountDao,
-        budgetName = configurations.budget.name,
+        budgetName = budgetName,
         clock = clock,
         userBudgetDao = userBudgetDao,
     )
@@ -95,7 +127,7 @@ class BudgetApplication private constructor(
                 transactionDao = transactionDao,
                 analyticsDao = analyticsDao,
                 userBudgetDao = userBudgetDao,
-                userConfig = configurations.user,
+                userConfig = userConfiguration,
                 userId = authenticatedUser.id,
                 clock = clock,
             ),

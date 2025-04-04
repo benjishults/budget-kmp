@@ -4,7 +4,9 @@ import bps.budget.model.AuthenticatedUser
 import bps.budget.model.CoarseAccess
 import bps.budget.model.User
 import bps.budget.model.UserBudgetAccess
+import bps.budget.persistence.BudgetEntity
 import bps.budget.persistence.UserBudgetDao
+import bps.budget.persistence.UserEntity
 import bps.jdbc.JdbcFixture
 import bps.jdbc.JdbcFixture.Companion.transactOrThrow
 import kotlinx.datetime.Instant
@@ -62,17 +64,22 @@ class JdbcUserBudgetDao(
                 }
         }
 
-    override fun createUser(login: String, password: String, userId: Uuid): Uuid =
-        userId.also {
-            dataSource.transactOrThrow {
-                prepareStatement("insert into users (login, id) values (?, ?)")
-                    .use { statement ->
-                        statement.setString(1, login)
-                        statement.setUuid(2, userId)
-                        statement.executeUpdate()
+    override fun createUser(login: String, password: String): UserEntity =
+        UserEntity(
+            Uuid
+                .random()
+                .also {
+                    dataSource.transactOrThrow {
+                        prepareStatement("insert into users (login, id) values (?, ?)")
+                            .use { statement ->
+                                statement.setString(1, login)
+                                statement.setUuid(2, it)
+                                statement.executeUpdate()
+                            }
                     }
-            }
-        }
+                },
+            login,
+        )
 
     override fun grantAccess(
         budgetName: String,
@@ -137,18 +144,23 @@ class JdbcUserBudgetDao(
                 }
         }
 
-    override fun createBudget(generalAccountId: Uuid, budgetId: Uuid): Uuid =
+    override fun createBudget(generalAccountName: String): BudgetEntity =
         dataSource.transactOrThrow {
+            require(generalAccountName.isNotBlank())
             prepareStatement(
                 """
-                insert into budgets (id, general_account_id)
+                insert into budgets (id, general_account_name)
                 values (?, ?) on conflict do nothing""",
             )
                 .use { createBudgetStatement: PreparedStatement ->
+                    val budgetId = Uuid.random()
                     createBudgetStatement.setUuid(1, budgetId)
-                    createBudgetStatement.setUuid(2, generalAccountId)
+                    createBudgetStatement.setString(2, generalAccountName)
                     createBudgetStatement.executeUpdate()
-                    budgetId
+                    BudgetEntity(
+                        budgetId,
+                        generalAccountName,
+                    )
                 }
         }
 

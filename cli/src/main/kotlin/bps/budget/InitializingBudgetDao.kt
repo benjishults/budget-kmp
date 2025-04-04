@@ -7,7 +7,7 @@ interface InitializingBudgetDao : AutoCloseable {
      *
      * The default implementation does nothing.
      */
-    fun prepForFirstLoad() {}
+    fun ensureTablesAndIndexes() {}
 
     /**
      * Ensures that resources held by the DAO are released.

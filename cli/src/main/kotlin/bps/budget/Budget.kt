@@ -12,7 +12,10 @@ fun main() {
 
     BudgetApplication(
         uiFunctions,
-        configurations,
+        configurations.budget.name,
+        configurations.user,
+        configurations.persistence.jdbc!!,
+        configurations.hikari,
         uiFunctions.inputReader,
         uiFunctions.outPrinter,
     )

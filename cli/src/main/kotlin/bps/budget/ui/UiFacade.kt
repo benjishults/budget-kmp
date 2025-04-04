@@ -27,7 +27,7 @@ interface UiFacade {
     /**
      * Guarantees that the user is in the DB and any authentication has been applied
      */
-    fun login(userBudgetDao: UserBudgetDao, userConfiguration: UserConfiguration): AuthenticatedUser
+    fun login(userBudgetDao: UserBudgetDao, userName: String): AuthenticatedUser
 
     //    fun selectBudget(access: List<BudgetAccess>): String
     fun getBudgetName(): String

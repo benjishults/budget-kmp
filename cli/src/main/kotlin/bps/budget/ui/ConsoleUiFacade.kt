@@ -40,9 +40,10 @@ class ConsoleUiFacade(
     ): BudgetData {
         announceFirstTime()
         val timeZone: TimeZone = getDesiredTimeZone()
-        val generalAccountId: Uuid = Uuid.random()
-        val budgetId: Uuid = Uuid.random()
-        userBudgetDao.createBudget(generalAccountId, budgetId)!!
+        val budgetId: Uuid =
+            userBudgetDao
+                .createBudget()
+                .budgetId
         userBudgetDao.grantAccess(
             budgetName = budgetName,
             timeZoneId = timeZone.id,
@@ -71,7 +72,6 @@ class ConsoleUiFacade(
                 budgetName = budgetName,
                 budgetId = budgetId,
                 timeZone = timeZone,
-                generalAccountId = generalAccountId,
                 checkingBalance = getInitialBalance(
                     "Checking",
                     "this is any account on which you are able to write checks",
@@ -94,10 +94,9 @@ class ConsoleUiFacade(
                     )
                 }
         } else {
-            accountDao.createGeneralAccountWithId(
-                generalAccountId,
+            accountDao.createGeneralAccount(
                 budgetId = Uuid.random(),
-            )!!
+            )
                 .toCategoryAccount()!!
                 .let { generalAccount: CategoryAccount ->
                     BudgetData(
@@ -159,17 +158,16 @@ class ConsoleUiFacade(
         outPrinter("$infoMessage\n")
     }
 
-    override fun login(userBudgetDao: UserBudgetDao, userConfiguration: UserConfiguration): AuthenticatedUser {
-        val login: String = userConfiguration.defaultLogin
+    override fun login(userBudgetDao: UserBudgetDao, userName: String): AuthenticatedUser {
         // TODO replace this with an upsert so we get a single transaction safe from race conditions
         return userBudgetDao
             // NOTE not doing authentication yet
-            .getUserByLoginOrNull(login) as AuthenticatedUser?
+            .getUserByLoginOrNull(userName) as AuthenticatedUser?
             ?: run {
                 outPrinter("Unknown user.  Creating new account.")
                 AuthenticatedUser(
-                    login = login,
-                    id = userBudgetDao.createUser(login, "a"),
+                    login = userName,
+                    id = userBudgetDao.createUser(userName, "a").userId,
                 )
             }
     }

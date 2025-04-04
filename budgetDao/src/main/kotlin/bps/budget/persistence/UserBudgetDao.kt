@@ -1,6 +1,7 @@
 package bps.budget.persistence
 
 import bps.budget.model.User
+import bps.budget.model.defaultGeneralAccountName
 import kotlinx.datetime.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -14,14 +15,16 @@ interface UserBudgetDao {
     fun createUser(
         login: String,
         password: String,
-        userId: Uuid = Uuid.random(),
-    ): Uuid =
+    ): UserEntity =
         TODO()
 
+    /**
+     * @return the budgetId
+     */
     fun createBudget(
-        generalAccountId: Uuid,
-        budgetId: Uuid = Uuid.random(),
-    ): Uuid
+        generalAccountName: String = defaultGeneralAccountName,
+//        budgetId: Uuid = Uuid.random(),
+    ): BudgetEntity
 
     fun grantAccess(
         budgetName: String,

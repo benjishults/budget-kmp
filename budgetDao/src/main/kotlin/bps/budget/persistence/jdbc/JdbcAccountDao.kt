@@ -316,6 +316,42 @@ where aap.account_id = ?
                 .also { insertAccountActivePeriod(it, budgetId) }
         }
 
+    override fun createGeneralAccount(
+        name: String,
+        balance: BigDecimal,
+        budgetId: Uuid,
+    ): AccountEntity =
+        dataSource.transactOrThrow {
+            prepareStatement(
+                """
+                insert into accounts (name, description, balance, type, budget_id, id)
+                values (?, ?, ?, ?, ?, ?)
+            """.trimIndent(),
+            )
+                .use { preparedStatement: PreparedStatement ->
+                    preparedStatement.setString(1, name)
+                    preparedStatement.setString(2, defaultGeneralAccountDescription)
+                    preparedStatement.setBigDecimal(3, balance)
+                    preparedStatement.setString(4, AccountType.category.name)
+                    preparedStatement.setUuid(5, budgetId)
+                    val generalAccountId = Uuid.random()
+                    preparedStatement.setUuid(6, generalAccountId)
+                    if (preparedStatement.executeUpdate() == 1) {
+                        AccountEntity(
+                            name = defaultGeneralAccountName,
+                            description = defaultGeneralAccountDescription,
+                            id = generalAccountId,
+                            balance = balance,
+                            type = AccountType.category.name,
+                            budgetId = budgetId,
+                        )
+                    } else
+                    // NOTE probably an unneeded precaution since an SQLException would have been thrown already
+                        throw IllegalArgumentException("Account already exists with accountId=$generalAccountId")
+                }
+                .also { insertAccountActivePeriod(it, budgetId) }
+        }
+
     private fun Connection.createRealAccountInTransaction(
         name: String,
         description: String,

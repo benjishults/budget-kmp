@@ -1,12 +1,10 @@
 package bps.budget.jdbc
 
-import bps.budget.BudgetConfigurations
 import bps.budget.JdbcCliBudgetDao
 import bps.budget.JdbcInitializingBudgetDao
 import bps.budget.consistency.commitTransactionConsistently
 import bps.budget.jdbc.test.BasicAccountsJdbcCliBudgetTestFixture
 import bps.budget.loadBudgetData
-import bps.budget.model.AuthenticatedUser
 import bps.budget.model.BudgetData
 import bps.budget.model.CategoryAccount
 import bps.budget.model.DraftAccount
@@ -29,6 +27,9 @@ import bps.budget.model.defaultTransportationAccountName
 import bps.budget.model.defaultTravelAccountName
 import bps.budget.model.defaultWalletAccountName
 import bps.budget.model.defaultWorkAccountName
+import bps.jdbc.HikariYamlConfig
+import bps.jdbc.JdbcConfig
+import bps.jdbc.getConfigFromResource
 import bps.kotlin.test.WithMockClock
 import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FreeSpec
@@ -42,34 +43,46 @@ import kotlin.uuid.Uuid
 class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
     WithMockClock {
 
+    val jdbcConfig: JdbcConfig
+    val hikariConfig: HikariYamlConfig
+
     init {
-        val budgetConfigurations = BudgetConfigurations(sequenceOf("hasBasicAccountsJdbc.yml"))
-        val basicAccountsJdbcCliBudgetTestFixture = BasicAccountsJdbcCliBudgetTestFixture(
-            budgetConfigurations.persistence.jdbc!!,
-            budgetConfigurations.budget.name,
-            budgetConfigurations.user.defaultLogin,
+        getConfigFromResource("hasBasicAccountsJdbc.yml")
+            .also {
+                jdbcConfig = it.first
+                hikariConfig = it.second
+            }
+    }
+
+    val budgetName: String = "${this::class.simpleName!!.substring(0, 22)}-${Uuid.random()}"
+    val userName: String = "$budgetName@example.com"
+    val basicAccountsJdbcCliBudgetTestFixture: BasicAccountsJdbcCliBudgetTestFixture =
+        BasicAccountsJdbcCliBudgetTestFixture(
+            jdbcConfig,
+            budgetName,
+            userName,
         )
+
+    init {
         val clock = produceSecondTickingClock()
-        val budgetId: Uuid = Uuid.parse("89bc165a-ee70-43a4-b637-2774bcfc3ea4")
-        val userId: Uuid = Uuid.parse("f0f209c8-1b1e-43b3-8799-2dba58524d02")
         with(basicAccountsJdbcCliBudgetTestFixture) {
             val initializingBudgetDao = JdbcInitializingBudgetDao(budgetName, dataSource)
-            val cliBudgetDao = JdbcCliBudgetDao(userName, dataSource)
+            val cliBudgetDao = JdbcCliBudgetDao(budgetName, dataSource)
             createBasicAccountsBeforeSpec(
-                budgetId,
-                budgetConfigurations.budget.name,
-                AuthenticatedUser(userId, budgetConfigurations.user.defaultLogin),
+                budgetName,
+                userName,
                 TimeZone.of("America/Chicago"),
                 clock,
             ) {
-                initializingBudgetDao.prepForFirstLoad()
+                initializingBudgetDao.ensureTablesAndIndexes()
             }
+            cleanUpEverythingAfterSpec(userName)
 
             "with data from config" - {
                 val budgetData = loadBudgetData(
-                    authenticatedUser = userBudgetDao.getUserByLoginOrNull(budgetConfigurations.user.defaultLogin) as AuthenticatedUser,
+                    userName = userName,
                     initializingBudgetDao = initializingBudgetDao,
-                    budgetName = budgetConfigurations.budget.name,
+                    budgetName = budgetName,
                     cliBudgetDao = cliBudgetDao,
                     accountDao = accountDao,
                 )
@@ -216,7 +229,7 @@ class SomeBasicTransactionsCliBudgetTest : FreeSpec(),
                     checkBalancesAfterCheckClears(budgetData)
                 }
                 "check balances in DB" {
-                    checkBalancesAfterCheckClears(cliBudgetDao.load(budgetData.id, userId, accountDao))
+                    checkBalancesAfterCheckClears(cliBudgetDao.load(budgetName, userName, accountDao))
                 }
             }
         }

@@ -1,14 +1,6 @@
-persistence:
-  type: JDBC
-  jdbc:
-    driver: org.postgresql.Driver
-    schema: test
-    user: test
-    password: test
-    host: localhost
-
-budgetUser:
-  defaultLogin: test@test.com
-
-budget:
-  name: Basic Accounts Test
+jdbc:
+  driver: org.postgresql.Driver
+  schema: test
+  user: test
+  password: test
+  host: localhost
