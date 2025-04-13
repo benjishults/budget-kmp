@@ -27,8 +27,8 @@ import kotlin.uuid.Uuid
 class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
     WithMockClock,
     // NOTE for debugging
-    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
-//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
+//    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(150_000, true) {
+    ComplexConsoleIoTestFixture by ComplexConsoleIoTestFixture(1_500, true) {
 
     val jdbcConfig: JdbcConfig
     val hikariConfig: HikariYamlConfig
@@ -132,6 +132,7 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
+                        "Is this a reimbursement of an expense recorded as to be reimbursed? [y/N]: ",
                         "Enter DESCRIPTION of income [income into '$defaultCheckingAccountName']: ",
                         "Use current time [Y]? ",
                         """
@@ -151,11 +152,12 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
                         |""".trimMargin(),
                         "Enter selection: ",
                     ),
-                    toInput = listOf("", "", "2"),
+                    toInput = listOf("", "", "", "2"),
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
                         "Enter the AMOUNT of INCOME into 'Wallet': ",
+                        "Is this a reimbursement of an expense recorded as to be reimbursed? [y/N]: ",
                         "Enter DESCRIPTION of income [income into '$defaultWalletAccountName']: ",
                         "Use current time [Y]? ",
                         """
@@ -175,7 +177,7 @@ class BudgetApplicationTransactionsCliBudgetTest : FreeSpec(),
                                             |""".trimMargin(),
                         "Enter selection: ",
                     ),
-                    toInput = listOf("200", "", "", "3"),
+                    toInput = listOf("200", "", "", "", "3"),
                 )
                 application.budgetData.asClue { budgetData: BudgetData ->
                     budgetData.categoryAccounts shouldContain budgetData.generalAccount
@@ -659,11 +661,12 @@ Medical          |     200.00 |
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
+                        "Is this expected to be reimbursed? [y/N]: ",
                         "Enter the total AMOUNT spent: ",
                         "Enter DESCRIPTION of transaction: ",
                         "Use current time [Y]? ",
                     ),
-                    toInput = listOf("1.5", "Pepsi", ""),
+                    toInput = listOf("", "1.5", "Pepsi", ""),
                 )
                 validateInteraction(
                     expectedOutputs = listOf(
