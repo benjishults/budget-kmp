@@ -86,7 +86,7 @@ create table if not exists transactions
     id                        uuid         not null unique,
     description               varchar(110) not null default '',
     timestamp_utc             timestamp    not null default now(),
-    -- 'expense', 'transfer', 'allowance', 'income', 'clearing', 'initial'
+    -- 'expense', 'transfer', 'allowance', 'income', 'clearing', 'initial', 'reimburse',
     -- 'clearing' transaction transfer from real to charge or draft accounts
     type                      varchar(20)  not null,
     -- the transaction that clears this transaction
@@ -244,48 +244,13 @@ values ('94c7bee3-80d6-4c8f-ba55-28b8f98dac7a', now(), '0aa01c8e-9944-45de-866b-
 insert into transactions (id, description, timestamp_utc, budget_id)
 VALUES ('773e5d24-5af1-4719-aa15-34fc1288100f', 'income', '2024-07-21T12:03:34Z',
         'ccac6f53-04f3-4da5-a2ea-de39c6843e47');
-insert into transaction_items (transaction_id, description, amount, category_account_id, real_account_id,
-                               budget_id)
-VALUES ('773e5d24-5af1-4719-aa15-34fc1288100f', 'to be allocated', 100, '1d5221d6-acb3-4377-8fa1-bc3289fa75ca', null,
-        'ccac6f53-04f3-4da5-a2ea-de39c6843e47'),
-       ('773e5d24-5af1-4719-aa15-34fc1288100f', 'gift', 100, null, '76ea4bb9-ad3e-4aff-832a-3d3b907713ba',
-        'ccac6f53-04f3-4da5-a2ea-de39c6843e47');
-update category_accounts
-set balance = category_accounts.balance + 100
-where id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca';
-update real_accounts
-set balance = real_accounts.balance + 100
-where id = '76ea4bb9-ad3e-4aff-832a-3d3b907713ba';
 
 -- income 1000 to checking
-insert into transactions (id, description, timestamp_utc, budget_id)
-VALUES ('af7c016d-e674-42fb-b78a-4793befaf719', 'income', '2024-07-21T12:05:34Z',
-        'ccac6f53-04f3-4da5-a2ea-de39c6843e47');
-insert into transaction_items (transaction_id, description, amount, category_account_id, real_account_id,
-                               budget_id)
-VALUES ('af7c016d-e674-42fb-b78a-4793befaf719', 'to be allocated', 1000, '1d5221d6-acb3-4377-8fa1-bc3289fa75ca', null,
-        'ccac6f53-04f3-4da5-a2ea-de39c6843e47'),
-       ('af7c016d-e674-42fb-b78a-4793befaf719', 'income', 1000, null, '5bf25e8c-275d-40a8-a43f-0967697cf87c',
-        'ccac6f53-04f3-4da5-a2ea-de39c6843e47');
-update category_accounts
-set balance = category_accounts.balance + 1000
-where id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca';
-update real_accounts
-set balance = real_accounts.balance + 1000
-where id = '5bf25e8c-275d-40a8-a43f-0967697cf87c';
 
 -- allocation
 insert into transactions (id, description, timestamp_utc, budget_id)
 VALUES ('7db502f8-d633-4dd4-a890-f8c1257ede79', 'allocate', '2024-07-21T12:04:34Z',
         'ccac6f53-04f3-4da5-a2ea-de39c6843e47');
-insert into transaction_items (transaction_id, description, amount, category_account_id, real_account_id,
-                               budget_id)
-VALUES ('7db502f8-d633-4dd4-a890-f8c1257ede79', 'allocate', -100, '1d5221d6-acb3-4377-8fa1-bc3289fa75ca', null,
-        'ccac6f53-04f3-4da5-a2ea-de39c6843e47'),
-       ('7db502f8-d633-4dd4-a890-f8c1257ede79', 'allocate to food', 50, 'bea7965c-6f6a-4c80-ad3f-b9c1367664c0', null,
-        'ccac6f53-04f3-4da5-a2ea-de39c6843e47'),
-       ('7db502f8-d633-4dd4-a890-f8c1257ede79', 'allocate to necessities', 50, '0aa01c8e-9944-45de-866b-388261010045',
-        null, 'ccac6f53-04f3-4da5-a2ea-de39c6843e47');
 
 select *
 from transaction_items as item
@@ -324,10 +289,10 @@ select -- t.id            as transaction_id,
        t.timestamp_utc as transaction_timestamp,
        i.amount,
        t.type,
---        i.description,
---        i.account_id,
+       i.description,
        i.draft_status,
-       a.name
+       a.name,
+       a.type          as account_type
 --        i.id
 from transactions t
          join transaction_items i
@@ -336,10 +301,10 @@ from transactions t
          join accounts a
               on a.id = i.account_id
 where a.type = 'real'
-  and a.name = 'Webull Cash'
+  and a.name = 'Hongyi''s Wallet'
 --     and i.account_id = '1d5221d6-acb3-4377-8fa1-bc3289fa75ca'
 order by t.timestamp_utc desc, t.id
-limit 30
+-- limit 30
 ;
 
 select t.description   as transaction_description,

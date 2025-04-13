@@ -5,6 +5,11 @@ enum class TransactionType {
     income,
 
     /**
+     * Income or expenditure that isn't included in income or expenditure calculations.
+     */
+    reimburse,
+
+    /**
      * Starting to track an existing real account for the first time.
      */
     initial,

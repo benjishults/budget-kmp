@@ -41,7 +41,6 @@ fun WithIo.recordIncomeSelectionMenu(
     analyticsDao: AnalyticsDao,
     userConfig: UserConfiguration,
     clock: Clock,
-    // TODO make this take the amount first and distribute among accounts?
 ): Menu {
     val now = clock.now()
     return ScrollingSelectionMenu(
@@ -134,10 +133,18 @@ fun WithIo.recordIncomeSelectionMenu(
             }
                 .getResult()
                 ?: throw TryAgainAtMostRecentMenuException("No amount entered.")
-        outPrinter.verticalSpace()
         if (amount <= BigDecimal.ZERO.setScale(2)) {
             outPrinter.important("Not recording non-positive income.")
         } else {
+            outPrinter.verticalSpace()
+            val reimbursement: Boolean = SimplePromptWithDefault(
+                basicPrompt = "Is this a reimbursement of an expense recorded as to be reimbursed? [y/N]: ",
+                defaultValue = false,
+                inputReader = inputReader,
+                outPrinter = outPrinter,
+                transformer = { it in listOf("y", "Y") },
+            )
+                .getResult()!!
             outPrinter.verticalSpace()
             val description: String =
                 SimplePromptWithDefault(
@@ -153,7 +160,17 @@ fun WithIo.recordIncomeSelectionMenu(
                 ?.toInstant(budgetData.timeZone)
                 ?: throw TryAgainAtMostRecentMenuException("No timestamp entered.")
             commitTransactionConsistently(
-                createIncomeTransaction(description, timestamp, amount, budgetData, realAccount),
+                createTransactionAddingToRealAccountAndGeneral(
+                    description,
+                    timestamp,
+                    amount,
+                    budgetData,
+                    realAccount,
+                    if (reimbursement)
+                        TransactionType.reimburse.name
+                    else
+                        TransactionType.income.name,
+                ),
                 transactionDao,
                 accountDao,
                 budgetData,
@@ -190,21 +207,6 @@ fun Account.formatAccountAnalyticsLabel(
     max,
     min,
     description,
-)
-
-fun createIncomeTransaction(
-    description: String,
-    timestamp: Instant,
-    amount: BigDecimal,
-    budgetData: BudgetData,
-    realAccount: RealAccount,
-): Transaction = createTransactionAddingToRealAccountAndGeneral(
-    description = description,
-    timestamp = timestamp,
-    transactionType = TransactionType.income.name,
-    amount = amount,
-    budgetData = budgetData,
-    realAccount = realAccount,
 )
 
 fun createInitialBalanceTransaction(
