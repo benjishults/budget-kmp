@@ -15,6 +15,7 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Timestamp
@@ -122,10 +123,10 @@ class JdbcAnalyticsDao(
         fun average(options: AnalyticsOptions): BigDecimal? =
             computeMonthlyTotals(options)
                 .let { listOfTotals: List<BigDecimal> ->
-                    if (listOfTotals.isEmpty())
-                        null
-                    else
-                        listOfTotals.reduce(BigDecimal::plus) / listOfTotals.size.toBigDecimal()
+                    listOfTotals
+                        .reduceOrNull(BigDecimal::plus)
+                        ?.setScale(2, RoundingMode.HALF_EVEN)
+                        ?.divide(listOfTotals.size.toBigDecimal(), 2, RoundingMode.HALF_EVEN)
                 }
 
         // TODO worry about options
@@ -150,15 +151,59 @@ class JdbcAnalyticsDao(
                         listOfTotals.min()
                 }
 
+        /**
+         * @return a [List] of [BigDecimal]s whose length is the total number of months specified by [options].
+         * The elements of that [List] are, in order of months ascending, the average amounts of the month.
+         * If a month has no transactions, the value will be [BigDecimal.ZERO].
+         */
+        // FIXME gh-76 this still starts too late and stops too early according to [options].
+        //       We need to compute the start and end interval before starting anything else.
         // TODO worry about options
         // TODO worry about exceptions
         private fun computeMonthlyTotals(options: AnalyticsOptions): List<BigDecimal> =
-            this@MonthlyItemSeries.items
-                .map { (_: LocalDateTime, v: ItemsInInterval) ->
-                    v.items
-                        .map { it.amount }
-                        .reduce(BigDecimal::plus)
-                }
+            if (this@MonthlyItemSeries.items.isEmpty())
+                emptyList()
+            else {
+                var runningTransactionIntervalStart: LocalDateTime =
+                    this@MonthlyItemSeries
+                        .items
+                        .firstKey()
+                this@MonthlyItemSeries
+                    .items
+                    .map { (intervalStart: LocalDateTime, v: ItemsInInterval) ->
+                        if (intervalStart != runningTransactionIntervalStart) {
+                            BigDecimal.ZERO.setScale(2)
+                        } else {
+                            v.items
+                                .map { it.amount }
+                                .reduce(BigDecimal::plus)
+                        }
+                            .also {
+                                runningTransactionIntervalStart =
+                                    runningTransactionIntervalStart
+                                        .month
+                                        .takeIf { it == Month.DECEMBER }
+                                        ?.let {
+                                            LocalDateTime(
+                                                year = runningTransactionIntervalStart.year + 1,
+                                                month = Month.JANUARY,
+                                                dayOfMonth = 1,
+                                                hour = 0,
+                                                minute = 0,
+                                                second = 0,
+                                            )
+                                        }
+                                        ?: LocalDateTime(
+                                            year = runningTransactionIntervalStart.year,
+                                            month = runningTransactionIntervalStart.month + 1,
+                                            dayOfMonth = 1,
+                                            hour = 0,
+                                            minute = 0,
+                                            second = 0,
+                                        )
+                            }
+                    }
+            }
 
     }
 
@@ -348,10 +393,11 @@ class JdbcAnalyticsDao(
             val expenditures = MonthlyItemSeries()
             prepareStatement(
                 """
-                |select t.timestamp_utc, ti.amount from transaction_items ti
-                |join transactions t
-                |  on ti.transaction_id = t.id
-                |    and ti.budget_id = t.budget_id
+                |select t.timestamp_utc, ti.amount
+                |from transaction_items ti
+                |  join transactions t
+                |    on ti.transaction_id = t.id
+                |      and ti.budget_id = t.budget_id
                 |where ti.account_id = ?
                 |  and t.type = 'expense'
                 |  and ti.amount < 0
@@ -371,8 +417,8 @@ class JdbcAnalyticsDao(
                         setEndTimeStampMaybe(options, statement, 3, this@JdbcAnalyticsDao.clock.now(), timeZone),
                         budgetId,
                     )
-
-                    statement.executeQuery()
+                    statement
+                        .executeQuery()
                         .use { resultSet: ResultSet ->
                             while (resultSet.next()) {
                                 expenditures.add(
@@ -380,7 +426,7 @@ class JdbcAnalyticsDao(
                                         -resultSet.getBigDecimal("amount"),
                                         resultSet.getInstantOrNull()!!
                                             // FIXME do these really need to be LocalDateTimes?
-                                            //       if not, we may avoid some problems my leaving them as Instants
+                                            //       if not, we may avoid some problems by leaving them as Instants
                                             .toLocalDateTime(timeZone),
                                     ),
                                 )
