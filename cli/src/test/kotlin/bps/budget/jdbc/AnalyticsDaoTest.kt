@@ -1,7 +1,6 @@
 package bps.budget.jdbc
 
 import bps.budget.analytics.AnalyticsOptions
-import bps.budget.model.CategoryAccount
 import bps.budget.persistence.AnalyticsDao
 import bps.budget.persistence.jdbc.JdbcAnalyticsDao
 import bps.kotlin.test.WithMockClock
@@ -81,8 +80,8 @@ class AnalyticsDaoTest : FreeSpec(),
                     // NOTE this is midnight in New York (though it's ignored due to mocking the connection)
                     since = Instant.parse("2023-08-01T04:00:00Z"),
                 ),
-                Uuid.random()
-            ) shouldBe (366 * 50 / 12).toBigDecimal()
+                Uuid.random(),
+            ) shouldBe (366 * 50 / 12).toBigDecimal().setScale(2)
         }
     }
 

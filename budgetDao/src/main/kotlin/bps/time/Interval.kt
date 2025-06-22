@@ -54,11 +54,6 @@ data class NaturalWeekLocalInterval(
 ) : PeriodInterval<LocalDateTime>, NaturalLocalInterval {
     override val unit: DateTimeUnit.DayBased = DateTimeUnit.DayBased(7)
 
-//    constructor(
-//        start: LocalDateTime,
-//        weeks: Int = 1,
-//    ) : this(start, DateTimeUnit.DayBased(weeks))
-
     init {
         require(
 //            unit.days % 7 == 0 &&
