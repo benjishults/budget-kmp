@@ -27,10 +27,10 @@ fun WithIo.manageTransactions(
         header = { "Select account to manage transactions" },
         limit = userConfig.numberOfItemsInScrollingList,
         baseList = buildList {
-            add(budgetData.generalAccount)
-            addAll(budgetData.categoryAccounts - budgetData.generalAccount)
             addAll(budgetData.realAccounts)
             addAll(budgetData.chargeAccounts)
+            addAll(budgetData.categoryAccounts - budgetData.generalAccount)
+            add(budgetData.generalAccount)
         },
         // TODO https://github.com/benjishults/budget/issues/7
 //        extraItems = listOf(item("View Inactive Accounts") {}),
